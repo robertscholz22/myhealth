@@ -1,0 +1,148 @@
+package com.myhealth.ui.training
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.myhealth.domain.model.SessionType
+import com.myhealth.domain.model.SportType
+import com.myhealth.domain.repository.PlanRepository
+import com.myhealth.domain.util.Outcome
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.time.Clock
+import java.time.LocalDate
+
+/** ViewModel state for [PlannedSessionEditScreen]. */
+data class PlannedSessionEditUiState(
+    val isLoading: Boolean = true,
+    val isNew: Boolean = true,
+    val draft: PlannedSessionDraft = PlannedSessionDraft(),
+    val errors: Map<PlannedSessionField, String> = emptyMap(),
+    val isSaving: Boolean = false,
+    val saveError: String? = null,
+    val loadError: String? = null,
+    val pendingDelete: Boolean = false,
+    /** One-shot: the screen pops back once either flips to `true`. */
+    val saved: Boolean = false,
+    val deleted: Boolean = false,
+) {
+    val sessionTypes: List<SessionType> get() = sessionTypesFor(draft.sportType)
+}
+
+/**
+ * Backs [PlannedSessionEditScreen] (PLAN §4.2 "Planned session edit", P6.8). `id == -1` creates a
+ * new session on `epochDay` (defaulting to today), attached to the active plan if there is one.
+ *
+ * Changing the sport re-derives the session type, and changing the session type re-derives the
+ * intensity and the sport, so the three can never disagree with the §3.5.4 catalog — the same
+ * consistency the suggester's own placements have.
+ */
+class PlannedSessionEditViewModel(
+    private val id: Long,
+    private val epochDay: Long,
+    private val planRepo: PlanRepository,
+    private val clock: Clock,
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(
+        PlannedSessionEditUiState(isLoading = id != NEW_ID, isNew = id == NEW_ID),
+    )
+    val state: StateFlow<PlannedSessionEditUiState> = _state.asStateFlow()
+
+    init {
+        load()
+    }
+
+    private fun load() {
+        viewModelScope.launch {
+            if (id == NEW_ID) {
+                val day = if (epochDay >= 0L) epochDay else LocalDate.now(clock).toEpochDay()
+                val planId = planRepo.observeActivePlan().first()?.id
+                _state.update {
+                    it.copy(
+                        isLoading = false,
+                        draft = PlannedSessionDraft(
+                            planId = planId,
+                            day = LocalDate.ofEpochDay(day),
+                        ),
+                    )
+                }
+                return@launch
+            }
+            val session = planRepo.getSession(id)
+            if (session == null) {
+                _state.update { it.copy(isLoading = false, loadError = "Session not found.") }
+            } else {
+                _state.update { it.copy(isLoading = false, draft = plannedSessionDraftOf(session)) }
+            }
+        }
+    }
+
+    fun update(transform: (PlannedSessionDraft) -> PlannedSessionDraft) {
+        _state.update { current ->
+            val draft = transform(current.draft)
+            current.copy(
+                draft = draft,
+                errors = if (current.errors.isEmpty()) emptyMap() else validatePlannedSession(draft),
+            )
+        }
+    }
+
+    fun setSport(sportType: SportType) = update { draft ->
+        val types = sessionTypesFor(sportType)
+        val sessionType = if (draft.sessionType in types) draft.sessionType else types.first()
+        draft.copy(
+            sportType = sportType,
+            sessionType = sessionType,
+            intensity = intensityFor(sessionType, draft.intensity),
+        )
+    }
+
+    fun setSessionType(sessionType: SessionType) = update { draft ->
+        draft.copy(
+            sessionType = sessionType,
+            sportType = sportTypeFor(sessionType, draft.sportType),
+            intensity = intensityFor(sessionType, draft.intensity),
+        )
+    }
+
+    fun save() {
+        val draft = _state.value.draft
+        val errors = validatePlannedSession(draft)
+        if (errors.isNotEmpty()) {
+            _state.update { it.copy(errors = errors) }
+            return
+        }
+        viewModelScope.launch {
+            _state.update { it.copy(isSaving = true, saveError = null) }
+            when (planRepo.upsertSession(draft.toPlannedSession(clock))) {
+                is Outcome.Ok -> _state.update { it.copy(isSaving = false, saved = true) }
+                is Outcome.Err -> _state.update {
+                    it.copy(isSaving = false, saveError = "Could not save the session. Please try again.")
+                }
+            }
+        }
+    }
+
+    fun requestDelete() = _state.update { it.copy(pendingDelete = true) }
+
+    fun cancelDelete() = _state.update { it.copy(pendingDelete = false) }
+
+    fun confirmDelete() {
+        _state.update { it.copy(pendingDelete = false) }
+        viewModelScope.launch {
+            when (planRepo.deleteSession(id)) {
+                is Outcome.Ok -> _state.update { it.copy(deleted = true) }
+                is Outcome.Err -> _state.update { it.copy(saveError = "Could not delete the session.") }
+            }
+        }
+    }
+
+    private companion object {
+        /** `PlannedSessionEditRoute`'s "no id" sentinel (§4.1). */
+        const val NEW_ID = -1L
+    }
+}

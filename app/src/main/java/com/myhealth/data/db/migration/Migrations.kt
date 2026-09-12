@@ -1,0 +1,70 @@
+package com.myhealth.data.db.migration
+
+import androidx.room.migration.Migration
+
+/**
+ * Schema migrations for [com.myhealth.data.db.MyHealthDatabase] (PLAN §2.2, §6.4).
+ *
+ * Convention — every schema change follows all five steps, in this order:
+ *
+ * 1. Change the entity/entities, then bump `@Database(version = N)` by exactly one.
+ * 2. Add `private val MIGRATION_(N-1)_N = Migration(N - 1, N) { db -> … }` below, using only
+ *    `db.execSQL(...)`. Never reference an entity class or a DAO from a migration: migrations run
+ *    against the schema as it was, not as the code now describes it.
+ * 3. Append it to [ALL]. The array stays ordered by version, oldest first, and a migration that
+ *    has shipped to the device is never reordered or edited in place.
+ * 4. Build once so Room writes `app/schemas/com.myhealth.data.db.MyHealthDatabase/N.json`, and
+ *    keep that file — `MigrationTestHelper` replays real upgrades from it.
+ * 5. Add a row to the migration table in `docs/PLAN.md` §6.4 (from, to, what changed, why).
+ *
+ * `fallbackToDestructiveMigration` is forbidden outside the debug-only escape hatch in
+ * `MyHealthDatabase.build` (§2.2): losing a user's history is never an acceptable upgrade path.
+ */
+object Migrations {
+
+    /**
+     * 1 → 2 (P8.5): the `ingredient_fts` FTS4 index over `ingredient(name, brand)`.
+     *
+     * The statements are Room's own, copied verbatim from
+     * `app/schemas/com.myhealth.data.db.MyHealthDatabase/2.json` (`createSql` with `${'$'}{TABLE_NAME}`
+     * resolved, plus the four `contentSyncTriggers`) — an external-content FTS table is only kept
+     * in step by those triggers, and Room's schema validation compares them character for
+     * character. The final `'rebuild'` command fills the index from the rows that already exist,
+     * which the triggers alone would never do.
+     */
+    private val MIGRATION_1_2 = Migration(1, 2) { db ->
+        db.execSQL(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS `ingredient_fts` USING FTS4(" +
+                "`name` TEXT NOT NULL, `brand` TEXT, content=`ingredient`)",
+        )
+        db.execSQL(
+            "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_ingredient_fts_BEFORE_UPDATE " +
+                "BEFORE UPDATE ON `ingredient` BEGIN " +
+                "DELETE FROM `ingredient_fts` WHERE `docid`=OLD.`rowid`; END",
+        )
+        db.execSQL(
+            "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_ingredient_fts_BEFORE_DELETE " +
+                "BEFORE DELETE ON `ingredient` BEGIN " +
+                "DELETE FROM `ingredient_fts` WHERE `docid`=OLD.`rowid`; END",
+        )
+        db.execSQL(
+            "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_ingredient_fts_AFTER_UPDATE " +
+                "AFTER UPDATE ON `ingredient` BEGIN " +
+                "INSERT INTO `ingredient_fts`(`docid`, `name`, `brand`) " +
+                "VALUES (NEW.`rowid`, NEW.`name`, NEW.`brand`); END",
+        )
+        db.execSQL(
+            "CREATE TRIGGER IF NOT EXISTS room_fts_content_sync_ingredient_fts_AFTER_INSERT " +
+                "AFTER INSERT ON `ingredient` BEGIN " +
+                "INSERT INTO `ingredient_fts`(`docid`, `name`, `brand`) " +
+                "VALUES (NEW.`rowid`, NEW.`name`, NEW.`brand`); END",
+        )
+        db.execSQL("INSERT INTO ingredient_fts(ingredient_fts) VALUES('rebuild')")
+    }
+
+    /**
+     * Every migration, oldest first. `.addMigrations(*ALL)` is the only call site, in
+     * `MyHealthDatabase.build`, so adding a migration never changes it.
+     */
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2)
+}

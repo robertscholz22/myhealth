@@ -1,0 +1,159 @@
+package com.myhealth.data.repository
+
+import com.google.common.truth.Truth.assertThat
+import com.myhealth.data.db.entity.SuggestedSessionEntity
+import com.myhealth.data.db.entity.SuggestionBatchEntity
+import com.myhealth.domain.engine.suggest.SuggestFixtures
+import com.myhealth.domain.engine.suggest.SuggestionEngine
+import com.myhealth.domain.model.Intensity
+import com.myhealth.domain.model.PlanStatus
+import com.myhealth.domain.model.PlannedStatus
+import com.myhealth.domain.model.SessionType
+import com.myhealth.domain.model.SportType
+import com.myhealth.domain.model.SuggestionStatus
+import com.myhealth.domain.model.TrainingPhase
+import com.myhealth.domain.util.Outcome
+import com.myhealth.testutil.Fixtures
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import org.junit.Test
+
+/**
+ * [RoomSuggestionRepository] against in-memory fakes (PLAN P6.5). The two behaviours that are not
+ * in the schema and not in the engine live here: a new batch supersedes the previous `PROPOSED`
+ * one, and accepting a suggestion copies it into `planned_session` (creating the default `ACTIVE`
+ * plan when the owner has none).
+ */
+class RoomSuggestionRepositoryTest {
+
+    private val clock = Fixtures.fixedClock("2026-09-14T06:00:00Z")
+    private val today = SuggestFixtures.TODAY_DAY
+
+    private val suggestionDao = FakeSuggestionDao()
+    private val planDao = FakePlanDao()
+    private val planRepo = RoomPlanRepository(planDao, clock, Dispatchers.Unconfined)
+    private val goalRepo = RoomGoalRepository(FakeGoalDao(), clock, Dispatchers.Unconfined)
+    private val profileRepo = FakeTargetProfileRepository(SuggestFixtures.profile())
+    private val calendarRepo = FakeTargetCalendarRepository()
+    private val loadRepo = FakeLoadRepository()
+    private val activityDao = FakeActivityDao()
+    private val activityRepo = RoomActivityRepository(
+        activityDao,
+        ActivityIngestor(activityDao, DirectTransactionRunner, clock),
+        clock,
+        ioDispatcher = Dispatchers.Unconfined,
+    )
+
+    private var recomputeRequests = 0
+
+    private val repo = RoomSuggestionRepository(
+        suggestionDao = suggestionDao,
+        planRepo = planRepo,
+        goalRepo = goalRepo,
+        profileRepo = profileRepo,
+        calendarRepo = calendarRepo,
+        loadRepo = loadRepo,
+        activityRepo = activityRepo,
+        engine = SuggestionEngine(clock),
+        clock = clock,
+        onPlanChanged = { recomputeRequests++ },
+        ioDispatcher = Dispatchers.Unconfined,
+    )
+
+    @Test
+    fun generate_supersedes_the_previous_proposed_batch() = runTest {
+        seedLoadHistory()
+
+        val first = (repo.generate(7) as Outcome.Ok).value
+        val second = (repo.generate(7) as Outcome.Ok).value
+
+        assertThat(second.id).isNotEqualTo(first.id)
+        assertThat(suggestionDao.getById(first.id)?.status).isEqualTo(SuggestionStatus.SUPERSEDED)
+        assertThat(suggestionDao.getById(second.id)?.status).isEqualTo(SuggestionStatus.PROPOSED)
+        assertThat(repo.observeLatestBatch().first()?.id).isEqualTo(second.id)
+        // The engine actually produced a week: the batch is worth reviewing, not an empty shell.
+        assertThat(repo.observeSessions(second.id).first()).isNotEmpty()
+        assertThat(second.horizonStartDay).isEqualTo(today)
+        assertThat(second.horizonEndDay).isEqualTo(today + 7)
+    }
+
+    @Test
+    fun accept_copies_suggestions_into_planned_sessions_and_creates_the_default_plan() = runTest {
+        val batchId = suggestionDao.upsert(
+            SuggestionBatchEntity(
+                id = 0L,
+                generatedAtMillis = clock.millis(),
+                horizonStartDay = today,
+                horizonEndDay = today + 7,
+                phase = TrainingPhase.BASE,
+                weeklyLoadTarget = 400.0,
+                inputsHash = "hash",
+            ),
+        )
+        suggestionDao.upsertSessions(
+            listOf(
+                suggested(batchId, day = today + 1, sessionType = SessionType.EASY_RUN),
+                suggested(batchId, day = today + 3, sessionType = SessionType.TEMPO_RUN),
+            ),
+        )
+        val proposed = suggestionDao.getSessionsForBatch(batchId)
+
+        val accepted = proposed.take(1).map { it.id }
+        assertThat(repo.accept(accepted)).isInstanceOf(Outcome.Ok::class.java)
+
+        val plan = planRepo.observeActivePlan().first()
+        assertThat(plan).isNotNull()
+        assertThat(plan!!.name).isEqualTo(RoomSuggestionRepository.DEFAULT_PLAN_NAME)
+        assertThat(plan.status).isEqualTo(PlanStatus.ACTIVE)
+        assertThat(plan.startDay).isEqualTo(today)
+
+        val planned = planRepo.getSessions(today, today + 7)
+        assertThat(planned).hasSize(1)
+        assertThat(planned.single().sourceSuggestionId).isEqualTo(accepted.single())
+        assertThat(planned.single().planId).isEqualTo(plan.id)
+        assertThat(planned.single().status).isEqualTo(PlannedStatus.PLANNED)
+        assertThat(planned.single().day).isEqualTo(today + 1)
+        assertThat(planned.single().sessionType).isEqualTo(SessionType.EASY_RUN)
+
+        assertThat(suggestionDao.getSessionById(accepted.single())?.status)
+            .isEqualTo(SuggestionStatus.ACCEPTED)
+        assertThat(recomputeRequests).isEqualTo(1)
+
+        // The untouched suggestion is still open, and rejecting it closes it.
+        val rejected = proposed.drop(1).map { it.id }
+        repo.reject(rejected)
+        assertThat(suggestionDao.getSessionById(rejected.single())?.status)
+            .isEqualTo(SuggestionStatus.REJECTED)
+        assertThat(planRepo.getSessions(today, today + 7)).hasSize(1)
+    }
+
+    // ---- helpers -------------------------------------------------------------------------------
+
+    /** 42 days at 60 AU/day so `Periodization` has a CTL to build a real weekly budget from. */
+    private fun seedLoadHistory() {
+        (1L..42L).forEach { back ->
+            val day = today - back
+            loadRepo.rows[day] = SuggestFixtures.load(day = day, trimp = 60.0, atl = 60.0, ctl = 55.0)
+        }
+    }
+
+    private fun suggested(
+        batchId: Long,
+        day: Long,
+        sessionType: SessionType,
+    ): SuggestedSessionEntity = SuggestedSessionEntity(
+        id = 0L,
+        batchId = batchId,
+        day = day,
+        sportType = SportType.RUN_OUTDOOR,
+        sessionType = sessionType,
+        intensity = Intensity.LOW,
+        targetDurationMin = 45,
+        targetDistanceMeters = null,
+        estimatedTrimp = 54.0,
+        score = 0.8,
+        rationaleJson = """[{"ruleId":"PHASE_BASE","text":"Base phase: easy volume."}]""",
+        status = SuggestionStatus.PROPOSED,
+    )
+}

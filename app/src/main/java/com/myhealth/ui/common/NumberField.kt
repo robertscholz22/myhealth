@@ -1,0 +1,73 @@
+package com.myhealth.ui.common
+
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
+import com.myhealth.ui.theme.MyHealthTheme
+import java.util.Locale
+
+/**
+ * Numeric text field (§4.3): `NumberField(label, value, onValueChange, suffix, decimals)`.
+ *
+ * Keeps its own text buffer so the user can type freely (leading "-", a trailing "."), only
+ * calling [onValueChange] once the buffer parses to a [Double]; an unparsable buffer (including
+ * blank) reports `null` upstream without discarding what the user typed.
+ */
+@Composable
+fun NumberField(
+    label: String,
+    value: Double?,
+    onValueChange: (Double?) -> Unit,
+    modifier: Modifier = Modifier,
+    suffix: String? = null,
+    decimals: Int = 1,
+    allowNegative: Boolean = false,
+    isError: Boolean = false,
+    supportingText: String? = null,
+    enabled: Boolean = true,
+) {
+    var text by remember { mutableStateOf(value.toDisplayText(decimals)) }
+
+    OutlinedTextField(
+        value = text,
+        onValueChange = { candidate ->
+            if (candidate.isValidNumberInput(allowNegative)) {
+                text = candidate
+                onValueChange(candidate.toDoubleOrNull())
+            }
+        },
+        modifier = modifier.fillMaxWidth(),
+        enabled = enabled,
+        label = { Text(label) },
+        suffix = suffix?.let { { Text(it) } },
+        isError = isError,
+        supportingText = supportingText?.let { { Text(it) } },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+    )
+}
+
+private fun Double?.toDisplayText(decimals: Int): String =
+    this?.let { String.format(Locale.US, "%.${decimals}f", it) } ?: ""
+
+private fun String.isValidNumberInput(allowNegative: Boolean): Boolean {
+    val pattern = if (allowNegative) "-?\\d*\\.?\\d*" else "\\d*\\.?\\d*"
+    return this.matches(Regex(pattern))
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun NumberFieldPreview() {
+    MyHealthTheme(dynamicColor = false) {
+        NumberField(label = "Height", value = 178.0, onValueChange = {}, suffix = "cm", decimals = 0)
+    }
+}

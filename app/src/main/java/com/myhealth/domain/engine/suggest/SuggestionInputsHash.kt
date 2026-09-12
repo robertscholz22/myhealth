@@ -1,0 +1,111 @@
+package com.myhealth.domain.engine.suggest
+
+import java.security.MessageDigest
+import java.util.Locale
+
+/**
+ * `suggestion_batch.inputsHash` (PLAN §3.5.6 step 9): SHA-256 over a canonical serialization of the
+ * [SuggestionInput].
+ *
+ * Canonical means: every collection is sorted by a stable key, every `Double` is rendered at a
+ * fixed precision with `Locale.US`, every `null` becomes the empty string, and no `hashCode()` or
+ * map iteration order is involved. Two runs over the same data therefore produce the same digest in
+ * this and any future process (test `sug14`), and the digest changes exactly when something the
+ * engine actually reads changed.
+ *
+ * `java.security.MessageDigest` is used deliberately (R5 forbids adding a library for this).
+ */
+object SuggestionInputsHash {
+
+    fun of(input: SuggestionInput): String = sha256(canonical(input))
+
+    /** The exact string that gets hashed — exposed for tests and for debugging a regeneration. */
+    fun canonical(input: SuggestionInput): String = buildString {
+        line("today", input.todayDay.toString())
+        line("horizonDays", input.horizonDays.toString())
+        line("planStartDay", input.planStartDay?.toString())
+        line(
+            "profile",
+            listOf(
+                input.profile.id.toString(),
+                input.profile.sex.name,
+                input.profile.birthDay.toString(),
+                num(input.profile.heightCm),
+                input.profile.neatLevel.name,
+                input.profile.preferredSportsJson,
+                input.profile.mobilityOnRestDays.toString(),
+                num(input.profile.goalWeightKg),
+                num(input.profile.goalPaceKgPerWeek),
+            ).joinToString("|"),
+        )
+        input.goals.sortedWith(compareBy({ it.priority }, { it.id })).forEach { goal ->
+            line(
+                "goal",
+                listOf(
+                    goal.id.toString(), goal.type.name, goal.status.name, goal.priority.toString(),
+                    goal.targetDay?.toString() ?: "", num(goal.targetDistanceMeters),
+                    goal.targetTimeSec?.toString() ?: "", num(goal.targetWeightKg), num(goal.targetValue),
+                ).joinToString("|"),
+            )
+        }
+        input.events.sortedWith(compareBy({ it.occurrenceDay }, { it.eventId }, { it.type.name })).forEach { e ->
+            line(
+                "event",
+                listOf(
+                    e.eventId.toString(), e.occurrenceDay.toString(), e.type.name,
+                    e.effectiveStartMinuteOfDay?.toString() ?: "", e.effectiveDurationMin?.toString() ?: "",
+                    e.sportType?.name ?: "", e.isKeyEvent.toString(),
+                ).joinToString("|"),
+            )
+        }
+        input.lockedPlanned.sortedWith(compareBy({ it.day }, { it.id })).forEach { s ->
+            line(
+                "locked",
+                listOf(
+                    s.id.toString(), s.day.toString(), s.sportType.name, s.sessionType.name,
+                    s.intensity.name, s.targetDurationMin?.toString() ?: "", num(s.estimatedTrimp),
+                ).joinToString("|"),
+            )
+        }
+        input.recentLoad.sortedBy { it.day }.forEach { load ->
+            line(
+                "load",
+                listOf(
+                    load.day.toString(), num(load.trimp), num(load.atl), num(load.ctl),
+                    num(load.acwr), num(load.tsb),
+                ).joinToString("|"),
+            )
+        }
+        input.recovery?.let { state ->
+            line(
+                "recovery",
+                listOf(
+                    state.day.toString(), state.score?.toString() ?: "", state.band?.name ?: "",
+                    num(state.confidence),
+                ).joinToString("|"),
+            )
+        }
+        input.recentActivities.sortedWith(compareBy({ it.day }, { it.id })).forEach { a ->
+            line(
+                "activity",
+                listOf(
+                    a.id.toString(), a.day.toString(), a.sportType.name,
+                    a.durationSec.toString(), num(a.trimp),
+                ).joinToString("|"),
+            )
+        }
+    }
+
+    fun sha256(value: String): String {
+        val digest = MessageDigest.getInstance("SHA-256").digest(value.toByteArray(Charsets.UTF_8))
+        return buildString(digest.size * 2) {
+            digest.forEach { append(String.format(Locale.US, "%02x", it)) }
+        }
+    }
+
+    private fun num(value: Double?): String = value?.let { String.format(Locale.US, "%.3f", it) } ?: ""
+
+    private fun StringBuilder.line(key: String, value: String?) {
+        append(key).append('=').append(value ?: "").append('\n')
+    }
+}

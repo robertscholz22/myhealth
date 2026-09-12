@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Heart with an ECG trace: health + activity. Drawn inside the 72dp safe zone. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M54,78.5C54,78.5 30,62.6 30,48.2C30,40.9 35.7,35 42.8,35C46.9,35 50.8,37 54,40.4C57.2,37 61.1,35 65.2,35C72.3,35 78,40.9 78,48.2C78,62.6 54,78.5 54,78.5Z" />
+    <path
+        android:fillColor="#FF0B6E4F"
+        android:pathData="M34,53.5h9.5l3.5,-8l5.5,15l5,-11l3,4h11v4h-13.2l-1.4,-1.9l-5.6,12.4l-5.6,-15.3l-2.2,4.8h-9.5z" />
+</vector>

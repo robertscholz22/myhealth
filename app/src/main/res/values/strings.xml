@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MyHealth</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_today">Today</string>
+    <string name="nav_calendar">Calendar</string>
+    <string name="nav_nutrition">Nutrition</string>
+    <string name="nav_training">Training</string>
+    <string name="nav_more">More</string>
+
+    <!-- Placeholders -->
+    <string name="placeholder_coming_soon">Coming soon</string>
+
+    <!-- Common actions -->
+    <string name="action_back">Back</string>
+    <string name="action_next">Next</string>
+    <string name="action_finish">Finish</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_step_identity">About you</string>
+    <string name="onboarding_step_body">Body &amp; goals</string>
+    <string name="onboarding_step_preferences">Preferences</string>
+    <string name="onboarding_name_label">Name</string>
+    <string name="onboarding_sex_label">Sex</string>
+    <string name="onboarding_birth_date_label">Birth date</string>
+    <string name="onboarding_height_label">Height</string>
+    <string name="onboarding_weight_label">Current weight</string>
+    <string name="onboarding_goal_weight_label">Goal weight (optional)</string>
+    <string name="onboarding_goal_pace_label">Goal pace</string>
+    <string name="onboarding_neat_label">Daily activity level</string>
+    <string name="onboarding_mobility_label">Mobility on rest days</string>
+    <string name="onboarding_sleep_target_label">Sleep target</string>
+
+    <!-- Body & Health -->
+    <string name="body_title">Body &amp; Health</string>
+    <string name="body_current_weight_title">Current weight</string>
+    <string name="body_no_weight_yet">No weight logged yet.</string>
+    <string name="body_history_title">Last 90 days</string>
+    <string name="body_empty_history">No measurements in the last 90 days. Log your weight to start tracking it here.</string>
+    <string name="body_log_weight_title">Log weight</string>
+    <string name="body_weight_field">Weight</string>
+    <string name="body_body_fat_field">Body fat (optional)</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_profile">Profile</string>
+    <string name="settings_section_app">App preferences</string>
+    <string name="settings_section_advanced">Advanced</string>
+    <!-- Health Connect -->
+    <string name="hc_rationale_title">MyHealth and Health Connect</string>
+    <string name="hc_rationale_what_we_read">MyHealth reads your workouts, steps, distance, speed, cadence, heart rate, resting heart rate, heart-rate variability, calories, floors, elevation, blood oxygen, respiratory rate, VO2 max, sleep, weight and body fat from Health Connect. It never writes anything back.</string>
+    <string name="hc_rationale_why">This data is used to show your training history, to estimate training load and recovery, and to work out daily calorie and macro targets that match what you actually did.</string>
+    <string name="hc_rationale_on_device">Your data stays on this device. MyHealth stores everything in a local database, has no account, and does not upload your health data to any server.</string>
+    <string name="hc_rationale_revoke">You can withdraw access at any time in the Health Connect app. MyHealth then keeps only the data already synced, which you can delete from the app.</string>
+</resources>

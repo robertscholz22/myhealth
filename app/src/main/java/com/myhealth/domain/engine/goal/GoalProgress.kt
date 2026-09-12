@@ -1,0 +1,226 @@
+package com.myhealth.domain.engine.goal
+
+import com.myhealth.domain.engine.running.RiegelPredictor
+import com.myhealth.domain.model.ActivitySummary
+import com.myhealth.domain.model.BodyMeasurement
+import com.myhealth.domain.model.Goal
+import com.myhealth.domain.model.GoalType
+import com.myhealth.domain.model.RunningBest
+import java.time.LocalDate
+import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
+
+/**
+ * Goal progress (PLAN P6.1): `compute(goal, bests, weights, today) -> Progress`.
+ *
+ * - `RACE_TIME` — `percent = clamp(targetTime / currentBest, 0, 1)`; `onTrack` when the Riegel
+ *   prediction (§3.4) from the best effort of the **last 60 days** is within 2 % of the target.
+ * - `BODY_WEIGHT` — linear from the weight at creation to `targetWeightKg`; `onTrack` when the
+ *   achieved rate is at least 80 % of the rate needed to hit `targetDay`.
+ * - `CONSISTENCY` — sessions/week over the last 4 weeks against `targetValue`.
+ * - `STRENGTH_LIFT` / `SOCCER_AVAILABILITY` — no measurable series exists in the data model, so
+ *   these are **manual**: `percent = 0`, `isManual = true`, and the text names the target. They are
+ *   completed by the owner pressing "mark achieved" on the Goals screen.
+ *
+ * Ambiguity notes:
+ * - `goal` has no `startValue` column (§2.2.4), so "the weight when the goal was created" is the
+ *   first measurement **at or after** `createdAtMillis`; if the goal predates every measurement,
+ *   the earliest measurement is used. No schema change is needed for this (no migration).
+ * - `RiegelPredictor.pickSource` needs an effort of at least 3 km, so a 1 km goal has no
+ *   prediction and reports `onTrack = false` until the goal is actually met.
+ * - A goal whose target is already reached reports `percent = 1.0` and `onTrack = true`.
+ */
+object GoalProgress {
+
+    /** Look-back for the Riegel source effort of a race goal (P6.1). */
+    const val RACE_SOURCE_WINDOW_DAYS: Long = 60L
+
+    /** A prediction within 2 % of the target still counts as on track (P6.1). */
+    const val RACE_ON_TRACK_TOLERANCE: Double = 1.02
+
+    /** The consistency goal averages over four weeks. */
+    const val CONSISTENCY_WEEKS: Int = 4
+
+    /** "At least 80 % of the required rate" (P6.1's body-weight rule). */
+    const val WEIGHT_ON_TRACK_FRACTION: Double = 0.8
+
+    private const val DAYS_PER_WEEK = 7.0
+
+    /** One goal's progress: [percent] in `[0,1]`, a one-line [statusText], and [onTrack]. */
+    data class Progress(
+        val percent: Double,
+        val statusText: String,
+        val onTrack: Boolean,
+        /** True when nothing in the data model can measure this goal (see the class KDoc). */
+        val isManual: Boolean = false,
+    )
+
+    fun compute(
+        goal: Goal,
+        bests: List<RunningBest>,
+        weights: List<BodyMeasurement>,
+        today: LocalDate,
+        activities: List<ActivitySummary> = emptyList(),
+    ): Progress = when (goal.type) {
+        GoalType.RACE_TIME -> raceTime(goal, bests, today)
+        GoalType.BODY_WEIGHT -> bodyWeight(goal, weights, today)
+        GoalType.CONSISTENCY -> consistency(goal, activities, today)
+        GoalType.STRENGTH_LIFT, GoalType.SOCCER_AVAILABILITY -> manual(goal)
+    }
+
+    // ---- RACE_TIME -----------------------------------------------------------------------------
+
+    private fun raceTime(goal: Goal, bests: List<RunningBest>, today: LocalDate): Progress {
+        val targetSec = goal.targetTimeSec
+        val distance = goal.targetDistanceMeters
+        if (targetSec == null || targetSec <= 0 || distance == null || distance <= 0.0) {
+            return Progress(0.0, "Set a target distance and time.", onTrack = false, isManual = true)
+        }
+        val todayDay = today.toEpochDay()
+        val current = bests
+            .filter { abs(it.distanceMeters - distance) < 1.0 && it.timeSec > 0 }
+            .minByOrNull { it.timeSec }
+            ?: return Progress(
+                percent = 0.0,
+                statusText = "No ${distanceLabel(distance)} effort recorded yet.",
+                onTrack = false,
+            )
+
+        val percent = clamp01(targetSec.toDouble() / current.timeSec)
+        val predicted = predictedSec(bests, distance, todayDay)
+        val onTrack = percent >= 1.0 || (predicted != null && predicted <= targetSec * RACE_ON_TRACK_TOLERANCE)
+        val prediction = predicted?.let { " · predicted ${formatTime(it.toInt())}" } ?: ""
+        return Progress(
+            percent = percent,
+            statusText = "Current best ${formatTime(current.timeSec)}$prediction — " +
+                (if (onTrack) "on track" else "behind") + ".",
+            onTrack = onTrack,
+        )
+    }
+
+    /** Riegel from the best qualifying effort of the last [RACE_SOURCE_WINDOW_DAYS] days. */
+    fun predictedSec(bests: List<RunningBest>, targetDistanceMeters: Double, todayDay: Long): Double? {
+        val recent = bests.filter { it.day >= todayDay - RACE_SOURCE_WINDOW_DAYS }
+        val source = RiegelPredictor.pickSource(recent, todayDay) ?: return null
+        return RiegelPredictor.predictSec(
+            sourceDistanceMeters = source.distanceMeters,
+            sourceTimeSec = source.timeSec.toDouble(),
+            targetDistanceMeters = targetDistanceMeters,
+        )
+    }
+
+    // ---- BODY_WEIGHT ---------------------------------------------------------------------------
+
+    private fun bodyWeight(goal: Goal, weights: List<BodyMeasurement>, today: LocalDate): Progress {
+        val target = goal.targetWeightKg
+            ?: return Progress(0.0, "Set a target weight.", onTrack = false, isManual = true)
+        val series = weights.filter { it.weightKg != null }.sortedBy { it.day }
+        val start = startMeasurement(series, goal.createdAtMillis)
+        val current = series.lastOrNull()
+        if (start?.weightKg == null || current?.weightKg == null) {
+            return Progress(0.0, "Log a weight to start tracking this goal.", onTrack = false)
+        }
+        val startKg = start.weightKg
+        val currentKg = current.weightKg
+        val total = startKg - target
+        val achieved = startKg - currentKg
+        val percent = if (abs(total) < 1e-6) 1.0 else clamp01(achieved / total)
+
+        val todayDay = today.toEpochDay()
+        val onTrack = percent >= 1.0 || isWeightOnTrack(goal, start.day, todayDay, total, achieved)
+        val delta = currentKg - target
+        return Progress(
+            percent = percent,
+            statusText = "${fmt1(currentKg)} kg · ${fmt1(abs(delta))} kg " +
+                (if (delta > 0) "to go" else "past target") + " — " +
+                (if (onTrack) "on track" else "behind") + ".",
+            onTrack = onTrack,
+        )
+    }
+
+    /** The first measurement at or after the goal's creation, falling back to the earliest one. */
+    fun startMeasurement(series: List<BodyMeasurement>, createdAtMillis: Long): BodyMeasurement? =
+        series.firstOrNull { it.measuredAtMillis >= createdAtMillis } ?: series.firstOrNull()
+
+    private fun isWeightOnTrack(
+        goal: Goal,
+        startDay: Long,
+        todayDay: Long,
+        total: Double,
+        achieved: Double,
+    ): Boolean {
+        val targetDay = goal.targetDay ?: return achieved * sign(total) > 0.0
+        val weeksTotal = max((targetDay - startDay) / DAYS_PER_WEEK, 1.0 / DAYS_PER_WEEK)
+        val weeksElapsed = max((todayDay - startDay) / DAYS_PER_WEEK, 1.0 / DAYS_PER_WEEK)
+        val required = total / weeksTotal
+        val actual = achieved / weeksElapsed
+        val s = sign(total)
+        return actual * s >= WEIGHT_ON_TRACK_FRACTION * required * s
+    }
+
+    // ---- CONSISTENCY ---------------------------------------------------------------------------
+
+    private fun consistency(goal: Goal, activities: List<ActivitySummary>, today: LocalDate): Progress {
+        val target = goal.targetValue
+        if (target == null || target <= 0.0) {
+            return Progress(0.0, "Set a sessions-per-week target.", onTrack = false, isManual = true)
+        }
+        val todayDay = today.toEpochDay()
+        val from = todayDay - CONSISTENCY_WEEKS * DAYS_PER_WEEK.toLong() + 1
+        val sessions = activities.count { it.day in from..todayDay }
+        val perWeek = sessions / CONSISTENCY_WEEKS.toDouble()
+        val onTrack = perWeek >= target
+        return Progress(
+            percent = clamp01(perWeek / target),
+            statusText = "${fmt1(perWeek)} sessions/week over the last $CONSISTENCY_WEEKS weeks " +
+                "(target ${fmt1(target)}) — " + (if (onTrack) "on track" else "behind") + ".",
+            onTrack = onTrack,
+        )
+    }
+
+    // ---- manual goals ---------------------------------------------------------------------------
+
+    private fun manual(goal: Goal): Progress {
+        val target = goal.targetValue?.let { " (target ${fmt1(it)})" } ?: ""
+        return Progress(
+            percent = 0.0,
+            statusText = "Tracked manually$target — mark it achieved when you get there.",
+            onTrack = true,
+            isManual = true,
+        )
+    }
+
+    // ---- formatting -----------------------------------------------------------------------------
+
+    /** `mm:ss`, or `h:mm:ss` from an hour up. */
+    fun formatTime(seconds: Int): String {
+        val s = max(0, seconds)
+        val hours = s / 3600
+        val minutes = (s % 3600) / 60
+        val secs = s % 60
+        return if (hours > 0) {
+            String.format(Locale.US, "%d:%02d:%02d", hours, minutes, secs)
+        } else {
+            String.format(Locale.US, "%d:%02d", minutes, secs)
+        }
+    }
+
+    fun distanceLabel(meters: Double): String = when {
+        abs(meters - 21097.5) < 1.0 -> "half marathon"
+        abs(meters - 42195.0) < 1.0 -> "marathon"
+        abs(meters - 1609.34) < 1.0 -> "mile"
+        meters >= 1000.0 -> "${fmtShort(meters / 1000.0)} km"
+        else -> "${meters.toInt()} m"
+    }
+
+    private fun fmt1(value: Double): String = String.format(Locale.US, "%.1f", value)
+
+    private fun fmtShort(value: Double): String =
+        if (abs(value - value.toInt()) < 1e-6) value.toInt().toString() else fmt1(value)
+
+    private fun sign(value: Double): Double = if (value >= 0.0) 1.0 else -1.0
+
+    private fun clamp01(value: Double): Double = max(0.0, min(value, 1.0))
+}
