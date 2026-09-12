@@ -46,6 +46,8 @@ data class TodayUiState(
     val plannedToday: List<PlannedSession> = emptyList(),
     /** …or, when nothing is planned, the best suggestion for today from the open batch (P6.7). */
     val suggestedToday: SuggestedSession? = null,
+    /** POLISH-8: the open `PROPOSED` batch predates a calendar change and should be regenerated. */
+    val suggestionsStale: Boolean = false,
 ) {
     val weightChipText: String? get() = weightChipLabel(latestWeight?.weightKg, goalWeightKg)
 

@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.myhealth.domain.model.CalendarDay
+import com.myhealth.ui.common.CARD_CORNER_RADIUS
 import com.myhealth.ui.theme.MyHealthTheme
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -69,7 +70,7 @@ private fun WeekStripDay(
         if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
     Column(
         modifier = modifier
-            .background(background, RoundedCornerShape(12.dp))
+            .background(background, RoundedCornerShape(CARD_CORNER_RADIUS))
             .clickable(onClick = onClick)
             .padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

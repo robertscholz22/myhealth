@@ -20,14 +20,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.repository.BackupMode
 import com.myhealth.domain.repository.BackupSummary
 import com.myhealth.ui.common.ErrorBanner
+import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
+import com.myhealth.ui.common.resolve
 import com.myhealth.ui.theme.MyHealthTheme
 import java.time.Instant
 import java.time.LocalDate
@@ -75,20 +79,19 @@ internal fun BackupContent(
 ) {
     LazyColumn(
         modifier = modifier,
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(SCREEN_PADDING),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         state.error?.let { message ->
-            item("error") { ErrorBanner(message = message, onRetry = onDismissError) }
+            item("error") { ErrorBanner(message = message.resolve(), onRetry = onDismissError) }
         }
         if (state.isRunning) {
             item("progress") { LinearProgressIndicator(modifier = Modifier.fillMaxWidth()) }
         }
         item("export") {
-            SectionCard(title = "Export") {
+            SectionCard(title = stringResource(R.string.backup_section_export_title)) {
                 Text(
-                    text = "Writes every table to a JSON file you choose. Settings and any stored " +
-                        "credentials are never included.",
+                    text = stringResource(R.string.backup_export_description),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Button(
@@ -96,20 +99,16 @@ internal fun BackupContent(
                     enabled = state.canStart,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Export backup")
+                    Text(stringResource(R.string.backup_action_export))
                 }
             }
         }
         item("import") {
-            SectionCard(title = "Import") {
+            SectionCard(title = stringResource(R.string.backup_section_import_title)) {
                 Text(
                     text = when (state.importMode) {
-                        BackupMode.MERGE ->
-                            "Merge adds only what this device does not have yet. Nothing is " +
-                                "overwritten or deleted."
-                        BackupMode.REPLACE ->
-                            "Replace deletes everything on this device first, then restores the " +
-                                "backup exactly as it was."
+                        BackupMode.MERGE -> stringResource(R.string.backup_import_mode_merge_description)
+                        BackupMode.REPLACE -> stringResource(R.string.backup_import_mode_replace_description)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -118,7 +117,15 @@ internal fun BackupContent(
                         FilterChip(
                             selected = state.importMode == mode,
                             onClick = { onMode(mode) },
-                            label = { Text(if (mode == BackupMode.MERGE) "Merge" else "Replace") },
+                            label = {
+                                Text(
+                                    if (mode == BackupMode.MERGE) {
+                                        stringResource(R.string.backup_mode_label_merge)
+                                    } else {
+                                        stringResource(R.string.backup_mode_label_replace)
+                                    },
+                                )
+                            },
                         )
                     }
                 }
@@ -127,13 +134,19 @@ internal fun BackupContent(
                     enabled = state.canStart,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Import backup")
+                    Text(stringResource(R.string.backup_action_import))
                 }
             }
         }
         state.result?.let { result ->
             item("result") {
-                SectionCard(title = if (result.isImport) "Import finished" else "Export finished") {
+                SectionCard(
+                    title = if (result.isImport) {
+                        stringResource(R.string.backup_result_import_title)
+                    } else {
+                        stringResource(R.string.backup_result_export_title)
+                    },
+                ) {
                     Text(resultHeadline(result), style = MaterialTheme.typography.bodyLarge)
                     Text(
                         text = backupOriginLine(result.summary),
@@ -141,7 +154,10 @@ internal fun BackupContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     result.summary.rowsPerTable.forEach { (table, rows) ->
-                        Text("$table: $rows", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            stringResource(R.string.backup_row_count_format, table, rows),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                     }
                 }
             }
@@ -150,25 +166,35 @@ internal fun BackupContent(
 }
 
 /** "1 482 rows over 18 tables · 37 written" — the counts P8.4 asks the screen to show. */
+@Composable
 internal fun resultHeadline(result: BackupResult): String {
-    val scope = "${result.summary.totalRows} rows over ${result.summary.tableCount} tables"
+    val scope = stringResource(
+        R.string.backup_result_scope_format,
+        result.summary.totalRows,
+        result.summary.tableCount,
+    )
     return if (result.isImport) {
-        val mode = if (result.mode == BackupMode.REPLACE) "replaced" else "merged"
-        "$scope in the file · ${result.summary.rowsWritten} $mode"
+        val mode = if (result.mode == BackupMode.REPLACE) {
+            stringResource(R.string.backup_result_mode_replaced)
+        } else {
+            stringResource(R.string.backup_result_mode_merged)
+        }
+        stringResource(R.string.backup_result_import_summary_format, scope, result.summary.rowsWritten, mode)
     } else {
-        "$scope written"
+        stringResource(R.string.backup_result_export_summary_format, scope)
     }
 }
 
 /** Where the file came from: schema version, app version and the moment it was exported. */
+@Composable
 internal fun backupOriginLine(summary: BackupSummary, zone: ZoneId = ZoneId.systemDefault()): String {
     val stamp = if (summary.exportedAtMillis > 0L) {
         BACKUP_TIMESTAMP.format(Instant.ofEpochMilli(summary.exportedAtMillis).atZone(zone))
     } else {
-        "unknown date"
+        stringResource(R.string.backup_unknown_date)
     }
-    val app = summary.appVersion.ifBlank { "unknown build" }
-    return "Schema ${summary.schemaVersion} · app $app · $stamp"
+    val app = summary.appVersion.ifBlank { stringResource(R.string.backup_unknown_build) }
+    return stringResource(R.string.backup_origin_format, summary.schemaVersion, app, stamp)
 }
 
 /** `myhealth-backup-2026-09-12.json` — the name the document picker opens with. */

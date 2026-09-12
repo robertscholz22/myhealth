@@ -1,5 +1,9 @@
 package com.myhealth.ui.load
 
+import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.myhealth.R
 import com.myhealth.domain.engine.load.AcwrZone
 import com.myhealth.domain.engine.load.LoadFlags
 import com.myhealth.domain.engine.load.LoadSeriesEngine
@@ -11,10 +15,10 @@ import com.myhealth.domain.model.RecoveryState
 import kotlin.math.roundToInt
 
 /** The three history windows the range selector offers (§4.2 Load & recovery, P5.6). */
-enum class LoadRange(val days: Int, val label: String) {
-    D28(28, "28d"),
-    D90(90, "90d"),
-    D365(365, "365d"),
+enum class LoadRange(val days: Int, @StringRes val labelRes: Int) {
+    D28(28, R.string.load_range_28d),
+    D90(90, R.string.load_range_90d),
+    D365(365, R.string.load_range_365d),
 }
 
 /** ViewModel state for [LoadScreen] (PLAN §4.2 Load & recovery, P5.6). */
@@ -66,4 +70,6 @@ fun componentLabel(component: RecoveryComponent): String =
         "${component.points.roundToInt()}/${component.maxPoints.roundToInt()}"
 
 /** "62% confidence" for the recovery card's footnote. */
-fun confidencePercentLabel(confidence: Double): String = "${(confidence * 100).roundToInt()}% confidence"
+@Composable
+fun confidencePercentLabel(confidence: Double): String =
+    stringResource(R.string.load_recovery_confidence_label, (confidence * 100).roundToInt())

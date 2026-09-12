@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -35,10 +36,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.ui.common.NumberField
+import com.myhealth.ui.common.EmptyState
+import com.myhealth.ui.common.LoadingBox
+import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.charts.BarChartCard
 import com.myhealth.ui.common.charts.ChartSeries
@@ -81,7 +86,7 @@ private fun BodyContent(
         modifier = modifier.fillMaxSize(),
         floatingActionButton = {
             FloatingActionButton(onClick = onLogWeightClick) {
-                Icon(Icons.Filled.Add, contentDescription = "Log weight")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.body_log_weight_title))
             }
         },
     ) { innerPadding ->
@@ -89,7 +94,7 @@ private fun BodyContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(SCREEN_PADDING),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item { CurrentWeightCard(state.latest, state.goalWeightKg, state.deltaToGoalKg) }
@@ -100,15 +105,21 @@ private fun BodyContent(
             item { SleepChartCard(state) }
             item {
                 Text(
-                    text = "Last ${state.range.days} days",
+                    text = stringResource(R.string.body_history_title, state.range.days),
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
-            if (state.measurements.isEmpty()) {
+            if (state.isLoading) {
+                item { LoadingBox() }
+            } else if (state.measurements.isEmpty()) {
+                // P8.6: the same icon + title + message + action shape as every other list screen.
                 item {
-                    Text(
-                        text = "No measurements in this window. Log your weight to start tracking it here.",
-                        style = MaterialTheme.typography.bodyMedium,
+                    EmptyState(
+                        title = stringResource(R.string.body_empty_title),
+                        message = stringResource(R.string.body_empty_history, state.range.days),
+                        icon = Icons.Filled.MonitorWeight,
+                        actionLabel = stringResource(R.string.body_log_weight_title),
+                        onAction = onLogWeightClick,
                     )
                 }
             } else {
@@ -133,7 +144,7 @@ private fun RangeSelector(selected: BodyRange, onSelect: (BodyRange) -> Unit) {
                 selected = range == selected,
                 onClick = { onSelect(range) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = BodyRange.entries.size),
-            ) { Text(range.label) }
+            ) { Text(stringResource(range.labelRes)) }
         }
     }
 }
@@ -143,46 +154,53 @@ private fun RangeSelector(selected: BodyRange, onSelect: (BodyRange) -> Unit) {
 private fun WeightChartCard(state: BodyUiState) {
     val daily = weightPoints(state.measurements, state.fromDay, state.today)
     LineChartCard(
-        title = "Weight",
+        title = stringResource(R.string.body_chart_weight_title),
         series = listOf(
             // The average is computed on the daily grid, then both lines drop the un-weighed days
             // so an every-third-day routine still reads as one trend rather than a dot cloud.
-            ChartSeries(name = "Weight", points = daily.dropGaps()),
-            ChartSeries(name = "7-day average", points = movingAveragePoints(daily).dropGaps(), dashed = true),
+            ChartSeries(name = stringResource(R.string.body_chart_weight_series), points = daily.dropGaps()),
+            ChartSeries(
+                name = stringResource(R.string.body_chart_weight_avg_series),
+                points = movingAveragePoints(daily).dropGaps(),
+                dashed = true,
+            ),
         ),
         xLabels = dayAxisLabels(state.fromDay, state.today),
         yFormatter = { "%.1f".format(Locale.US, it) },
         goalLine = state.goalWeightKg,
-        emptyMessage = "No weight logged in this window yet.",
+        emptyMessage = stringResource(R.string.body_chart_weight_empty),
     )
 }
 
 @Composable
 private fun BodyFatChartCard(state: BodyUiState) {
     LineChartCard(
-        title = "Body fat",
+        title = stringResource(R.string.body_chart_body_fat_title),
         series = listOf(
             ChartSeries(
-                name = "Body fat %",
+                name = stringResource(R.string.body_chart_body_fat_series),
                 points = bodyFatPoints(state.measurements, state.fromDay, state.today).dropGaps(),
             ),
         ),
         xLabels = dayAxisLabels(state.fromDay, state.today),
         yFormatter = { "%.1f".format(Locale.US, it) },
-        emptyMessage = "No body-fat readings in this window yet.",
+        emptyMessage = stringResource(R.string.body_chart_body_fat_empty),
     )
 }
 
 @Composable
 private fun RestingHrChartCard(state: BodyUiState) {
     LineChartCard(
-        title = "Resting heart rate",
+        title = stringResource(R.string.body_chart_resting_hr_title),
         series = listOf(
-            ChartSeries(name = "Resting HR", points = restingHrPoints(state.health, state.fromDay, state.today)),
+            ChartSeries(
+                name = stringResource(R.string.body_chart_resting_hr_series),
+                points = restingHrPoints(state.health, state.fromDay, state.today),
+            ),
         ),
         xLabels = dayAxisLabels(state.fromDay, state.today),
         yFormatter = { "%.0f".format(Locale.US, it) },
-        emptyMessage = "No resting heart rate recorded in this window yet.",
+        emptyMessage = stringResource(R.string.body_chart_resting_hr_empty),
     )
 }
 
@@ -190,20 +208,20 @@ private fun RestingHrChartCard(state: BodyUiState) {
 private fun SleepChartCard(state: BodyUiState) {
     val hours = sleepHoursBars(state.sleep, state.sleepFromNight, state.today)
     BarChartCard(
-        title = "Sleep (last $SLEEP_BAR_NIGHTS nights)",
+        title = stringResource(R.string.body_chart_sleep_title, SLEEP_BAR_NIGHTS),
         values = if (hours.all { it == 0.0 }) emptyList() else hours,
         xLabels = nightAxisLabels(state.sleepFromNight, state.today),
         yFormatter = { "%.1f".format(Locale.US, it) },
         highlightIndex = hours.lastIndex.takeIf { it >= 0 },
-        emptyMessage = "No sleep sessions recorded in the last $SLEEP_BAR_NIGHTS nights.",
+        emptyMessage = stringResource(R.string.body_chart_sleep_empty, SLEEP_BAR_NIGHTS),
     )
 }
 
 @Composable
 private fun CurrentWeightCard(latest: BodyMeasurement?, goalWeightKg: Double?, deltaToGoalKg: Double?) {
-    SectionCard(title = "Current weight") {
+    SectionCard(title = stringResource(R.string.body_current_weight_title)) {
         if (latest?.weightKg == null) {
-            Text("No weight logged yet.")
+            Text(stringResource(R.string.body_no_weight_yet))
         } else {
             Text(
                 text = "%.1f kg".format(Locale.US, latest.weightKg),
@@ -212,9 +230,9 @@ private fun CurrentWeightCard(latest: BodyMeasurement?, goalWeightKg: Double?, d
             if (goalWeightKg != null && deltaToGoalKg != null) {
                 val delta = "%.1f".format(Locale.US, kotlin.math.abs(deltaToGoalKg))
                 val message = when {
-                    kotlin.math.abs(deltaToGoalKg) < 0.05 -> "At your goal weight."
-                    deltaToGoalKg > 0 -> "$delta kg above your $goalWeightKg kg goal."
-                    else -> "$delta kg below your $goalWeightKg kg goal."
+                    kotlin.math.abs(deltaToGoalKg) < 0.05 -> stringResource(R.string.body_goal_reached_message)
+                    deltaToGoalKg > 0 -> stringResource(R.string.body_above_goal_message, delta, goalWeightKg)
+                    else -> stringResource(R.string.body_below_goal_message, delta, goalWeightKg)
                 }
                 Text(text = message, style = MaterialTheme.typography.bodyMedium)
             }
@@ -236,7 +254,7 @@ private fun MeasurementRow(measurement: BodyMeasurement, onDelete: () -> Unit) {
             )
         }
         IconButton(onClick = onDelete) {
-            Icon(Icons.Filled.Delete, contentDescription = stringResource(com.myhealth.R.string.action_delete))
+            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
         }
     }
 }
@@ -248,12 +266,18 @@ private fun LogWeightDialog(onDismiss: () -> Unit, onSave: (Double, Double?) -> 
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log weight") },
+        title = { Text(stringResource(R.string.body_log_weight_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                NumberField(label = "Weight", value = weightKg, onValueChange = { weightKg = it }, suffix = "kg", decimals = 1)
                 NumberField(
-                    label = "Body fat (optional)",
+                    label = stringResource(R.string.body_weight_field),
+                    value = weightKg,
+                    onValueChange = { weightKg = it },
+                    suffix = "kg",
+                    decimals = 1,
+                )
+                NumberField(
+                    label = stringResource(R.string.body_body_fat_field),
                     value = bodyFatPercent,
                     onValueChange = { bodyFatPercent = it },
                     suffix = "%",
@@ -265,9 +289,9 @@ private fun LogWeightDialog(onDismiss: () -> Unit, onSave: (Double, Double?) -> 
             Button(
                 onClick = { weightKg?.let { onSave(it, bodyFatPercent) } },
                 enabled = weightKg != null && weightKg!! in 30.0..250.0,
-            ) { Text(stringResource(com.myhealth.R.string.action_save)) }
+            ) { Text(stringResource(R.string.action_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(com.myhealth.R.string.action_cancel)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
 

@@ -27,9 +27,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.SessionType
@@ -40,6 +42,7 @@ import com.myhealth.ui.common.DurationField
 import com.myhealth.ui.common.NumberField
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.TimePickerField
+import com.myhealth.ui.common.resolve
 import com.myhealth.ui.theme.MyHealthTheme
 
 /** Manual planned-session form (PLAN §4.2 "Planned session edit", P6.8). */
@@ -64,16 +67,30 @@ fun PlannedSessionEditScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(if (state.isNew) "New session" else "Edit session") },
+                title = {
+                    Text(
+                        if (state.isNew) {
+                            stringResource(R.string.session_new_title)
+                        } else {
+                            stringResource(R.string.session_edit_title)
+                        },
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back),
+                        )
                     }
                 },
                 actions = {
                     if (!state.isNew) {
                         IconButton(onClick = vm::requestDelete) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Delete session")
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = stringResource(R.string.session_delete_desc),
+                            )
                         }
                     }
                 },
@@ -93,10 +110,14 @@ fun PlannedSessionEditScreen(
     if (state.pendingDelete) {
         AlertDialog(
             onDismissRequest = vm::cancelDelete,
-            title = { Text("Delete this session?") },
-            text = { Text("This cannot be undone.") },
-            confirmButton = { TextButton(onClick = vm::confirmDelete) { Text("Delete") } },
-            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text("Cancel") } },
+            title = { Text(stringResource(R.string.session_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.session_delete_confirm_message)) },
+            confirmButton = {
+                TextButton(onClick = vm::confirmDelete) { Text(stringResource(R.string.action_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = vm::cancelDelete) { Text(stringResource(R.string.action_cancel)) }
+            },
         )
     }
 }
@@ -117,23 +138,23 @@ internal fun PlannedSessionEditContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            SectionCard(title = "Session") {
+            SectionCard(title = stringResource(R.string.session_section_title)) {
                 DropdownField(
-                    label = "Sport",
+                    label = stringResource(R.string.session_sport_label),
                     options = PLANNABLE_SPORT_TYPES,
                     selected = draft.sportType,
                     optionLabel = { it.planLabel() },
                     onSelect = onSport,
                 )
                 DropdownField(
-                    label = "Type",
+                    label = stringResource(R.string.session_type_label),
                     options = state.sessionTypes,
                     selected = draft.sessionType,
                     optionLabel = { it.label() },
                     onSelect = onSessionType,
                 )
                 DropdownField(
-                    label = "Intensity",
+                    label = stringResource(R.string.session_intensity_label),
                     options = Intensity.entries,
                     selected = draft.intensity,
                     optionLabel = { it.label() },
@@ -142,14 +163,14 @@ internal fun PlannedSessionEditContent(
             }
         }
         item {
-            SectionCard(title = "When") {
+            SectionCard(title = stringResource(R.string.session_when_title)) {
                 DatePickerField(
-                    label = "Day",
+                    label = stringResource(R.string.session_day_label),
                     value = draft.day,
                     onValueChange = { day -> onChange { it.copy(day = day) } },
                 )
                 TimePickerField(
-                    label = "Start time (optional)",
+                    label = stringResource(R.string.session_start_time_label),
                     value = draft.startMinuteOfDay,
                     onValueChange = { minute -> onChange { it.copy(startMinuteOfDay = minute) } },
                 )
@@ -157,11 +178,11 @@ internal fun PlannedSessionEditContent(
         }
         item { TargetsCard(state = state, onChange = onChange) }
         item {
-            SectionCard(title = "Notes") {
+            SectionCard(title = stringResource(R.string.session_notes_title)) {
                 OutlinedTextField(
                     value = draft.description,
                     onValueChange = { text -> onChange { it.copy(description = text) } },
-                    label = { Text("Description") },
+                    label = { Text(stringResource(R.string.session_description_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2,
                 )
@@ -170,7 +191,7 @@ internal fun PlannedSessionEditContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Lock (the suggester will not move it)")
+                    Text(stringResource(R.string.session_lock_label))
                     Switch(
                         checked = draft.locked,
                         onCheckedChange = { locked -> onChange { it.copy(locked = locked) } },
@@ -180,17 +201,17 @@ internal fun PlannedSessionEditContent(
         }
         item {
             state.saveError?.let {
-                Text(text = it, color = MaterialTheme.colorScheme.error)
+                Text(text = it.resolve(), color = MaterialTheme.colorScheme.error)
             }
             state.loadError?.let {
-                Text(text = it, color = MaterialTheme.colorScheme.error)
+                Text(text = it.resolve(), color = MaterialTheme.colorScheme.error)
             }
             Button(
                 onClick = onSave,
                 enabled = !state.isSaving && state.loadError == null,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Save")
+                Text(stringResource(R.string.action_save))
             }
         }
     }
@@ -202,7 +223,7 @@ private fun TargetsCard(
     onChange: ((PlannedSessionDraft) -> PlannedSessionDraft) -> Unit,
 ) {
     val draft = state.draft
-    SectionCard(title = "Targets") {
+    SectionCard(title = stringResource(R.string.session_targets_title)) {
         DurationField(
             value = draft.durationMin,
             onValueChange = { minutes -> onChange { it.copy(durationMin = minutes) } },
@@ -210,7 +231,7 @@ private fun TargetsCard(
             supportingText = state.errors[PlannedSessionField.DURATION],
         )
         NumberField(
-            label = "Distance",
+            label = stringResource(R.string.session_distance_label),
             value = draft.distanceKm,
             onValueChange = { km -> onChange { it.copy(distanceKm = km) } },
             suffix = "km",
@@ -223,7 +244,7 @@ private fun TargetsCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             NumberField(
-                label = "Pace min",
+                label = stringResource(R.string.session_pace_min_label),
                 value = draft.paceMinutes?.toDouble(),
                 onValueChange = { value -> onChange { it.copy(paceMinutes = value?.toInt()) } },
                 modifier = Modifier.weight(1f),
@@ -231,7 +252,7 @@ private fun TargetsCard(
                 isError = state.errors.containsKey(PlannedSessionField.PACE),
             )
             NumberField(
-                label = "Pace sec",
+                label = stringResource(R.string.session_pace_sec_label),
                 value = draft.paceSeconds?.toDouble(),
                 onValueChange = { value -> onChange { it.copy(paceSeconds = value?.toInt()) } },
                 modifier = Modifier.weight(1f),
@@ -244,7 +265,7 @@ private fun TargetsCard(
         }
         draft.estimatedTrimp?.let { trimp ->
             Text(
-                text = "Estimated load ${Math.round(trimp)} AU",
+                text = stringResource(R.string.session_estimated_load, Math.round(trimp)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

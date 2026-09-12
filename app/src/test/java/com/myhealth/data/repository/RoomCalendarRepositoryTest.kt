@@ -37,6 +37,9 @@ class RoomCalendarRepositoryTest {
     private val activityRepo: ActivityRepository =
         RoomActivityRepository(activityDao, ActivityIngestor(activityDao, DirectTransactionRunner, clock), clock, Dispatchers.Unconfined)
 
+    /** POLISH-8: counts the `onPlanChanged` hook AppGraph wires to `markProposedStale`. */
+    private var planChangedCount = 0
+
     private val repo = RoomCalendarRepository(
         eventDao = eventDao,
         planDao = mockk<PlanDao>(relaxed = true),
@@ -47,6 +50,7 @@ class RoomCalendarRepositoryTest {
         sleepDao = mockk<SleepDao>(relaxed = true),
         activityRepo = activityRepo,
         clock = clock,
+        onPlanChanged = { planChangedCount++ },
         zone = Fixtures.ZONE,
         ioDispatcher = Dispatchers.Unconfined,
         computeDispatcher = Dispatchers.Unconfined,
@@ -91,6 +95,19 @@ class RoomCalendarRepositoryTest {
         val activity = activityDao.getById(activityId)!!
         assertThat(activity.sportType).isEqualTo(SportType.HIIT)
         assertThat(activity.userEditedFieldsCsv).isEmpty()
+    }
+
+    @Test
+    fun every_event_write_notifies_the_plan_changed_hook() = runTest {
+        // POLISH-8: an insert, an update and a delete each make an open PROPOSED batch stale.
+        val id = repo.upsertEvent(CalendarFixtures.event(id = 0, startIso = day)).value()
+        assertThat(planChangedCount).isEqualTo(1)
+
+        repo.upsertEvent(repo.getEvent(id)!!.copy(title = "Moved"))
+        assertThat(planChangedCount).isEqualTo(2)
+
+        repo.deleteEvent(id)
+        assertThat(planChangedCount).isEqualTo(3)
     }
 
     @Test

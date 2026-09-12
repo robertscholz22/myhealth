@@ -12,6 +12,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
 
 APK="app/build/outputs/apk/debug/app-debug.apk"
+RELEASE_APK="app/build/outputs/apk/release/app-release.apk"
 RESULTS_DIR="app/build/test-results/testDebugUnitTest"
 
 echo "== MyHealth verify =="
@@ -33,6 +34,22 @@ fi
 
 APK_BYTES=$(stat -c%s "$APK")
 APK_MB=$(awk -v b="$APK_BYTES" 'BEGIN { printf "%.1f", b / 1048576 }')
+
+# P8.7 — the minified, resource-shrunk release build (R8 keep rules in app/proguard-rules.pro).
+echo
+echo "== assembleRelease (R8) =="
+./gradlew :app:assembleRelease "$@"
+RELEASE_STATUS=$?
+if [ $RELEASE_STATUS -ne 0 ]; then
+    echo "FAIL: :app:assembleRelease failed (exit $RELEASE_STATUS)"
+    exit $RELEASE_STATUS
+fi
+if [ ! -f "$RELEASE_APK" ]; then
+    echo "FAIL: release APK not found at $RELEASE_APK"
+    exit 1
+fi
+RELEASE_BYTES=$(stat -c%s "$RELEASE_APK")
+RELEASE_MB=$(awk -v b="$RELEASE_BYTES" 'BEGIN { printf "%.1f", b / 1048576 }')
 
 TESTS=0
 FAILURES=0
@@ -58,7 +75,8 @@ fi
 
 echo
 echo "== Result =="
-echo "APK          : $APK_MB MB ($APK_BYTES bytes)"
+echo "Debug APK    : $APK_MB MB ($APK_BYTES bytes)"
+echo "Release APK  : $RELEASE_MB MB ($RELEASE_BYTES bytes, minified + shrunk)"
 echo "Unit tests   : $TESTS executed, $FAILURES failures, $ERRORS errors, $SKIPPED skipped"
 echo "Lint report  : app/build/reports/lint-results-debug.html"
 

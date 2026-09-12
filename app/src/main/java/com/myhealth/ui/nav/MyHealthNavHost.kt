@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
@@ -20,6 +21,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.myhealth.R
 import com.myhealth.di.appGraph
 import com.myhealth.domain.model.MealSlot
 import com.myhealth.ui.activities.ActivitiesScreen
@@ -297,7 +299,9 @@ fun MyHealthNavHost(
                     composable<IntegrationsRoute> { IntegrationsScreen() }
                     composable<ImportRoute> { ImportScreen() }
                     composable<BackupRoute> { BackupScreen() }
-                    composable<GarminDirectRoute> { PlaceholderScreen(title = "Garmin direct") }
+                    composable<GarminDirectRoute> {
+                        PlaceholderScreen(title = stringResource(R.string.nav_garmin_direct_title))
+                    }
                 }
             }
         }

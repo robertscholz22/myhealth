@@ -2,11 +2,13 @@ package com.myhealth.ui.meals
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.R
 import com.myhealth.domain.model.MealSlot
 import com.myhealth.domain.model.MealTemplate
 import com.myhealth.domain.repository.IngredientRepository
 import com.myhealth.domain.repository.MealRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,7 +34,7 @@ class MealTemplatesViewModel(
 ) : ViewModel() {
 
     private val dialog = MutableStateFlow<LogNowDialog?>(null)
-    private val message = MutableStateFlow<String?>(null)
+    private val message = MutableStateFlow<UiMessage?>(null)
 
     private val rows = mealRepo.observeTemplates().map { templates ->
         val ids = templates.flatMap { template -> template.items.map { it.ingredientId } }.distinct()
@@ -81,8 +83,8 @@ class MealTemplatesViewModel(
         viewModelScope.launch {
             val result = mealRepo.logTemplate(current.template.id, current.day, current.slot)
             message.value = when (result) {
-                is Outcome.Ok -> "Logged ${current.template.name}."
-                is Outcome.Err -> "Could not log this template."
+                is Outcome.Ok -> UiMessage.of(R.string.mealtpl_logged_now, current.template.name)
+                is Outcome.Err -> UiMessage.of(R.string.mealtpl_error_log_failed)
             }
         }
     }

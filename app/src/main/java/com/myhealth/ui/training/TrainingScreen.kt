@@ -10,10 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -25,6 +27,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -34,12 +37,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.TrainingPhase
 import com.myhealth.ui.common.EmptyState
+import com.myhealth.ui.common.CARD_CORNER_RADIUS
+import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.theme.MyHealthTheme
 
@@ -71,10 +79,11 @@ fun TrainingScreen(nav: TrainingNavActions, modifier: Modifier = Modifier) {
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(state.message) {
         state.message?.let {
-            snackbar.showSnackbar(it)
+            snackbar.showSnackbar(it.resolve(context))
             vm.consumeMessage()
         }
     }
@@ -89,10 +98,10 @@ fun TrainingScreen(nav: TrainingNavActions, modifier: Modifier = Modifier) {
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(state.planName ?: "Training") },
+                title = { Text(state.planName ?: stringResource(R.string.nav_training)) },
                 actions = {
                     TextButton(onClick = vm::showCurrentWeek, enabled = !state.isCurrentWeek) {
-                        Text("This week")
+                        Text(stringResource(R.string.training_this_week))
                     }
                 },
             )
@@ -132,7 +141,7 @@ internal fun TrainingContent(
 ) {
     LazyColumn(
         modifier = modifier,
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(SCREEN_PADDING),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
@@ -146,11 +155,9 @@ internal fun TrainingContent(
         if (state.isEmptyWeek) {
             item {
                 EmptyState(
-                    title = "No sessions this week",
-                    message = "Generate a week of suggestions from your goals, calendar and current " +
-                        "load, review them, then accept the ones you want. You can always add a " +
-                        "session by hand.",
-                    actionLabel = "Generate suggestions",
+                    title = stringResource(R.string.training_empty_title),
+                    message = stringResource(R.string.training_empty_message),
+                    actionLabel = stringResource(R.string.training_generate_suggestions),
                     onAction = onGenerate,
                 )
             }
@@ -176,11 +183,17 @@ private fun WeekPager(label: String, onPrevious: () -> Unit, onNext: () -> Unit)
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         IconButton(onClick = onPrevious) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous week")
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.training_previous_week_desc),
+            )
         }
         Text(text = label, style = MaterialTheme.typography.titleMedium)
         IconButton(onClick = onNext) {
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next week")
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = stringResource(R.string.training_next_week_desc),
+            )
         }
     }
 }
@@ -192,7 +205,7 @@ private fun PlanHeaderCard(
     nav: TrainingNavActions,
 ) {
     SectionCard(
-        title = "This block",
+        title = stringResource(R.string.training_this_block_title),
         action = {
             state.phase?.let { phase ->
                 AssistChip(onClick = {}, enabled = false, label = { Text(phase.label()) })
@@ -200,6 +213,9 @@ private fun PlanHeaderCard(
         },
     ) {
         WeeklyLoadBar(state.loads)
+        if (state.suggestionsStale) {
+            StaleSuggestionsHint(onRegenerate = onGenerate)
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -219,9 +235,48 @@ private fun PlanHeaderCard(
                         modifier = Modifier.size(18.dp),
                     )
                 }
-                Text(text = "Generate suggestions", modifier = Modifier.padding(start = 8.dp))
+                Text(
+                    text = stringResource(R.string.training_generate_suggestions),
+                    modifier = Modifier.padding(start = 8.dp),
+                )
             }
-            OutlinedButton(onClick = { nav.onAddSession(state.selectedDay) }) { Text("+ Session") }
+            OutlinedButton(onClick = { nav.onAddSession(state.selectedDay) }) {
+                Text(stringResource(R.string.training_add_session))
+            }
+        }
+    }
+}
+
+/**
+ * POLISH-8: the calendar changed after the open batch was generated, so its assumptions (matches,
+ * blocked days, spacing) may no longer hold. Shown on Training and, in a one-line form, on the
+ * Today card.
+ */
+@Composable
+internal fun StaleSuggestionsHint(onRegenerate: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(CARD_CORNER_RADIUS),
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.EventRepeat,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Text(
+                text = stringResource(R.string.training_suggestions_stale),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onRegenerate) { Text(stringResource(R.string.training_action_regenerate)) }
         }
     }
 }

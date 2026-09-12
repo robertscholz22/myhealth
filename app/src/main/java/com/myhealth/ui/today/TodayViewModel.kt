@@ -82,6 +82,8 @@ private data class CoreAndSync(
 private data class TodayPlan(
     val planned: List<PlannedSession>,
     val suggested: SuggestedSession?,
+    /** POLISH-8: the open batch predates a calendar change. */
+    val stale: Boolean = false,
 )
 
 private const val WEEKLY_TRIMP_WINDOW_DAYS = 7L
@@ -108,7 +110,7 @@ class TodayViewModel(
     private val calendarRepo: CalendarRepository,
     loadRepo: LoadRepository,
     private val planRepo: PlanRepository,
-    suggestionRepo: SuggestionRepository,
+    private val suggestionRepo: SuggestionRepository,
     clock: Clock,
 ) : ViewModel() {
 
@@ -171,7 +173,8 @@ class TodayViewModel(
     private val plan = combine(
         planRepo.observeSessions(today, today),
         suggestedToday,
-    ) { planned, suggested -> TodayPlan(planned, suggested) }
+        suggestionRepo.observeStale(),
+    ) { planned, suggested, stale -> TodayPlan(planned, suggested, stale) }
 
     private val coreAndSync = combine(core, syncData, linkSuggestions, nutrition) { c, s, links, food ->
         CoreAndSync(c, s, links, food)
@@ -196,6 +199,7 @@ class TodayViewModel(
             weeklyTrimp = l.weeklyTrimp,
             plannedToday = p.planned,
             suggestedToday = p.suggested.takeIf { p.planned.isEmpty() },
+            suggestionsStale = p.stale,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TodayUiState())
 

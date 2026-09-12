@@ -17,14 +17,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.load.AcwrZone
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.RecoveryState
 import com.myhealth.ui.common.EmptyState
+import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.StatTile
 import com.myhealth.ui.common.charts.BarChartCard
@@ -54,15 +57,15 @@ private fun LoadContent(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(SCREEN_PADDING),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item { RangeSelector(state.range, onRangeSelect) }
         if (!state.hasData) {
             item {
                 EmptyState(
-                    title = "No training load yet",
-                    message = "Log or sync some activities to see ATL/CTL/ACWR and recovery here.",
+                    title = stringResource(R.string.load_empty_title),
+                    message = stringResource(R.string.load_empty_message),
                 )
             }
         } else {
@@ -85,27 +88,33 @@ private fun RangeSelector(selected: LoadRange, onSelect: (LoadRange) -> Unit) {
                 selected = range == selected,
                 onClick = { onSelect(range) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = LoadRange.entries.size),
-            ) { Text(range.label) }
+            ) { Text(stringResource(range.labelRes)) }
         }
     }
 }
 
 @Composable
 private fun LoadTilesCard(latest: DailyLoad?) {
-    SectionCard(title = "Training load") {
+    SectionCard(title = stringResource(R.string.load_tiles_title)) {
         if (latest == null) {
-            Text("No cached load yet.", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.load_tiles_empty), style = MaterialTheme.typography.bodyMedium)
             return@SectionCard
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            StatTile(label = "ATL", value = "%.0f".format(Locale.US, latest.atl))
-            StatTile(label = "CTL", value = "%.0f".format(Locale.US, latest.ctl))
+            StatTile(label = stringResource(R.string.load_stat_atl), value = "%.0f".format(Locale.US, latest.atl))
+            StatTile(label = stringResource(R.string.load_stat_ctl), value = "%.0f".format(Locale.US, latest.ctl))
             AcwrTile(latest.acwr)
-            StatTile(label = "TSB", value = "%.0f".format(Locale.US, latest.tsb))
+            StatTile(label = stringResource(R.string.load_stat_tsb), value = "%.0f".format(Locale.US, latest.tsb))
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            StatTile(label = "Monotony", value = latest.monotony?.let { "%.2f".format(Locale.US, it) } ?: "—")
-            StatTile(label = "Strain", value = latest.strain?.let { "%.0f".format(Locale.US, it) } ?: "—")
+            StatTile(
+                label = stringResource(R.string.load_stat_monotony),
+                value = latest.monotony?.let { "%.2f".format(Locale.US, it) } ?: "—",
+            )
+            StatTile(
+                label = stringResource(R.string.load_stat_strain),
+                value = latest.strain?.let { "%.0f".format(Locale.US, it) } ?: "—",
+            )
         }
         if (latest.flags.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -122,7 +131,7 @@ private fun AcwrTile(acwr: Double?) {
     val zone = acwrZoneOf(acwr)
     Column {
         Text(
-            text = "ACWR",
+            text = stringResource(R.string.load_stat_acwr),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -141,14 +150,14 @@ private fun AcwrTile(acwr: Double?) {
 @Composable
 private fun AtlCtlChartCard(series: List<DailyLoad>) {
     LineChartCard(
-        title = "Acute vs chronic load",
+        title = stringResource(R.string.load_chart_atl_ctl_title),
         series = listOf(
-            ChartSeries(name = "ATL (7d)", points = atlPoints(series)),
-            ChartSeries(name = "CTL (28d)", points = ctlPoints(series)),
+            ChartSeries(name = stringResource(R.string.load_chart_atl_series), points = atlPoints(series)),
+            ChartSeries(name = stringResource(R.string.load_chart_ctl_series), points = ctlPoints(series)),
         ),
         xLabels = loadAxisLabels(series),
         yFormatter = { "%.0f".format(Locale.US, it) },
-        emptyMessage = "No cached load for this range yet.",
+        emptyMessage = stringResource(R.string.load_chart_atl_ctl_empty),
     )
 }
 
@@ -176,12 +185,12 @@ private fun AcwrChartCard(series: List<DailyLoad>) {
         ),
     )
     LineChartCard(
-        title = "ACWR",
-        series = listOf(ChartSeries(name = "ACWR", points = acwrPoints(series))),
+        title = stringResource(R.string.load_chart_acwr_title),
+        series = listOf(ChartSeries(name = stringResource(R.string.load_chart_acwr_series), points = acwrPoints(series))),
         xLabels = loadAxisLabels(series),
         yFormatter = { "%.1f".format(Locale.US, it) },
         bands = bands,
-        emptyMessage = "Not enough chronic load yet for an ACWR.",
+        emptyMessage = stringResource(R.string.load_chart_acwr_empty),
     )
 }
 
@@ -189,35 +198,35 @@ private fun AcwrChartCard(series: List<DailyLoad>) {
 private fun DailyTrimpCard(series: List<DailyLoad>) {
     val bars = trimpBars(series)
     BarChartCard(
-        title = "Daily TRIMP",
+        title = stringResource(R.string.load_chart_trimp_title),
         values = bars,
         xLabels = loadAxisLabels(series),
         yFormatter = { "%.0f".format(Locale.US, it) },
         highlightIndex = bars.lastIndex.takeIf { it >= 0 },
-        emptyMessage = "No training logged in this range yet.",
+        emptyMessage = stringResource(R.string.load_chart_trimp_empty),
     )
 }
 
 @Composable
 private fun RecoveryTrendCard(series: List<DailyLoad>) {
     LineChartCard(
-        title = "Recovery score",
-        series = listOf(ChartSeries(name = "Recovery", points = recoveryPoints(series))),
+        title = stringResource(R.string.load_chart_recovery_title),
+        series = listOf(ChartSeries(name = stringResource(R.string.load_chart_recovery_series), points = recoveryPoints(series))),
         xLabels = loadAxisLabels(series),
         yFormatter = { "%.0f".format(Locale.US, it) },
-        emptyMessage = "No recovery scores cached for this range yet.",
+        emptyMessage = stringResource(R.string.load_chart_recovery_empty),
     )
 }
 
 @Composable
 private fun RecoveryCard(recovery: RecoveryState?) {
-    SectionCard(title = "Recovery") {
+    SectionCard(title = stringResource(R.string.load_recovery_title)) {
         if (recovery?.score == null) {
-            Text("Not enough data yet for a recovery score.", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.load_recovery_no_data), style = MaterialTheme.typography.bodyMedium)
             return@SectionCard
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("${recovery.score} / 100", style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.load_recovery_score_label, recovery.score), style = MaterialTheme.typography.headlineMedium)
             Column {
                 Text(recoveryBandLabel(recovery.band), style = MaterialTheme.typography.titleMedium)
                 Text(confidencePercentLabel(recovery.confidence), style = MaterialTheme.typography.bodySmall)
@@ -232,11 +241,12 @@ private fun RecoveryCard(recovery: RecoveryState?) {
     }
 }
 
+@Composable
 private fun AcwrZone.label(): String = when (this) {
-    AcwrZone.DETRAINING -> "Detraining"
-    AcwrZone.OPTIMAL -> "Optimal"
-    AcwrZone.CAUTION -> "Caution"
-    AcwrZone.HIGH_RISK -> "High risk"
+    AcwrZone.DETRAINING -> stringResource(R.string.load_acwr_zone_detraining)
+    AcwrZone.OPTIMAL -> stringResource(R.string.load_acwr_zone_optimal)
+    AcwrZone.CAUTION -> stringResource(R.string.load_acwr_zone_caution)
+    AcwrZone.HIGH_RISK -> stringResource(R.string.load_acwr_zone_high_risk)
 }
 
 @Composable

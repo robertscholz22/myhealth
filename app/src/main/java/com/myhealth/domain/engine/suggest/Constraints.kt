@@ -10,8 +10,12 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import kotlin.math.abs
 
-/** The twelve hard constraints of PLAN §3.5.3, in the plan's order. */
-enum class ConstraintId { C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12 }
+/**
+ * The hard constraints of PLAN §3.5.3, in the plan's order, plus `C13` — the repetition guard
+ * added after runtime finding POLISH-8 (two "Strength full" days in a row, two "Soccer training"
+ * days in a row) showed that C11's per-type spacing leaves the rest of the catalog unguarded.
+ */
+enum class ConstraintId { C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13 }
 
 /** A session the engine is considering for one day (§3.5.6 step 4). */
 data class Candidate(
@@ -84,6 +88,10 @@ data class ConstraintContext(
  * - C5 and C10 are counted over every rolling 7-day window of the horizon that contains the
  *   candidate's day; a horizon shorter than a week counts as one window.
  * - A `BLOCKED` day still counts as the rest day C3 asks for — nothing is scheduled on it.
+ * - C13 (POLISH-8) reads "consecutive days" as adjacent grid days and "48 h between two strength
+ *   sessions" as "at least one clear day between them", the same whole-day reading C11 uses.
+ *   `MOBILITY` is exempt from the same-type half: it carries no stress (12 AU), post-pass 7c
+ *   deliberately puts one on every rest day, and blocking it would break `sug18`.
  */
 object Constraints {
 
@@ -107,6 +115,19 @@ object Constraints {
     /** C4 / C8: the only sessions allowed the day after a match, race or 200 AU day. */
     val RECOVERY_ONLY_TYPES: Set<SessionType> =
         setOf(SessionType.RECOVERY_RUN, SessionType.MOBILITY, SessionType.REST)
+
+    /** C13: the same session type needs a clear day between repeats (POLISH-8). */
+    const val SAME_TYPE_SPACING_DAYS: Long = 2L
+
+    /** C13: ≥ 48 h between any two strength sessions, whatever their variant (POLISH-8). */
+    const val STRENGTH_SPACING_DAYS: Long = 2L
+
+    /** The `STRENGTH_*` family C13's second half spaces as one group. */
+    val STRENGTH_TYPES: Set<SessionType> = setOf(
+        SessionType.STRENGTH_FULL,
+        SessionType.STRENGTH_UPPER,
+        SessionType.STRENGTH_LOWER,
+    )
 
     val WEEKEND: Set<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
 
@@ -134,6 +155,7 @@ object Constraints {
         if (c10Violated(candidate, day, grid, ctx)) broken += ConstraintId.C10
         if (c11Violated(candidate, day, grid)) broken += ConstraintId.C11
         if (c12Violated(candidate, day, ctx)) broken += ConstraintId.C12
+        if (c13Violated(candidate, day, grid)) broken += ConstraintId.C13
         return broken
     }
 
@@ -260,6 +282,26 @@ object Constraints {
         val weekday = LocalDate.ofEpochDay(day).dayOfWeek
         val allowed = ctx.longRunWeekday?.let { setOf(it) } ?: WEEKEND
         return weekday !in allowed
+    }
+
+    /**
+     * C13 (POLISH-8) — no identical [SessionType] on consecutive days, and ≥ 48 h between any two
+     * strength sessions. Both halves look at **every** grid item, fixed or suggested, so a calendar
+     * soccer training on Thursday also blocks a suggested one on Friday.
+     */
+    private fun c13Violated(candidate: Candidate, day: Long, grid: SuggestionGrid): Boolean {
+        val repeats = !candidate.isMobility && grid.entries().any { (otherDay, item) ->
+            otherDay != day &&
+                item.sessionType == candidate.sessionType &&
+                abs(otherDay - day) < SAME_TYPE_SPACING_DAYS
+        }
+        if (repeats) return true
+        if (candidate.sessionType !in STRENGTH_TYPES) return false
+        return grid.entries().any { (otherDay, item) ->
+            otherDay != day &&
+                item.sessionType in STRENGTH_TYPES &&
+                abs(otherDay - day) < STRENGTH_SPACING_DAYS
+        }
     }
 }
 

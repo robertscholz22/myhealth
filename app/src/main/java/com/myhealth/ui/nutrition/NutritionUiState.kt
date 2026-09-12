@@ -8,6 +8,7 @@ import com.myhealth.domain.model.NutritionTarget
 import com.myhealth.domain.model.QuantityUnit
 import com.myhealth.domain.model.WaterLog
 import com.myhealth.domain.util.toLocalDate
+import com.myhealth.ui.common.UiMessage
 import java.time.LocalDate
 import java.util.Locale
 
@@ -55,7 +56,7 @@ data class NutritionUiState(
     /** The custom-amount dialog of the water card: `null` when closed. */
     val waterDraftMl: Double? = null,
     val waterDialogOpen: Boolean = false,
-    val message: String? = null,
+    val message: UiMessage? = null,
 ) {
     val date: LocalDate get() = day.toLocalDate()
 

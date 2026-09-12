@@ -6,6 +6,7 @@ import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.model.Goal
 import com.myhealth.domain.model.GoalStatus
 import com.myhealth.domain.model.RunningBest
+import com.myhealth.ui.common.UiMessage
 import java.time.LocalDate
 
 /** One row of the Goals list: the goal plus its computed progress (PLAN §4.2 "Goals", P6.1). */
@@ -21,7 +22,7 @@ data class GoalsUiState(
     val isLoading: Boolean = true,
     val active: List<GoalRow> = emptyList(),
     val archived: List<GoalRow> = emptyList(),
-    val message: String? = null,
+    val message: UiMessage? = null,
 ) {
     val isEmpty: Boolean get() = !isLoading && active.isEmpty() && archived.isEmpty()
 }

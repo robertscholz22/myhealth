@@ -29,9 +29,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.Ingredient
 import com.myhealth.domain.model.MealSlot
@@ -62,11 +65,12 @@ fun AddFoodScreen(
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(state.added) { if (state.added) onBack() }
     LaunchedEffect(state.message) {
         state.message?.let {
-            snackbar.showSnackbar(it)
+            snackbar.showSnackbar(it.resolve(context))
             vm.consumeMessage()
         }
     }
@@ -75,15 +79,15 @@ fun AddFoodScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Add to ${slot.displayName()}") },
+                title = { Text(stringResource(R.string.addfood_title_add_to, slot.displayName())) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onNewIngredient) {
-                        Icon(Icons.Filled.Add, contentDescription = "New ingredient")
+                        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.addfood_new_ingredient_cd))
                     }
                 },
             )
@@ -141,7 +145,7 @@ private fun AddFoodContent(
             OutlinedTextField(
                 value = state.query,
                 onValueChange = onQueryChange,
-                label = { Text("Search ingredients") },
+                label = { Text(stringResource(R.string.addfood_search_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
             )
@@ -158,11 +162,11 @@ private fun IngredientList(state: AddFoodUiState, onSelect: (Ingredient) -> Unit
     if (state.ingredients.isEmpty()) {
         EmptyState(
             title = when (state.tab) {
-                AddFoodTab.RECENTS -> "Nothing logged yet"
-                AddFoodTab.FAVORITES -> "No favorites yet"
-                else -> "No matching ingredients"
+                AddFoodTab.RECENTS -> stringResource(R.string.addfood_empty_recents_title)
+                AddFoodTab.FAVORITES -> stringResource(R.string.addfood_empty_favorites_title)
+                else -> stringResource(R.string.addfood_empty_search_title)
             },
-            message = "Search for an ingredient, or create one with the + button.",
+            message = stringResource(R.string.addfood_empty_ingredients_message),
             modifier = Modifier.padding(16.dp),
         )
         return
@@ -173,12 +177,14 @@ private fun IngredientList(state: AddFoodUiState, onSelect: (Ingredient) -> Unit
                 headlineContent = { Text(ingredient.name) },
                 supportingContent = {
                     val brand = ingredient.brand
-                    Text(
-                        if (brand.isNullOrBlank()) ingredient.basisLabel() else "$brand · ${ingredient.basisLabel()}",
-                    )
+                    val basis = ingredient.basisLabel(LocalContext.current)
+                    Text(if (brand.isNullOrBlank()) basis else "$brand · $basis")
                 },
                 trailingContent = {
-                    Text("${ingredient.kcal.roundToInt()} kcal", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        stringResource(R.string.addfood_kcal_value, ingredient.kcal.roundToInt()),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 },
                 modifier = Modifier.fillMaxWidth().clickable { onSelect(ingredient) },
             )
@@ -191,8 +197,8 @@ private fun IngredientList(state: AddFoodUiState, onSelect: (Ingredient) -> Unit
 private fun TemplateList(state: AddFoodUiState, onLogTemplate: (Long) -> Unit) {
     if (state.templates.isEmpty()) {
         EmptyState(
-            title = "No meal templates yet",
-            message = "Create one from More → Meal Templates to log a whole meal in one tap.",
+            title = stringResource(R.string.addfood_empty_templates_title),
+            message = stringResource(R.string.addfood_empty_templates_message),
             modifier = Modifier.padding(16.dp),
         )
         return
@@ -201,7 +207,7 @@ private fun TemplateList(state: AddFoodUiState, onLogTemplate: (Long) -> Unit) {
         items(state.templates, key = { it.id }) { template ->
             ListItem(
                 headlineContent = { Text(template.name) },
-                supportingContent = { Text("${template.items.size} ingredients") },
+                supportingContent = { Text(stringResource(R.string.addfood_template_item_count, template.items.size)) },
                 modifier = Modifier.fillMaxWidth().clickable { onLogTemplate(template.id) },
             )
             HorizontalDivider()

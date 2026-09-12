@@ -30,9 +30,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.Ingredient
 import com.myhealth.domain.model.MeasureBasis
@@ -53,10 +56,10 @@ fun IngredientsScreen(
 
     Scaffold(
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text("Ingredients") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.ingredients_title)) }) },
         floatingActionButton = {
             FloatingActionButton(onClick = onNewIngredient) {
-                Icon(Icons.Filled.Add, contentDescription = "New ingredient")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.ingredients_new_content_description))
             }
         },
     ) { innerPadding ->
@@ -85,7 +88,7 @@ private fun IngredientsContent(
             OutlinedTextField(
                 value = state.query,
                 onValueChange = onQueryChange,
-                label = { Text("Search ingredients") },
+                label = { Text(stringResource(R.string.ingredients_search_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -94,14 +97,16 @@ private fun IngredientsContent(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Show archived", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.ingredients_show_archived), style = MaterialTheme.typography.bodyMedium)
                 Switch(checked = state.showArchived, onCheckedChange = onShowArchivedChange)
             }
         }
         if (state.items.isEmpty()) {
             EmptyState(
-                title = if (state.showArchived) "No archived ingredients" else "No ingredients yet",
-                message = "Add an ingredient with the + button, or scan a label.",
+                title = stringResource(
+                    if (state.showArchived) R.string.ingredients_empty_archived_title else R.string.ingredients_empty_title,
+                ),
+                message = stringResource(R.string.ingredients_empty_message),
                 modifier = Modifier.padding(16.dp),
             )
         } else {
@@ -124,20 +129,29 @@ private fun IngredientsContent(
 
 @Composable
 private fun IngredientRow(ingredient: Ingredient, onToggleFavorite: (Boolean) -> Unit, onClick: () -> Unit) {
+    val context = LocalContext.current
     ListItem(
         headlineContent = { Text(ingredient.name) },
         supportingContent = {
             val brand = ingredient.brand
-            Text(if (brand.isNullOrBlank()) ingredient.basisLabel() else "$brand · ${ingredient.basisLabel()}")
+            val basisLabel = ingredient.basisLabel(context)
+            Text(if (brand.isNullOrBlank()) basisLabel else stringResource(R.string.ingredients_brand_basis, brand, basisLabel))
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("${ingredient.kcal.roundToInt()} kcal", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    stringResource(R.string.ingredients_kcal_suffix, ingredient.kcal.roundToInt()),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
                 IconButton(onClick = { onToggleFavorite(!ingredient.isFavorite) }) {
                     if (ingredient.isFavorite) {
-                        Icon(Icons.Filled.Star, contentDescription = "Unfavorite", tint = MaterialTheme.colorScheme.primary)
+                        Icon(
+                            Icons.Filled.Star,
+                            contentDescription = stringResource(R.string.ingredients_unfavorite_content_description),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
                     } else {
-                        Icon(Icons.Outlined.StarBorder, contentDescription = "Favorite")
+                        Icon(Icons.Outlined.StarBorder, contentDescription = stringResource(R.string.ingredients_favorite_content_description))
                     }
                 }
             }

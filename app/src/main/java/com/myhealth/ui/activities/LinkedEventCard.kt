@@ -17,8 +17,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.myhealth.R
 import com.myhealth.domain.model.EventOccurrence
 import com.myhealth.domain.model.EventType
 import com.myhealth.ui.common.SectionCard
@@ -36,10 +38,10 @@ private fun EventType.label(): String =
 
 @Composable
 internal fun LinkedEventCard(linkedEvent: EventOccurrence?, onOpenPicker: () -> Unit, onUnlink: () -> Unit) {
-    SectionCard(title = "Linked event") {
+    SectionCard(title = stringResource(R.string.activity_linked_event_title)) {
         if (linkedEvent == null) {
-            Text("No event linked yet.", style = MaterialTheme.typography.bodyMedium)
-            Button(onClick = onOpenPicker) { Text("Link to event…") }
+            Text(stringResource(R.string.activity_linked_event_none), style = MaterialTheme.typography.bodyMedium)
+            Button(onClick = onOpenPicker) { Text(stringResource(R.string.activity_linked_event_link_action)) }
         } else {
             Text(linkedEvent.effectiveTitle, style = MaterialTheme.typography.bodyLarge)
             Text(
@@ -48,8 +50,8 @@ internal fun LinkedEventCard(linkedEvent: EventOccurrence?, onOpenPicker: () -> 
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = onOpenPicker) { Text("Change") }
-                TextButton(onClick = onUnlink) { Text("Unlink") }
+                TextButton(onClick = onOpenPicker) { Text(stringResource(R.string.activity_linked_event_change_action)) }
+                TextButton(onClick = onUnlink) { Text(stringResource(R.string.activity_linked_event_unlink_action)) }
             }
         }
     }
@@ -62,7 +64,7 @@ internal fun EventPickerSheet(events: List<EventOccurrence>, onSelect: (Long) ->
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         if (events.isEmpty()) {
             Text(
-                "No events on this day.",
+                stringResource(R.string.activity_event_picker_empty),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(16.dp),
             )

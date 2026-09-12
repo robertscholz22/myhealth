@@ -8,8 +8,10 @@ import com.myhealth.domain.model.Profile
 import com.myhealth.domain.repository.BodyRepository
 import com.myhealth.domain.repository.ProfileRepository
 import com.myhealth.domain.repository.SettingsRepository
+import com.myhealth.R
 import com.myhealth.domain.util.Outcome
 import com.myhealth.sync.SyncScheduler
+import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.common.encodePreferredSports
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -101,7 +103,9 @@ class OnboardingViewModel(
 
             when (val profileOutcome = profileRepo.upsert(profile)) {
                 is Outcome.Err -> {
-                    _state.update { it.copy(isSaving = false, saveError = "Could not save your profile. Please try again.") }
+                    _state.update {
+                        it.copy(isSaving = false, saveError = UiMessage.of(R.string.onboarding_save_profile_error))
+                    }
                     return@launch
                 }
                 is Outcome.Ok -> Unit
@@ -120,7 +124,9 @@ class OnboardingViewModel(
 
             when (val bodyOutcome = bodyRepo.insert(measurement)) {
                 is Outcome.Err -> {
-                    _state.update { it.copy(isSaving = false, saveError = "Could not save your starting weight. Please try again.") }
+                    _state.update {
+                        it.copy(isSaving = false, saveError = UiMessage.of(R.string.onboarding_save_weight_error))
+                    }
                     return@launch
                 }
                 is Outcome.Ok -> Unit

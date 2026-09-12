@@ -33,10 +33,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.RationaleEntry
@@ -64,10 +67,11 @@ fun SuggestionReviewScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val vm = rememberVm { graph -> SuggestionReviewViewModel(graph.suggestionRepo, graph.settings) }
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(state.message) {
         state.message?.let {
-            snackbar.showSnackbar(it)
+            snackbar.showSnackbar(it.resolve(context))
             vm.consumeMessage()
         }
     }
@@ -82,15 +86,18 @@ fun SuggestionReviewScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Suggested week") },
+                title = { Text(stringResource(R.string.review_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back),
+                        )
                     }
                 },
                 actions = {
                     TextButton(onClick = vm::acceptAll, enabled = state.isReviewable) {
-                        Text("Select all")
+                        Text(stringResource(R.string.review_select_all))
                     }
                 },
             )
@@ -117,10 +124,9 @@ internal fun SuggestionReviewContent(
 ) {
     if (state.isEmpty) {
         EmptyState(
-            title = "No suggestions yet",
-            message = "Generate a week from the training screen; every session arrives here with " +
-                "the reasoning behind it before anything is added to your plan.",
-            actionLabel = "Generate",
+            title = stringResource(R.string.review_empty_title),
+            message = stringResource(R.string.review_empty_message),
+            actionLabel = stringResource(R.string.review_generate),
             onAction = onRegenerate,
             modifier = modifier,
         )
@@ -155,17 +161,29 @@ private fun ReviewHeaderCard(
     onRegenerate: () -> Unit,
 ) {
     SectionCard(
-        title = "This week's proposal",
+        title = stringResource(R.string.review_proposal_title),
         action = {
             state.phase?.let { phase ->
                 AssistChip(onClick = {}, enabled = false, label = { Text(phase.label()) })
             }
         },
     ) {
-        Text(text = state.headerLine(), style = MaterialTheme.typography.bodyMedium)
         Text(
-            text = "${state.selectedIds.size} of ${state.sessions.size} selected · " +
-                "${Math.round(state.selectedLoad)} AU",
+            text = state.headerLine(
+                targetLabel = stringResource(R.string.review_target_label),
+                suggestedLabel = stringResource(R.string.review_suggested_label),
+                restDaySingular = stringResource(R.string.review_rest_day_singular),
+                restDayPlural = stringResource(R.string.review_rest_day_plural),
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Text(
+            text = stringResource(
+                R.string.review_selected_summary,
+                state.selectedIds.size,
+                state.sessions.size,
+                Math.round(state.selectedLoad),
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -174,9 +192,11 @@ private fun ReviewHeaderCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Button(onClick = onAccept, enabled = state.isReviewable && !state.isWorking) {
-                Text("Accept selected")
+                Text(stringResource(R.string.review_accept_selected))
             }
-            OutlinedButton(onClick = onRegenerate, enabled = !state.isWorking) { Text("Regenerate") }
+            OutlinedButton(onClick = onRegenerate, enabled = !state.isWorking) {
+                Text(stringResource(R.string.training_action_regenerate))
+            }
         }
     }
 }
@@ -233,7 +253,7 @@ private fun RestDayCard(day: Long) {
                 modifier = Modifier.size(20.dp),
             )
             Text(
-                text = "Rest — kept free so the week's hard days can be absorbed.",
+                text = stringResource(R.string.review_rest_day_message),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

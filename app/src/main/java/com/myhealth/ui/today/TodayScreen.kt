@@ -9,18 +9,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.calendar.LinkProposal
 import com.myhealth.domain.model.ActivitySource
@@ -42,6 +46,7 @@ import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.ErrorBanner
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.SportIcon
+import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.StatTile
 import com.myhealth.ui.common.displayName
 import com.myhealth.ui.theme.MyHealthTheme
@@ -92,8 +97,46 @@ fun TodayScreen(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TodayContent(
+internal fun TodayContent(
+    state: TodayUiState,
+    onSyncNow: () -> Unit,
+    onOpenActivity: (Long) -> Unit,
+    onOpenDay: (Long) -> Unit,
+    onOpenNutrition: () -> Unit,
+    onOpenLoad: () -> Unit,
+    onAcceptSuggestion: (LinkProposal) -> Unit,
+    onDismissSuggestion: (LinkProposal) -> Unit,
+    onMarkPlannedDone: (Long) -> Unit,
+    onOpenTraining: () -> Unit,
+    onReviewSuggestions: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // P8.6 — pull down anywhere on Today to run the same sync as the banner's "Sync now".
+    PullToRefreshBox(
+        isRefreshing = state.isSyncing,
+        onRefresh = onSyncNow,
+        modifier = modifier.fillMaxSize(),
+    ) {
+        TodayList(
+            state = state,
+            onSyncNow = onSyncNow,
+            onOpenActivity = onOpenActivity,
+            onOpenDay = onOpenDay,
+            onOpenNutrition = onOpenNutrition,
+            onOpenLoad = onOpenLoad,
+            onAcceptSuggestion = onAcceptSuggestion,
+            onDismissSuggestion = onDismissSuggestion,
+            onMarkPlannedDone = onMarkPlannedDone,
+            onOpenTraining = onOpenTraining,
+            onReviewSuggestions = onReviewSuggestions,
+        )
+    }
+}
+
+@Composable
+private fun TodayList(
     state: TodayUiState,
     onSyncNow: () -> Unit,
     onOpenActivity: (Long) -> Unit,
@@ -109,7 +152,7 @@ private fun TodayContent(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(SCREEN_PADDING),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item { SyncStatusBanner(state, onSyncNow) }
@@ -121,6 +164,7 @@ private fun TodayContent(
             TodayPlanCard(
                 planned = state.plannedToday,
                 suggested = state.suggestedToday,
+                isStale = state.suggestionsStale,
                 onMarkDone = onMarkPlannedDone,
                 onReviewSuggestions = onReviewSuggestions,
                 onOpenTraining = onOpenTraining,
@@ -143,7 +187,7 @@ private fun SuggestedLinksCard(
     onAccept: (LinkProposal) -> Unit,
     onDismiss: (LinkProposal) -> Unit,
 ) {
-    SectionCard(title = "Suggested links") {
+    SectionCard(title = stringResource(R.string.today_suggested_links_title)) {
         suggestions.forEach { proposal ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -159,8 +203,8 @@ private fun SuggestedLinksCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                TextButton(onClick = { onDismiss(proposal) }) { Text("Dismiss") }
-                Button(onClick = { onAccept(proposal) }) { Text("Accept") }
+                TextButton(onClick = { onDismiss(proposal) }) { Text(stringResource(R.string.today_dismiss)) }
+                Button(onClick = { onAccept(proposal) }) { Text(stringResource(R.string.today_accept)) }
             }
         }
     }
@@ -178,9 +222,9 @@ private fun NutritionCard(
     onOpenNutrition: () -> Unit,
 ) {
     SectionCard(
-        title = "Nutrition",
+        title = stringResource(R.string.today_nutrition_title),
         modifier = Modifier.clickable(onClick = onOpenNutrition),
-        action = { TextButton(onClick = onOpenNutrition) { Text("Diary") } },
+        action = { TextButton(onClick = onOpenNutrition) { Text(stringResource(R.string.today_diary)) } },
     ) {
         if (target == null) {
             Text(NO_TARGET_MESSAGE, style = MaterialTheme.typography.bodyMedium)
@@ -226,7 +270,7 @@ private fun NutritionCard(
 private fun SyncStatusBanner(state: TodayUiState, onSyncNow: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (state.lastSyncError != null) {
-            ErrorBanner(message = "Sync failed: ${state.lastSyncError}", onRetry = onSyncNow)
+            ErrorBanner(message = stringResource(R.string.today_sync_failed, state.lastSyncError), onRetry = onSyncNow)
         } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -236,7 +280,9 @@ private fun SyncStatusBanner(state: TodayUiState, onSyncNow: () -> Unit) {
                     text = lastSyncedLabel(state.lastSyncSuccessAtMillis, ZoneId.systemDefault()),
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                Button(onClick = onSyncNow, enabled = !state.isSyncing) { Text("Sync now") }
+                Button(onClick = onSyncNow, enabled = !state.isSyncing) {
+                    Text(stringResource(R.string.today_sync_now))
+                }
             }
         }
     }
@@ -249,11 +295,11 @@ private fun TodayActivitiesSection(
     onOpenDay: () -> Unit,
 ) {
     SectionCard(
-        title = "Today's activities",
-        action = { TextButton(onClick = onOpenDay) { Text("Day detail") } },
+        title = stringResource(R.string.today_activities_title),
+        action = { TextButton(onClick = onOpenDay) { Text(stringResource(R.string.today_day_detail)) } },
     ) {
         if (activities.isEmpty()) {
-            EmptyState(title = "No activities yet today", message = "Anything you do today will show up here.")
+            EmptyState(stringResource(R.string.today_empty_activities_title), stringResource(R.string.today_empty_activities_message))
         } else {
             activities.forEach { activity ->
                 Row(
@@ -278,92 +324,19 @@ private fun TodayActivitiesSection(
 
 @Composable
 private fun BodyChip(weightChipText: String?) {
-    SectionCard(title = "Body") {
-        Text(weightChipText ?: "No weight logged yet.", style = MaterialTheme.typography.bodyMedium)
+    SectionCard(title = stringResource(R.string.today_body_title)) {
+        Text(weightChipText ?: stringResource(R.string.today_no_weight), style = MaterialTheme.typography.bodyMedium)
     }
 }
 
 @Composable
 private fun SleepTile(sleep: SleepRecord?) {
-    SectionCard(title = "Sleep") {
+    SectionCard(title = stringResource(R.string.today_sleep_title)) {
         if (sleep == null) {
-            Text("No sleep data for last night.", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.today_no_sleep), style = MaterialTheme.typography.bodyMedium)
         } else {
             val hours = sleep.totalSleepMin / 60.0
-            StatTile(label = "Last night", value = "%.1f".format(hours), unit = "h")
+            StatTile(label = stringResource(R.string.today_last_night_label), value = "%.1f".format(hours), unit = "h")
         }
-    }
-}
-
-@Preview(showBackground = true, name = "Populated")
-@Composable
-private fun TodayContentPreview() {
-    MyHealthTheme(dynamicColor = false) {
-        TodayContent(
-            state = TodayUiState(
-                isLoading = false,
-                activities = listOf(
-                    ActivitySummary(
-                        id = 1,
-                        startAtMillis = 1_757_000_000_000L,
-                        endAtMillis = 1_757_003_600_000L,
-                        day = 19980,
-                        sportType = SportType.RUN_OUTDOOR,
-                        sportGroup = SportGroup.RUN,
-                        title = "Morning run",
-                        durationSec = 2880,
-                        elapsedSec = 3000,
-                        distanceMeters = 8320.0,
-                        activeEnergyKcal = 540.0,
-                        totalEnergyKcal = 640.0,
-                        avgHr = 142,
-                        maxHr = 168,
-                        avgSpeedMps = 2.89,
-                        maxSpeedMps = 4.1,
-                        avgCadenceSpm = 172.0,
-                        elevationGainM = 45.0,
-                        trimp = 108.1,
-                        loadMethod = LoadMethod.HR_SAMPLES,
-                        rpe = null,
-                        note = null,
-                        primarySource = ActivitySource.HEALTH_CONNECT,
-                        mergedSources = listOf(ActivitySource.HEALTH_CONNECT),
-                        hasStreams = true,
-                    ),
-                ),
-                latestWeight = null,
-                lastSyncSuccessAtMillis = 1_757_000_000_000L,
-            ),
-            onSyncNow = {},
-            onOpenActivity = {},
-            onOpenDay = {},
-            onOpenNutrition = {},
-            onOpenLoad = {},
-            onAcceptSuggestion = {},
-            onDismissSuggestion = {},
-            onMarkPlannedDone = {},
-            onOpenTraining = {},
-            onReviewSuggestions = {},
-        )
-    }
-}
-
-@Preview(showBackground = true, name = "Empty")
-@Composable
-private fun TodayContentEmptyPreview() {
-    MyHealthTheme(dynamicColor = false) {
-        TodayContent(
-            state = TodayUiState(isLoading = false, lastSyncError = "storage: disk full"),
-            onSyncNow = {},
-            onOpenActivity = {},
-            onOpenDay = {},
-            onOpenNutrition = {},
-            onOpenLoad = {},
-            onAcceptSuggestion = {},
-            onDismissSuggestion = {},
-            onMarkPlannedDone = {},
-            onOpenTraining = {},
-            onReviewSuggestions = {},
-        )
     }
 }

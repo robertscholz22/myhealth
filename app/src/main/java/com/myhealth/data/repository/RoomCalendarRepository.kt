@@ -59,6 +59,12 @@ class RoomCalendarRepository(
     private val sleepDao: SleepDao,
     private val activityRepo: ActivityRepository,
     private val clock: Clock,
+    /**
+     * Called after every event/override write (POLISH-8). Wired to
+     * `SuggestionRepository.markProposedStale`, so a calendar edit under an open `PROPOSED` batch
+     * makes Training and the Today card offer "Calendar changed — regenerate".
+     */
+    private val onPlanChanged: suspend () -> Unit = {},
     private val zone: ZoneId = clock.zone,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val computeDispatcher: CoroutineDispatcher = Dispatchers.Default,
@@ -141,24 +147,36 @@ class RoomCalendarRepository(
                     )
                     .toEntity()
                 val newId = eventDao.upsert(entity)
+                onPlanChanged()
                 if (entity.id != 0L) entity.id else newId
             }
         }
 
     override suspend fun deleteEvent(id: Long): Outcome<Unit> =
-        withContext(ioDispatcher) { runCatchingApp { eventDao.deleteById(id) } }
+        withContext(ioDispatcher) {
+            runCatchingApp {
+                eventDao.deleteById(id)
+                onPlanChanged()
+            }
+        }
 
     override suspend fun upsertOverride(override: EventOverride): Outcome<Long> =
         withContext(ioDispatcher) {
             runCatchingApp {
                 val entity = override.toEntity()
                 val newId = eventDao.upsertOverride(entity)
+                onPlanChanged()
                 if (entity.id != 0L) entity.id else newId
             }
         }
 
     override suspend fun deleteOverride(id: Long): Outcome<Unit> =
-        withContext(ioDispatcher) { runCatchingApp { eventDao.deleteOverrideById(id) } }
+        withContext(ioDispatcher) {
+            runCatchingApp {
+                eventDao.deleteOverrideById(id)
+                onPlanChanged()
+            }
+        }
 
     /**
      * Links (or unlinks, with `activityId = null`) an activity to an event. Linking a

@@ -231,6 +231,72 @@ class ConstraintsTest {
         assertThat(violations(candidate(SessionType.EASY_RUN, day(0)), input)).doesNotContain(ConstraintId.C12)
     }
 
+    // ---- C13: the POLISH-8 repetition guard --------------------------------------------------------
+
+    @Test
+    fun c13_no_same_session_type_on_consecutive_days() {
+        val input = SuggestFixtures.input(
+            lockedPlanned = listOf(SuggestFixtures.locked(day(2), SessionType.EASY_RUN)),
+        )
+
+        // The day before and the day after the fixed easy run are both "consecutive".
+        assertThat(violations(candidate(SessionType.EASY_RUN, day(1)), input)).contains(ConstraintId.C13)
+        assertThat(violations(candidate(SessionType.EASY_RUN, day(3)), input)).contains(ConstraintId.C13)
+        // One clear day is enough.
+        assertThat(violations(candidate(SessionType.EASY_RUN, day(4)), input)).doesNotContain(ConstraintId.C13)
+        assertThat(violations(candidate(SessionType.EASY_RUN, day(0)), input)).doesNotContain(ConstraintId.C13)
+        // A different session type on the neighbouring day is fine — C13 is about repetition only.
+        assertThat(violations(candidate(SessionType.CROSS_TRAINING, day(3)), input))
+            .doesNotContain(ConstraintId.C13)
+
+        // The rule also sees fixed calendar events, which is the POLISH-8 case: a soccer training
+        // on the calendar blocks a suggested one the next day.
+        val soccer = SuggestFixtures.input(
+            events = listOf(SuggestFixtures.event(day(3), EventType.SOCCER_TRAINING)),
+        )
+        assertThat(violations(candidate(SessionType.SOCCER_TRAINING, day(4)), soccer))
+            .contains(ConstraintId.C13)
+        assertThat(violations(candidate(SessionType.SOCCER_TRAINING, day(5)), soccer))
+            .doesNotContain(ConstraintId.C13)
+
+        // Mobility is exempt: post-pass 7c puts one on every rest day (`sug18`).
+        val mobility = SuggestFixtures.input(
+            lockedPlanned = listOf(
+                SuggestFixtures.locked(day(2), SessionType.MOBILITY, intensity = Intensity.RECOVERY),
+            ),
+        )
+        assertThat(violations(candidate(SessionType.MOBILITY, day(3)), mobility))
+            .doesNotContain(ConstraintId.C13)
+    }
+
+    @Test
+    fun c13b_strength_sessions_48h_apart() {
+        val input = SuggestFixtures.input(
+            lockedPlanned = listOf(
+                SuggestFixtures.locked(
+                    day(2),
+                    SessionType.STRENGTH_FULL,
+                    sportType = SportType.STRENGTH,
+                    intensity = Intensity.MODERATE,
+                ),
+            ),
+        )
+
+        // A *different* strength variant on either neighbouring day is still inside 48 h.
+        assertThat(violations(candidate(SessionType.STRENGTH_UPPER, day(1)), input))
+            .contains(ConstraintId.C13)
+        assertThat(violations(candidate(SessionType.STRENGTH_LOWER, day(3)), input))
+            .contains(ConstraintId.C13)
+        // 48 h clear is allowed again (C11 still spaces STRENGTH_LOWER by 72 h on its own).
+        assertThat(violations(candidate(SessionType.STRENGTH_UPPER, day(4)), input))
+            .doesNotContain(ConstraintId.C13)
+        assertThat(violations(candidate(SessionType.STRENGTH_UPPER, day(0)), input))
+            .doesNotContain(ConstraintId.C13)
+        // Running next to a strength day is untouched by C13.
+        assertThat(violations(candidate(SessionType.EASY_RUN, day(3)), input))
+            .doesNotContain(ConstraintId.C13)
+    }
+
     // ---- §3.5.4 catalog ---------------------------------------------------------------------------
 
     @Test

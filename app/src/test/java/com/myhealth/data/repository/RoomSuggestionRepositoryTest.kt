@@ -47,6 +47,8 @@ class RoomSuggestionRepositoryTest {
 
     private var recomputeRequests = 0
 
+    private val settingsRepo = FakeLoadSettingsRepository()
+
     private val repo = RoomSuggestionRepository(
         suggestionDao = suggestionDao,
         planRepo = planRepo,
@@ -55,6 +57,7 @@ class RoomSuggestionRepositoryTest {
         calendarRepo = calendarRepo,
         loadRepo = loadRepo,
         activityRepo = activityRepo,
+        settingsRepo = settingsRepo,
         engine = SuggestionEngine(clock),
         clock = clock,
         onPlanChanged = { recomputeRequests++ },
@@ -126,9 +129,89 @@ class RoomSuggestionRepositoryTest {
         assertThat(suggestionDao.getSessionById(rejected.single())?.status)
             .isEqualTo(SuggestionStatus.REJECTED)
         assertThat(planRepo.getSessions(today, today + 7)).hasSize(1)
+
+        // POLISH-9: the batch is closed once nothing in it is `PROPOSED` any more.
+        assertThat(suggestionDao.getById(batchId)?.status).isEqualTo(SuggestionStatus.ACCEPTED)
+    }
+
+    @Test
+    fun a_partly_reviewed_batch_stays_proposed_until_every_session_is_decided() = runTest {
+        val batchId = seedBatch()
+        val rows = suggestionDao.getSessionsForBatch(batchId)
+
+        repo.accept(rows.take(1).map { it.id })
+
+        // One session is still open, so the batch is still worth reviewing.
+        assertThat(suggestionDao.getById(batchId)?.status).isEqualTo(SuggestionStatus.PROPOSED)
+
+        repo.reject(rows.drop(1).map { it.id })
+        assertThat(suggestionDao.getById(batchId)?.status).isEqualTo(SuggestionStatus.ACCEPTED)
+    }
+
+    @Test
+    fun a_batch_whose_sessions_are_all_rejected_becomes_rejected() = runTest {
+        val batchId = seedBatch()
+        val rows = suggestionDao.getSessionsForBatch(batchId)
+
+        repo.reject(rows.map { it.id })
+
+        assertThat(suggestionDao.getById(batchId)?.status).isEqualTo(SuggestionStatus.REJECTED)
+        assertThat(planRepo.getSessions(today, today + 7)).isEmpty()
+    }
+
+    // ---- POLISH-8: the staleness flag ----------------------------------------------------------
+
+    @Test
+    fun a_calendar_change_marks_an_open_proposed_batch_stale_until_it_is_regenerated() = runTest {
+        seedLoadHistory()
+        assertThat(repo.observeStale().first()).isFalse()
+
+        repo.generate(7)
+        assertThat(repo.observeStale().first()).isFalse()
+
+        repo.markProposedStale()
+        assertThat(settingsRepo.settings.first().suggestionsStale).isTrue()
+        assertThat(repo.observeStale().first()).isTrue()
+
+        // Regenerating clears it again.
+        repo.generate(7)
+        assertThat(repo.observeStale().first()).isFalse()
+    }
+
+    @Test
+    fun marking_stale_does_nothing_when_no_batch_is_awaiting_review() = runTest {
+        val batchId = seedBatch()
+        repo.reject(suggestionDao.getSessionsForBatch(batchId).map { it.id })
+
+        repo.markProposedStale()
+
+        assertThat(settingsRepo.settings.first().suggestionsStale).isFalse()
+        assertThat(repo.observeStale().first()).isFalse()
     }
 
     // ---- helpers -------------------------------------------------------------------------------
+
+    /** A `PROPOSED` batch with two open sessions — the shape the review screen works on. */
+    private suspend fun seedBatch(): Long {
+        val batchId = suggestionDao.upsert(
+            SuggestionBatchEntity(
+                id = 0L,
+                generatedAtMillis = clock.millis(),
+                horizonStartDay = today,
+                horizonEndDay = today + 7,
+                phase = TrainingPhase.BASE,
+                weeklyLoadTarget = 400.0,
+                inputsHash = "hash",
+            ),
+        )
+        suggestionDao.upsertSessions(
+            listOf(
+                suggested(batchId, day = today + 1, sessionType = SessionType.EASY_RUN),
+                suggested(batchId, day = today + 3, sessionType = SessionType.TEMPO_RUN),
+            ),
+        )
+        return batchId
+    }
 
     /** 42 days at 60 AU/day so `Periodization` has a CTL to build a real weekly budget from. */
     private fun seedLoadHistory() {

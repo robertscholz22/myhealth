@@ -3,6 +3,7 @@ package com.myhealth.ui.calendar
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.R
 import com.myhealth.domain.engine.calendar.LinkProposal
 import com.myhealth.domain.model.CalendarDay
 import com.myhealth.domain.model.EventOccurrence
@@ -12,6 +13,7 @@ import com.myhealth.domain.repository.CalendarRepository
 import com.myhealth.domain.repository.PlanRepository
 import com.myhealth.domain.util.Outcome
 import com.myhealth.sync.SyncScheduler
+import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,7 +45,7 @@ class DayDetailViewModel(
     private val dayFlow: StateFlow<Long> = savedState.getStateFlow(KEY_DAY, initialDay)
     private val pendingDelete = MutableStateFlow<Long?>(null)
     private val linkSheetOccurrence = MutableStateFlow<EventOccurrence?>(null)
-    private val message = MutableStateFlow<String?>(null)
+    private val message = MutableStateFlow<UiMessage?>(null)
 
     private val dayData: Flow<CalendarDay> = dayFlow.flatMapLatest { day -> calendarRepo.observeDay(day) }
     private val proposals: Flow<List<LinkProposal>> =
@@ -95,9 +97,9 @@ class DayDetailViewModel(
                 is Outcome.Ok -> {
                     // The day's DayType may have changed with it (P4.12).
                     syncScheduler.requestTargetRecompute()
-                    message.value = "Event deleted."
+                    message.value = UiMessage.of(R.string.daydetail_msg_event_deleted)
                 }
-                is Outcome.Err -> message.value = "Could not delete the event."
+                is Outcome.Err -> message.value = UiMessage.of(R.string.daydetail_msg_event_delete_failed)
             }
         }
     }
@@ -108,9 +110,9 @@ class DayDetailViewModel(
                 is Outcome.Ok -> {
                     // Completing or skipping a session changes the day's training energy (P4.12).
                     syncScheduler.requestTargetRecompute()
-                    message.value = "Session marked ${status.displayName().lowercase()}."
+                    message.value = UiMessage.of(R.string.daydetail_msg_session_marked, status.displayName().lowercase())
                 }
-                is Outcome.Err -> message.value = "Could not update the session."
+                is Outcome.Err -> message.value = UiMessage.of(R.string.daydetail_msg_session_update_failed)
             }
         }
     }
@@ -129,8 +131,8 @@ class DayDetailViewModel(
     fun linkActivity(eventId: Long, activityId: Long, method: LinkMethod) {
         viewModelScope.launch {
             when (calendarRepo.linkActivity(eventId, activityId, method)) {
-                is Outcome.Ok -> message.value = "Activity linked."
-                is Outcome.Err -> message.value = "Could not link the activity."
+                is Outcome.Ok -> message.value = UiMessage.of(R.string.daydetail_msg_activity_linked)
+                is Outcome.Err -> message.value = UiMessage.of(R.string.daydetail_msg_activity_link_failed)
             }
             linkSheetOccurrence.value = null
         }
@@ -139,8 +141,8 @@ class DayDetailViewModel(
     fun unlinkActivity(eventId: Long) {
         viewModelScope.launch {
             when (calendarRepo.linkActivity(eventId, null, null)) {
-                is Outcome.Ok -> message.value = "Activity unlinked."
-                is Outcome.Err -> message.value = "Could not unlink the activity."
+                is Outcome.Ok -> message.value = UiMessage.of(R.string.daydetail_msg_activity_unlinked)
+                is Outcome.Err -> message.value = UiMessage.of(R.string.daydetail_msg_activity_unlink_failed)
             }
             linkSheetOccurrence.value = null
         }
@@ -153,6 +155,6 @@ class DayDetailViewModel(
     private data class UiExtras(
         val pendingDelete: Long?,
         val linkSheetOccurrence: EventOccurrence?,
-        val message: String?,
+        val message: UiMessage?,
     )
 }

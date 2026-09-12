@@ -8,10 +8,12 @@ import com.myhealth.domain.model.MealLogItem
 import com.myhealth.domain.model.NutritionTarget
 import com.myhealth.domain.model.QuantityUnit
 import com.myhealth.domain.model.WaterLog
+import com.myhealth.R
 import com.myhealth.domain.repository.IngredientRepository
 import com.myhealth.domain.repository.MealRepository
 import com.myhealth.domain.repository.NutritionRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,7 +56,7 @@ class NutritionViewModel(
     private val editing = MutableStateFlow<QuantityEdit?>(null)
     private val waterDraft = MutableStateFlow<WaterDraft?>(null)
     private val explanationExpanded = MutableStateFlow(false)
-    private val message = MutableStateFlow<String?>(null)
+    private val message = MutableStateFlow<UiMessage?>(null)
 
     private val logs: Flow<List<MealLog>> = dayFlow.flatMapLatest { mealRepo.observeDay(it) }
     private val target: Flow<NutritionTarget?> = dayFlow.flatMapLatest { nutritionRepo.observeTarget(it) }
@@ -143,13 +145,13 @@ class NutritionViewModel(
         val edit = editing.value ?: return
         val quantity = edit.quantity
         if (quantity == null || quantity <= 0.0) {
-            message.value = "Enter a quantity above zero."
+            message.value = UiMessage.of(R.string.quantity_error_zero)
             return
         }
         editing.value = null
         viewModelScope.launch {
             if (mealRepo.updateItemQuantity(edit.itemId, quantity, edit.unit) is Outcome.Err) {
-                message.value = "Could not update that item."
+                message.value = UiMessage.of(R.string.diary_error_update_item)
             }
         }
     }
@@ -157,8 +159,8 @@ class NutritionViewModel(
     fun deleteItem(itemId: Long) {
         viewModelScope.launch {
             message.value = when (mealRepo.deleteItem(itemId)) {
-                is Outcome.Ok -> "Item removed."
-                is Outcome.Err -> "Could not remove that item."
+                is Outcome.Ok -> UiMessage.of(R.string.diary_item_removed)
+                is Outcome.Err -> UiMessage.of(R.string.diary_error_remove_item)
             }
         }
     }
@@ -166,8 +168,8 @@ class NutritionViewModel(
     fun deleteLog(logId: Long) {
         viewModelScope.launch {
             message.value = when (mealRepo.deleteLog(logId)) {
-                is Outcome.Ok -> "Meal removed."
-                is Outcome.Err -> "Could not remove that meal."
+                is Outcome.Ok -> UiMessage.of(R.string.diary_meal_removed)
+                is Outcome.Err -> UiMessage.of(R.string.diary_error_remove_meal)
             }
         }
     }
@@ -177,8 +179,8 @@ class NutritionViewModel(
         val day = dayFlow.value
         viewModelScope.launch {
             message.value = when (mealRepo.copyDay(day - 1, day)) {
-                is Outcome.Ok -> "Copied yesterday's meals."
-                is Outcome.Err -> "Could not copy yesterday's meals."
+                is Outcome.Ok -> UiMessage.of(R.string.diary_copied_yesterday)
+                is Outcome.Err -> UiMessage.of(R.string.diary_error_copy_yesterday)
             }
         }
     }
@@ -195,7 +197,7 @@ class NutritionViewModel(
         viewModelScope.launch {
             val minuteOfDay = LocalTime.now(clock).toSecondOfDay() / 60
             if (nutritionRepo.addWater(day, ml, minuteOfDay) is Outcome.Err) {
-                message.value = "Could not log that drink."
+                message.value = UiMessage.of(R.string.water_error_log_drink)
             }
         }
     }
@@ -215,7 +217,7 @@ class NutritionViewModel(
     fun confirmWaterDialog() {
         val amount = waterDraft.value?.amountMl
         if (amount == null || amount <= 0.0) {
-            message.value = "Enter an amount above zero."
+            message.value = UiMessage.of(R.string.water_error_amount_zero)
             return
         }
         waterDraft.value = null
@@ -225,7 +227,7 @@ class NutritionViewModel(
     fun deleteWater(id: Long) {
         viewModelScope.launch {
             if (nutritionRepo.deleteWater(id) is Outcome.Err) {
-                message.value = "Could not remove that drink."
+                message.value = UiMessage.of(R.string.water_error_remove_drink)
             }
         }
     }
@@ -237,7 +239,7 @@ class NutritionViewModel(
     private data class Extras(
         val editing: QuantityEdit?,
         val explanationExpanded: Boolean,
-        val message: String?,
+        val message: UiMessage?,
         val waterDraft: WaterDraft?,
     )
 }

@@ -9,6 +9,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.myhealth.R
 import com.myhealth.domain.model.AppSettings
 import com.myhealth.domain.model.ThemeMode
 import com.myhealth.ui.common.DropdownField
@@ -18,42 +20,42 @@ import com.myhealth.ui.common.SectionCard
 /** The non-profile [AppSettings] keys (§4.2 Settings / P1.8). */
 @Composable
 internal fun AppPreferencesSection(settings: AppSettings, onSettingsChange: (AppSettings) -> Unit) {
-    SectionCard(title = "App preferences") {
+    SectionCard(title = stringResource(R.string.settings_section_app)) {
         DropdownField(
-            label = "Theme",
+            label = stringResource(R.string.settings_theme_label),
             options = ThemeMode.entries,
             selected = settings.themeMode,
             optionLabel = { it.name.lowercase().replaceFirstChar(Char::uppercase) },
             onSelect = { onSettingsChange(settings.copy(themeMode = it)) },
         )
         SwitchRow(
-            label = "Use wallpaper colours",
+            label = stringResource(R.string.settings_dynamic_color_label),
             checked = settings.useDynamicColor,
             onCheckedChange = { onSettingsChange(settings.copy(useDynamicColor = it)) },
         )
         NumberField(
-            label = "Sync interval",
+            label = stringResource(R.string.settings_sync_interval_label),
             value = settings.syncIntervalHours.toDouble(),
             onValueChange = { it?.let { v -> onSettingsChange(settings.copy(syncIntervalHours = v.toInt().coerceAtLeast(1))) } },
-            suffix = "h",
+            suffix = stringResource(R.string.settings_unit_hours),
             decimals = 0,
         )
         NumberField(
-            label = "Suggestion horizon",
+            label = stringResource(R.string.settings_suggestion_horizon_label),
             value = settings.suggestionHorizonDays.toDouble(),
             onValueChange = { it?.let { v -> onSettingsChange(settings.copy(suggestionHorizonDays = v.toInt().coerceAtLeast(1))) } },
-            suffix = "days",
+            suffix = stringResource(R.string.settings_unit_days),
             decimals = 0,
         )
         SwitchRow(
-            label = "Include treadmill runs in PRs",
+            label = stringResource(R.string.settings_include_treadmill_prs_label),
             checked = settings.includeTreadmillInPrs,
             onCheckedChange = { onSettingsChange(settings.copy(includeTreadmillInPrs = it)) },
         )
         OutlinedTextField(
             value = settings.offUserAgentContact,
             onValueChange = { onSettingsChange(settings.copy(offUserAgentContact = it)) },
-            label = { Text("Open Food Facts contact (for the API user agent)") },
+            label = { Text(stringResource(R.string.settings_off_contact_label)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -63,14 +65,14 @@ internal fun AppPreferencesSection(settings: AppSettings, onSettingsChange: (App
 /** Debug / experimental toggles (§4.2 Settings). */
 @Composable
 internal fun AdvancedSection(settings: AppSettings, onSettingsChange: (AppSettings) -> Unit) {
-    SectionCard(title = "Advanced") {
+    SectionCard(title = stringResource(R.string.settings_section_advanced)) {
         SwitchRow(
-            label = "Garmin direct client (experimental)",
+            label = stringResource(R.string.settings_garmin_direct_label),
             checked = settings.garminDirectEnabled,
             onCheckedChange = { onSettingsChange(settings.copy(garminDirectEnabled = it)) },
         )
         SwitchRow(
-            label = "Allow destructive DB migration (debug builds only)",
+            label = stringResource(R.string.settings_allow_destructive_migration_label),
             checked = settings.allowDestructiveMigration,
             onCheckedChange = { onSettingsChange(settings.copy(allowDestructiveMigration = it)) },
         )

@@ -1,9 +1,11 @@
 package com.myhealth.ui.onboarding
 
+import com.myhealth.R
 import com.myhealth.domain.model.NeatLevel
 import com.myhealth.domain.model.Sex
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.ui.common.ONBOARDING_SPORT_GROUPS
+import com.myhealth.ui.common.UiMessage
 import java.time.LocalDate
 
 /** The 3-step onboarding form state (§4.2 Onboarding), before it becomes a [com.myhealth.domain.model.Profile]. */
@@ -43,42 +45,45 @@ private const val MIN_ONBOARDING_AGE_YEARS = 10L
  * [today] defaults to the real "now" but is overridable so birth-date rules are deterministic
  * in tests (§1.3: engines/pure functions take the clock/date as a parameter).
  */
-fun validate(draft: OnboardingDraft, today: LocalDate = LocalDate.now()): Map<OnboardingField, String> {
-    val errors = mutableMapOf<OnboardingField, String>()
+fun validate(draft: OnboardingDraft, today: LocalDate = LocalDate.now()): Map<OnboardingField, UiMessage> {
+    val errors = mutableMapOf<OnboardingField, UiMessage>()
 
     if (draft.displayName.isBlank()) {
-        errors[OnboardingField.NAME] = "Name is required."
+        errors[OnboardingField.NAME] = UiMessage.of(R.string.onboarding_name_required)
     }
 
     val birthDay = draft.birthDay
     val earliestAllowedBirthDay = today.minusYears(MIN_ONBOARDING_AGE_YEARS)
     when {
-        birthDay == null -> errors[OnboardingField.BIRTH_DATE] = "Birth date is required."
-        birthDay.isAfter(today) -> errors[OnboardingField.BIRTH_DATE] = "Birth date cannot be in the future."
+        birthDay == null -> errors[OnboardingField.BIRTH_DATE] = UiMessage.of(R.string.onboarding_birth_date_required)
+        birthDay.isAfter(today) -> errors[OnboardingField.BIRTH_DATE] = UiMessage.of(R.string.onboarding_birth_date_future)
         birthDay.isAfter(earliestAllowedBirthDay) ->
-            errors[OnboardingField.BIRTH_DATE] = "Must be at least $MIN_ONBOARDING_AGE_YEARS years ago."
+            errors[OnboardingField.BIRTH_DATE] =
+                UiMessage.of(R.string.onboarding_birth_date_min_age, MIN_ONBOARDING_AGE_YEARS)
     }
 
     val height = draft.heightCm
     if (height == null || height < MIN_HEIGHT_CM || height > MAX_HEIGHT_CM) {
-        errors[OnboardingField.HEIGHT] = "Height must be between ${MIN_HEIGHT_CM.toInt()} and ${MAX_HEIGHT_CM.toInt()} cm."
+        errors[OnboardingField.HEIGHT] =
+            UiMessage.of(R.string.onboarding_height_range, MIN_HEIGHT_CM.toInt(), MAX_HEIGHT_CM.toInt())
     }
 
     val weight = draft.weightKg
     if (weight == null || weight < MIN_WEIGHT_KG || weight > MAX_WEIGHT_KG) {
-        errors[OnboardingField.WEIGHT] = "Weight must be between ${MIN_WEIGHT_KG.toInt()} and ${MAX_WEIGHT_KG.toInt()} kg."
+        errors[OnboardingField.WEIGHT] =
+            UiMessage.of(R.string.onboarding_weight_range, MIN_WEIGHT_KG.toInt(), MAX_WEIGHT_KG.toInt())
     }
 
     val goalWeight = draft.goalWeightKg
     if (goalWeight != null && (goalWeight < MIN_WEIGHT_KG || goalWeight > MAX_WEIGHT_KG)) {
         errors[OnboardingField.GOAL_WEIGHT] =
-            "Goal weight must be between ${MIN_WEIGHT_KG.toInt()} and ${MAX_WEIGHT_KG.toInt()} kg."
+            UiMessage.of(R.string.onboarding_goal_weight_range, MIN_WEIGHT_KG.toInt(), MAX_WEIGHT_KG.toInt())
     }
 
     val pace = draft.goalPaceKgPerWeek
     if (pace == null || pace < MIN_GOAL_PACE_KG_PER_WEEK || pace > MAX_GOAL_PACE_KG_PER_WEEK) {
         errors[OnboardingField.GOAL_PACE] =
-            "Goal pace must be between $MIN_GOAL_PACE_KG_PER_WEEK and +$MAX_GOAL_PACE_KG_PER_WEEK kg/week."
+            UiMessage.of(R.string.onboarding_goal_pace_range, MIN_GOAL_PACE_KG_PER_WEEK, MAX_GOAL_PACE_KG_PER_WEEK)
     }
 
     return errors

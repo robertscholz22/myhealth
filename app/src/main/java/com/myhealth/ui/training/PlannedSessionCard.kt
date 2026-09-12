@@ -17,9 +17,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.myhealth.R
 import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.PlannedStatus
@@ -78,7 +80,7 @@ fun PlannedSessionCard(
                 )
             }
             Text(
-                text = plannedSessionSubtitle(session),
+                text = plannedSessionSubtitle(session, linkedLabel = stringResource(R.string.training_session_linked)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -86,7 +88,11 @@ fun PlannedSessionCard(
         IconButton(onClick = { actions.onToggleLock(session) }) {
             Icon(
                 imageVector = if (session.locked) Icons.Filled.Lock else Icons.Filled.LockOpen,
-                contentDescription = if (session.locked) "Unlock session" else "Lock session",
+                contentDescription = if (session.locked) {
+                    stringResource(R.string.session_unlock_desc)
+                } else {
+                    stringResource(R.string.session_lock_desc)
+                },
                 tint = if (session.locked) {
                     MaterialTheme.colorScheme.primary
                 } else {
@@ -94,32 +100,47 @@ fun PlannedSessionCard(
                 },
             )
         }
-        OverflowMenu(sessionMenu(session, actions))
+        OverflowMenu(
+            sessionMenu(
+                session = session,
+                actions = actions,
+                markDoneLabel = stringResource(R.string.training_mark_done),
+                skipLabel = stringResource(R.string.training_skip),
+                reopenLabel = stringResource(R.string.training_reopen),
+                editLabel = stringResource(R.string.training_edit),
+                deleteLabel = stringResource(R.string.action_delete),
+            ),
+        )
     }
 }
 
 private fun sessionMenu(
     session: PlannedSession,
     actions: PlannedSessionActions,
+    markDoneLabel: String,
+    skipLabel: String,
+    reopenLabel: String,
+    editLabel: String,
+    deleteLabel: String,
 ): List<Pair<String, () -> Unit>> = buildList {
     if (session.status == PlannedStatus.PLANNED) {
-        add("Mark done" to { actions.onMarkDone(session.id) })
-        add("Skip" to { actions.onSkip(session.id) })
+        add(markDoneLabel to { actions.onMarkDone(session.id) })
+        add(skipLabel to { actions.onSkip(session.id) })
     } else {
-        add("Reopen" to { actions.onReopen(session.id) })
+        add(reopenLabel to { actions.onReopen(session.id) })
     }
-    add("Edit" to { actions.onEdit(session.id) })
-    add("Delete" to { actions.onDelete(session.id) })
+    add(editLabel to { actions.onEdit(session.id) })
+    add(deleteLabel to { actions.onDelete(session.id) })
 }
 
 /** `"45 min · 8.00 km · 120 AU · Planned"` — whatever the session actually carries. */
-fun plannedSessionSubtitle(session: PlannedSession): String = buildList {
+fun plannedSessionSubtitle(session: PlannedSession, linkedLabel: String): String = buildList {
     session.targetDurationMin?.let { add("$it min") }
     formatDistanceKm(session.targetDistanceMeters)?.let { add(it) }
     session.targetPaceSecPerKm?.let { add(formatPaceSecPerKm(it)) }
     session.estimatedTrimp?.let { add("${Math.round(it)} AU") }
     add(session.status.displayName())
-    if (session.linkedActivityId != null) add("Linked")
+    if (session.linkedActivityId != null) add(linkedLabel)
 }.joinToString(" · ")
 
 /** `"5:30 /km"` from seconds per kilometre. */

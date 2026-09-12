@@ -30,15 +30,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVmWithSavedState
 import com.myhealth.domain.model.MealSlot
 import com.myhealth.domain.model.QuantityUnit
 import com.myhealth.ui.calendar.fullDateTitle
 import com.myhealth.ui.common.DropdownField
 import com.myhealth.ui.common.NumberField
+import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.theme.MyHealthTheme
 import java.time.LocalDate
 
@@ -67,10 +71,11 @@ fun NutritionScreen(
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(state.message) {
         state.message?.let {
-            snackbar.showSnackbar(it)
+            snackbar.showSnackbar(it.resolve(context))
             vm.consumeMessage()
         }
     }
@@ -79,17 +84,17 @@ fun NutritionScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Nutrition") },
+                title = { Text(stringResource(R.string.nav_nutrition)) },
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                         }
                     }
                 },
                 actions = {
                     IconButton(onClick = vm::copyYesterday) {
-                        Icon(Icons.Filled.ContentCopy, contentDescription = "Copy yesterday")
+                        Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(R.string.nutrition_copy_yesterday_cd))
                     }
                 },
             )
@@ -158,7 +163,7 @@ private fun NutritionContent(
 ) {
     LazyColumn(
         modifier = modifier,
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(SCREEN_PADDING),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
@@ -186,7 +191,9 @@ private fun NutritionContent(
         }
         if (!state.hasAnyMeal) {
             item {
-                TextButton(onClick = actions.onCopyYesterday) { Text("Copy yesterday's meals") }
+                TextButton(onClick = actions.onCopyYesterday) {
+                    Text(stringResource(R.string.nutrition_copy_yesterday_button))
+                }
             }
         }
         items(state.sections.size, key = { index -> state.sections[index].slot.name }) { index ->
@@ -211,14 +218,14 @@ private fun DayStrip(day: Long, onPrevious: () -> Unit, onNext: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onPrevious) {
-            Icon(Icons.Filled.ChevronLeft, contentDescription = "Previous day")
+            Icon(Icons.Filled.ChevronLeft, contentDescription = stringResource(R.string.nutrition_previous_day_cd))
         }
         Text(
             text = fullDateTitle(LocalDate.ofEpochDay(day)),
             style = MaterialTheme.typography.titleMedium,
         )
         IconButton(onClick = onNext) {
-            Icon(Icons.Filled.ChevronRight, contentDescription = "Next day")
+            Icon(Icons.Filled.ChevronRight, contentDescription = stringResource(R.string.nutrition_next_day_cd))
         }
     }
 }
@@ -237,13 +244,13 @@ private fun QuantityDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 NumberField(
-                    label = "Quantity",
+                    label = stringResource(R.string.quantity_label),
                     value = edit.quantity,
                     onValueChange = onQuantityChange,
                     decimals = 0,
                 )
                 DropdownField(
-                    label = "Unit",
+                    label = stringResource(R.string.quantity_unit_label),
                     options = edit.units,
                     selected = edit.unit,
                     optionLabel = { it.label() },
@@ -251,8 +258,8 @@ private fun QuantityDialog(
                 )
             }
         },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Save") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
 

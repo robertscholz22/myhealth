@@ -24,14 +24,18 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVmWithSavedState
 import com.myhealth.domain.model.CalendarDay
 import com.myhealth.domain.model.EventOccurrence
 import com.myhealth.domain.model.LinkMethod
 import com.myhealth.domain.model.PlannedStatus
+import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.theme.MyHealthTheme
 import java.time.LocalDate
 
@@ -72,10 +76,14 @@ fun DayDetailScreen(
     if (state.pendingDeleteEventId != null) {
         AlertDialog(
             onDismissRequest = vm::cancelDeleteEvent,
-            title = { Text("Delete event?") },
-            text = { Text("This removes the event and all of its occurrences.") },
-            confirmButton = { TextButton(onClick = vm::confirmDeleteEvent) { Text("Delete") } },
-            dismissButton = { TextButton(onClick = vm::cancelDeleteEvent) { Text("Cancel") } },
+            title = { Text(stringResource(R.string.event_dialog_delete_title)) },
+            text = { Text(stringResource(R.string.daydetail_dialog_delete_event_text)) },
+            confirmButton = {
+                TextButton(onClick = vm::confirmDeleteEvent) { Text(stringResource(R.string.action_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = vm::cancelDeleteEvent) { Text(stringResource(R.string.action_cancel)) }
+            },
         )
     }
 
@@ -110,10 +118,11 @@ private fun DayDetailContent(
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
     LaunchedEffect(state.message) {
         val message = state.message
         if (message != null) {
-            snackbarHostState.showSnackbar(message)
+            snackbarHostState.showSnackbar(message.resolve(context))
             onMessageShown()
         }
     }
@@ -126,15 +135,15 @@ private fun DayDetailContent(
                 title = { Text(state.title) },
                 navigationIcon = {
                     IconButton(onClick = nav.onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onPreviousDay) {
-                        Icon(Icons.Filled.ChevronLeft, contentDescription = "Previous day")
+                        Icon(Icons.Filled.ChevronLeft, contentDescription = stringResource(R.string.daydetail_previous_day_desc))
                     }
                     IconButton(onClick = onNextDay) {
-                        Icon(Icons.Filled.ChevronRight, contentDescription = "Next day")
+                        Icon(Icons.Filled.ChevronRight, contentDescription = stringResource(R.string.daydetail_next_day_desc))
                     }
                 },
             )
@@ -142,7 +151,7 @@ private fun DayDetailContent(
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(SCREEN_PADDING),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item("events") {

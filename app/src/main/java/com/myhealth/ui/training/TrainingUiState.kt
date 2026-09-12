@@ -7,6 +7,7 @@ import com.myhealth.domain.model.EventType
 import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.TrainingPhase
+import com.myhealth.ui.common.UiMessage
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -48,7 +49,12 @@ data class TrainingUiState(
     /** The day "+ Session" and "Generate suggestions" act on — today, or the week's Monday. */
     val selectedDay: Long = 0L,
     val isGenerating: Boolean = false,
-    val message: String? = null,
+    /**
+     * POLISH-8: the open `PROPOSED` batch was generated before the calendar changed, so the week
+     * on screen no longer matches what the suggester saw.
+     */
+    val suggestionsStale: Boolean = false,
+    val message: UiMessage? = null,
     /** One-shot: set after a successful generate so the screen can open the review. */
     val reviewReady: Boolean = false,
 ) {

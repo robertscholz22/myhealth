@@ -4,6 +4,7 @@ import com.myhealth.domain.model.SuggestedSession
 import com.myhealth.domain.model.SuggestionBatch
 import com.myhealth.domain.model.SuggestionStatus
 import com.myhealth.domain.model.TrainingPhase
+import com.myhealth.ui.common.UiMessage
 
 /**
  * One row of the review list: either a suggested session or the rest day the suggester left free
@@ -22,7 +23,7 @@ data class SuggestionReviewUiState(
     /** Per suggested-session id; a session not in the map is accepted (the default, §4.2). */
     val accepted: Map<Long, Boolean> = emptyMap(),
     val isWorking: Boolean = false,
-    val message: String? = null,
+    val message: UiMessage? = null,
     /** One-shot: set once the batch has been accepted/rejected, so the screen can go back. */
     val done: Boolean = false,
 ) {

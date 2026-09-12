@@ -2,6 +2,7 @@ package com.myhealth.ui.training
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.R
 import com.myhealth.domain.engine.suggest.Periodization
 import com.myhealth.domain.model.CalendarDay
 import com.myhealth.domain.model.Goal
@@ -17,6 +18,7 @@ import com.myhealth.domain.repository.PlanRepository
 import com.myhealth.domain.repository.SettingsRepository
 import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,12 +40,14 @@ private data class TrainingContext(
     val batch: SuggestionBatch?,
     val goals: List<Goal>,
     val matchWithin21Days: Boolean,
+    /** POLISH-8: a calendar edit happened under the open `PROPOSED` batch. */
+    val suggestionsStale: Boolean = false,
 )
 
 /** Transient, VM-owned state: the in-flight generate, its snackbar and its one-shot nav signal. */
 private data class TrainingAction(
     val isGenerating: Boolean = false,
-    val message: String? = null,
+    val message: UiMessage? = null,
     val reviewReady: Boolean = false,
     val selectedDay: Long? = null,
 )
@@ -94,12 +98,14 @@ class TrainingViewModel(
         suggestionRepo.observeLatestBatch(),
         goalRepo.observeByStatus(GoalStatus.ACTIVE),
         calendarRepo.observeOccurrences(todayDay(), todayDay() + PHASE_EVENT_WINDOW_DAYS),
-    ) { plan, batch, goals, events ->
+        suggestionRepo.observeStale(),
+    ) { plan, batch, goals, events, stale ->
         TrainingContext(
             plan = plan,
             batch = batch,
             goals = goals.sortedBy { it.priority },
             matchWithin21Days = Periodization.matchWithinWindow(events, todayDay()),
+            suggestionsStale = stale,
         )
     }
 
@@ -115,6 +121,7 @@ class TrainingViewModel(
             loads = weeklyLoadSums(planned, targetFor(currentWeek, ctx.batch), loads),
             selectedDay = act.selectedDay ?: defaultSelectedDay(currentWeek),
             isGenerating = act.isGenerating,
+            suggestionsStale = ctx.suggestionsStale,
             message = act.message,
             reviewReady = act.reviewReady,
         )
@@ -151,38 +158,42 @@ class TrainingViewModel(
                     is Outcome.Ok -> it.copy(isGenerating = false, reviewReady = true)
                     is Outcome.Err -> it.copy(
                         isGenerating = false,
-                        message = "Could not generate suggestions. Complete onboarding and try again.",
+                        message = UiMessage.of(R.string.training_generate_error),
                     )
                 }
             }
         }
     }
 
-    fun setLocked(sessionId: Long, locked: Boolean) =
-        run(if (locked) "Session locked." else "Session unlocked.") {
-            planRepo.setSessionLocked(sessionId, locked)
-        }
+    fun setLocked(sessionId: Long, locked: Boolean) = run(
+        if (locked) UiMessage.of(R.string.training_session_locked) else UiMessage.of(R.string.training_session_unlocked),
+    ) { planRepo.setSessionLocked(sessionId, locked) }
 
-    fun markDone(sessionId: Long) =
-        run("Session marked done.") { planRepo.setSessionStatus(sessionId, PlannedStatus.COMPLETED) }
+    fun markDone(sessionId: Long) = run(UiMessage.of(R.string.training_session_marked_done)) {
+        planRepo.setSessionStatus(sessionId, PlannedStatus.COMPLETED)
+    }
 
-    fun skip(sessionId: Long) =
-        run("Session skipped.") { planRepo.setSessionStatus(sessionId, PlannedStatus.SKIPPED) }
+    fun skip(sessionId: Long) = run(UiMessage.of(R.string.training_session_skipped)) {
+        planRepo.setSessionStatus(sessionId, PlannedStatus.SKIPPED)
+    }
 
-    fun reopen(sessionId: Long) =
-        run("Session reopened.") { planRepo.setSessionStatus(sessionId, PlannedStatus.PLANNED) }
+    fun reopen(sessionId: Long) = run(UiMessage.of(R.string.training_session_reopened)) {
+        planRepo.setSessionStatus(sessionId, PlannedStatus.PLANNED)
+    }
 
-    fun delete(sessionId: Long) = run("Session deleted.") { planRepo.deleteSession(sessionId) }
+    fun delete(sessionId: Long) = run(UiMessage.of(R.string.training_session_deleted)) {
+        planRepo.deleteSession(sessionId)
+    }
 
     fun consumeMessage() = action.update { it.copy(message = null) }
 
     fun consumeReviewReady() = action.update { it.copy(reviewReady = false) }
 
-    private fun run(success: String, block: suspend () -> Outcome<*>) {
+    private fun run(success: UiMessage, block: suspend () -> Outcome<*>) {
         viewModelScope.launch {
             val message = when (block()) {
                 is Outcome.Ok -> success
-                is Outcome.Err -> "Could not update the session. Please try again."
+                is Outcome.Err -> UiMessage.of(R.string.training_update_error)
             }
             action.update { it.copy(message = message) }
         }

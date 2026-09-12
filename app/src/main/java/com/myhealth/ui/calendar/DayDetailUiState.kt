@@ -1,5 +1,6 @@
 package com.myhealth.ui.calendar
 
+import com.myhealth.R
 import com.myhealth.domain.engine.calendar.LinkProposal
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ActivitySummary
@@ -23,6 +24,7 @@ import com.myhealth.domain.model.SleepRecord
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
 import com.myhealth.domain.util.toLocalDate
+import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.common.displayName
 import java.time.Instant
 import java.time.LocalDate
@@ -41,7 +43,7 @@ data class DayDetailUiState(
     /** Auto-link suggestions for the shown day, fed to [LinkActivitySheet] (P3.7). */
     val linkProposals: List<LinkProposal> = emptyList(),
     /** One-shot informational text shown in a snackbar. */
-    val message: String? = null,
+    val message: UiMessage? = null,
 ) {
     val date: LocalDate get() = day.toLocalDate()
 
@@ -99,13 +101,13 @@ fun linkedActivityLabel(
     activityId: Long,
     activities: List<ActivitySummary>,
     zone: ZoneId = ZoneId.systemDefault(),
-): String {
+): UiMessage {
     val activity = activities.firstOrNull { it.id == activityId }
-        ?: return "Linked to activity #$activityId"
+        ?: return UiMessage.of(R.string.daydetail_linked_activity_fallback, activityId)
     val name = activity.title?.trim()?.ifEmpty { null } ?: activity.sportType.displayName()
     val time = Instant.ofEpochMilli(activity.startAtMillis).atZone(zone).toLocalTime()
     val clock = "%02d:%02d".format(Locale.US, time.hour, time.minute)
-    return "Linked: $name, $clock \u00b7 ${shortDuration(activity.durationSec)}"
+    return UiMessage.of(R.string.daydetail_linked_activity_label, name, clock, shortDuration(activity.durationSec))
 }
 
 /** "1h 35m", or "54 min" below the hour. */

@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -19,6 +20,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.myhealth.R
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.theme.MyHealthTheme
 import kotlin.math.max
@@ -41,7 +43,7 @@ fun BarChartCard(
     modifier: Modifier = Modifier,
     highlightIndex: Int? = null,
     height: Dp = ChartHeight,
-    emptyMessage: String = "No data for this range yet.",
+    emptyMessage: String = stringResource(R.string.chart_common_no_data),
     action: @Composable (() -> Unit)? = null,
 ) {
     SectionCard(title = title, modifier = modifier, action = action) {

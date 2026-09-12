@@ -33,9 +33,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.ActivitySession
 import com.myhealth.domain.model.ActivitySource
@@ -45,6 +47,7 @@ import com.myhealth.domain.model.Lap
 import com.myhealth.domain.model.LoadMethod
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
+import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.SourceBadgeRow
 import com.myhealth.ui.common.displayName
@@ -77,16 +80,19 @@ fun ActivityDetailScreen(id: Long, onBack: () -> Unit, modifier: Modifier = Modi
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(state.activity?.title ?: state.activity?.sportType?.displayName() ?: "Activity") },
+                title = {
+                    val fallback = stringResource(R.string.activity_detail_title_fallback)
+                    Text(state.activity?.title ?: state.activity?.sportType?.displayName() ?: fallback)
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 actions = {
                     if (state.activity != null) {
                         IconButton(onClick = vm::requestDelete) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Delete activity")
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.activity_detail_delete_cd))
                         }
                     }
                 },
@@ -116,7 +122,7 @@ fun ActivityDetailScreen(id: Long, onBack: () -> Unit, modifier: Modifier = Modi
 }
 
 @Composable
-private fun ActivityDetailBody(
+internal fun ActivityDetailBody(
     state: ActivityDetailUiState,
     onSaveTitle: (String) -> Unit,
     onSaveNote: (String) -> Unit,
@@ -128,14 +134,14 @@ private fun ActivityDetailBody(
     val activity = state.activity
     if (activity == null) {
         Row(modifier = modifier, horizontalArrangement = Arrangement.Center) {
-            if (!state.isLoading) Text("Activity not found.") else CircularProgressIndicator()
+            if (!state.isLoading) Text(stringResource(R.string.activity_detail_not_found)) else CircularProgressIndicator()
         }
         return
     }
 
     LazyColumn(
         modifier = modifier,
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(SCREEN_PADDING),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item { HeaderStatsCard(activity) }
@@ -160,27 +166,32 @@ private fun ActivityDetailBody(
 
 @Composable
 private fun HeaderStatsCard(activity: ActivitySession) {
-    SectionCard(title = "Overview") {
+    SectionCard(title = stringResource(R.string.activity_detail_overview_title)) {
         Text(formatStartAtFull(activity.startAtMillis), style = MaterialTheme.typography.bodyMedium)
-        StatLine("Duration", formatDuration(activity.durationSec))
-        StatLine("Elapsed", formatDuration(activity.elapsedSec))
-        formatDistanceKm(activity.distanceMeters)?.let { StatLine("Distance", it) }
-        activity.avgHr?.let { StatLine("Avg HR", "$it bpm") }
-        activity.maxHr?.let { StatLine("Max HR", "$it bpm") }
+        StatLine(stringResource(R.string.activity_detail_duration_label), formatDuration(activity.durationSec))
+        StatLine(stringResource(R.string.activity_detail_elapsed_label), formatDuration(activity.elapsedSec))
+        formatDistanceKm(activity.distanceMeters)?.let { StatLine(stringResource(R.string.activity_detail_distance_label), it) }
+        activity.avgHr?.let { StatLine(stringResource(R.string.activity_detail_avg_hr_label), "$it bpm") }
+        activity.maxHr?.let { StatLine(stringResource(R.string.activity_detail_max_hr_label), "$it bpm") }
         if (activity.sportGroup == SportGroup.RUN) {
-            formatPaceMinPerKm(activity.avgSpeedMps)?.let { StatLine("Avg pace", it) }
-            formatPaceMinPerKm(activity.maxSpeedMps)?.let { StatLine("Best pace", it) }
+            formatPaceMinPerKm(activity.avgSpeedMps)?.let { StatLine(stringResource(R.string.activity_detail_avg_pace_label), it) }
+            formatPaceMinPerKm(activity.maxSpeedMps)?.let { StatLine(stringResource(R.string.activity_detail_best_pace_label), it) }
         } else {
-            activity.avgSpeedMps?.let { StatLine("Avg speed", "%.1f km/h".format(Locale.US, it * 3.6)) }
-            activity.maxSpeedMps?.let { StatLine("Max speed", "%.1f km/h".format(Locale.US, it * 3.6)) }
+            val avgLabel = stringResource(R.string.activity_detail_avg_speed_label)
+            val maxLabel = stringResource(R.string.activity_detail_max_speed_label)
+            activity.avgSpeedMps?.let { StatLine(avgLabel, "%.1f km/h".format(Locale.US, it * 3.6)) }
+            activity.maxSpeedMps?.let { StatLine(maxLabel, "%.1f km/h".format(Locale.US, it * 3.6)) }
         }
-        activity.avgCadenceSpm?.let { StatLine("Cadence", "%.0f spm".format(Locale.US, it)) }
-        activity.elevationGainM?.let { StatLine("Elevation gain", "%.0f m".format(Locale.US, it)) }
-        activity.activeEnergyKcal?.let { StatLine("Active calories", "%.0f kcal".format(Locale.US, it)) }
-        activity.totalEnergyKcal?.let { StatLine("Total calories", "%.0f kcal".format(Locale.US, it)) }
+        activity.avgCadenceSpm?.let { StatLine(stringResource(R.string.activity_detail_cadence_label), "%.0f spm".format(Locale.US, it)) }
+        val elevationLabel = stringResource(R.string.activity_detail_elevation_gain_label)
+        activity.elevationGainM?.let { StatLine(elevationLabel, "%.0f m".format(Locale.US, it)) }
+        val activeCaloriesLabel = stringResource(R.string.activity_detail_active_calories_label)
+        activity.activeEnergyKcal?.let { StatLine(activeCaloriesLabel, "%.0f kcal".format(Locale.US, it)) }
+        val totalCaloriesLabel = stringResource(R.string.activity_detail_total_calories_label)
+        activity.totalEnergyKcal?.let { StatLine(totalCaloriesLabel, "%.0f kcal".format(Locale.US, it)) }
         activity.trimp?.let { trimp ->
             val method = activity.loadMethod?.let { " (${it.label()})" } ?: ""
-            StatLine("TRIMP", "%.1f%s".format(Locale.US, trimp, method))
+            StatLine(stringResource(R.string.activity_detail_trimp_label), "%.1f%s".format(Locale.US, trimp, method))
         }
     }
 }
@@ -193,52 +204,49 @@ private fun StatLine(label: String, value: String) {
     }
 }
 
+@Composable
 private fun LoadMethod.label(): String = when (this) {
-    LoadMethod.HR_SAMPLES -> "HR samples"
-    LoadMethod.HR_AVERAGE -> "avg HR"
-    LoadMethod.RPE_ESTIMATE -> "RPE estimate"
-    LoadMethod.DURATION_ONLY -> "duration only"
+    LoadMethod.HR_SAMPLES -> stringResource(R.string.activity_detail_load_method_hr_samples)
+    LoadMethod.HR_AVERAGE -> stringResource(R.string.activity_detail_load_method_avg_hr)
+    LoadMethod.RPE_ESTIMATE -> stringResource(R.string.activity_detail_load_method_rpe_estimate)
+    LoadMethod.DURATION_ONLY -> stringResource(R.string.activity_detail_load_method_duration_only)
 }
 
 @Composable
 private fun TitleEditCard(title: String?, onSave: (String) -> Unit) {
     var text by remember(title) { mutableStateOf(title.orEmpty()) }
-    SectionCard(title = "Title") {
+    SectionCard(title = stringResource(R.string.activity_detail_title_card_title)) {
         OutlinedTextField(
             value = text,
             onValueChange = { text = it },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
         )
-        Button(onClick = { onSave(text) }, modifier = Modifier.align(Alignment.End)) { Text("Save") }
+        Button(onClick = { onSave(text) }, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.action_save)) }
     }
 }
 
 @Composable
 private fun NoteEditCard(note: String?, onSave: (String) -> Unit) {
     var text by remember(note) { mutableStateOf(note.orEmpty()) }
-    SectionCard(title = "Notes") {
+    SectionCard(title = stringResource(R.string.activity_detail_notes_title)) {
         OutlinedTextField(
             value = text,
             onValueChange = { text = it },
             modifier = Modifier.fillMaxWidth(),
             minLines = 2,
         )
-        Button(onClick = { onSave(text) }, modifier = Modifier.align(Alignment.End)) { Text("Save") }
+        Button(onClick = { onSave(text) }, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.action_save)) }
     }
 }
 
 @Composable
 private fun HrSummaryCard(state: ActivityDetailUiState) {
-    SectionCard(title = "Heart rate") {
-        state.minHr?.let { StatLine("Min", "$it bpm") }
-        state.avgHrFromStream?.let { StatLine("Avg", "$it bpm") }
-        state.maxHrFromStream?.let { StatLine("Max", "$it bpm") }
-        Text(
-            "Time in zone",
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(top = 8.dp),
-        )
+    SectionCard(title = stringResource(R.string.activity_detail_hr_summary_title)) {
+        state.minHr?.let { StatLine(stringResource(R.string.activity_detail_hr_min_label), "$it bpm") }
+        state.avgHrFromStream?.let { StatLine(stringResource(R.string.activity_detail_hr_avg_label), "$it bpm") }
+        state.maxHrFromStream?.let { StatLine(stringResource(R.string.activity_detail_hr_max_label), "$it bpm") }
+        Text(stringResource(R.string.activity_detail_hr_time_in_zone_label), style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 8.dp))
         HR_ZONE_LABELS.forEachIndexed { index, label ->
             StatLine(label, "%.1f min".format(Locale.US, state.hrZoneMinutes.getOrElse(index) { 0.0 }))
         }
@@ -247,12 +255,12 @@ private fun HrSummaryCard(state: ActivityDetailUiState) {
 
 @Composable
 private fun LapsCard(laps: List<Lap>) {
-    SectionCard(title = "Laps") {
+    SectionCard(title = stringResource(R.string.activity_detail_laps_title)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("#", style = MaterialTheme.typography.labelMedium)
-            Text("Time", style = MaterialTheme.typography.labelMedium)
-            Text("Dist.", style = MaterialTheme.typography.labelMedium)
-            Text("Avg HR", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.activity_detail_laps_header_index), style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.activity_detail_laps_header_time), style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.activity_detail_laps_header_distance), style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.activity_detail_laps_header_avg_hr), style = MaterialTheme.typography.labelMedium)
         }
         laps.forEach { lap ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -272,9 +280,9 @@ private fun LapsCard(laps: List<Lap>) {
  */
 @Composable
 private fun RpeCard(rpe: Int?, loadMethod: LoadMethod?, onSaveRpe: (Int) -> Unit) {
-    SectionCard(title = "Perceived exertion (RPE)") {
+    SectionCard(title = stringResource(R.string.activity_detail_rpe_title)) {
         FlowRowRpeSelector(selected = rpe, onSelect = onSaveRpe)
-        loadMethod?.let { StatLine("TRIMP method", it.label()) }
+        loadMethod?.let { StatLine(stringResource(R.string.activity_detail_trimp_method_label), it.label()) }
     }
 }
 
@@ -298,97 +306,13 @@ private fun FlowRowRpeSelector(selected: Int?, onSelect: (Int) -> Unit) {
 private fun DeleteConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Delete this activity?") },
-        text = { Text("This cannot be undone.") },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Delete") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        title = { Text(stringResource(R.string.activity_detail_delete_dialog_title)) },
+        text = { Text(stringResource(R.string.activity_detail_delete_dialog_text)) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.action_delete)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
 
 private fun formatStartAtFull(startAtMillis: Long): String =
     Instant.ofEpochMilli(startAtMillis).atZone(ZoneId.systemDefault())
         .format(DateTimeFormatter.ofPattern("EEEE, MMM d yyyy · HH:mm", Locale.US))
-
-@Preview(showBackground = true, name = "Populated")
-@Composable
-private fun ActivityDetailBodyPreview() {
-    MyHealthTheme(dynamicColor = false) {
-        ActivityDetailBody(
-            state = ActivityDetailUiState(
-                isLoading = false,
-                activity = previewSession(),
-                hrZoneMinutes = listOf(2.0, 5.0, 12.0, 8.0, 1.0),
-            ),
-            onSaveTitle = {},
-            onSaveNote = {},
-            onOpenEventPicker = {},
-            onUnlinkEvent = {},
-            onSaveRpe = {},
-        )
-    }
-}
-
-@Preview(showBackground = true, name = "Loading")
-@Composable
-private fun ActivityDetailBodyLoadingPreview() {
-    MyHealthTheme(dynamicColor = false) {
-        ActivityDetailBody(
-            state = ActivityDetailUiState(isLoading = true),
-            onSaveTitle = {},
-            onSaveNote = {},
-            onOpenEventPicker = {},
-            onUnlinkEvent = {},
-            onSaveRpe = {},
-        )
-    }
-}
-
-private fun previewStreams(): ActivityStreams {
-    val offsets = (0..1800 step 10).toList()
-    return ActivityStreams(
-        sampleOffsetsSec = offsets.toIntArray(),
-        hr = offsets.map { 120 + (it / 60) % 40 },
-        distanceMeters = offsets.map { it * 2.9 }.toDoubleArray(),
-        speedMps = offsets.map { 2.9 }.toDoubleArray(),
-        altitudeM = offsets.map { 30.0 + (it / 120) % 25 }.toDoubleArray(),
-        sampleCount = offsets.size,
-        medianIntervalSec = 10.0,
-    )
-}
-
-private fun previewSession(): ActivitySession = ActivitySession(
-    id = 1,
-    startAtMillis = 1_757_000_000_000L,
-    endAtMillis = 1_757_003_600_000L,
-    day = 19980,
-    sportType = SportType.RUN_OUTDOOR,
-    sportGroup = SportGroup.RUN,
-    title = "Morning run",
-    durationSec = 2880,
-    elapsedSec = 3000,
-    distanceMeters = 8320.0,
-    activeEnergyKcal = 540.0,
-    totalEnergyKcal = 640.0,
-    avgHr = 142,
-    maxHr = 168,
-    avgSpeedMps = 2.89,
-    maxSpeedMps = 4.1,
-    avgCadenceSpm = 172.0,
-    elevationGainM = 45.0,
-    trimp = 108.1,
-    loadMethod = LoadMethod.HR_SAMPLES,
-    rpe = null,
-    note = "Felt good, easy effort.",
-    primarySource = ActivitySource.HEALTH_CONNECT,
-    mergedSources = listOf(ActivitySource.HEALTH_CONNECT, ActivitySource.FIT_IMPORT),
-    dedupeBucket = "RUN|1",
-    userEditedFields = emptyList(),
-    hasStreams = true,
-    streams = previewStreams(),
-    laps = listOf(
-        Lap(1, 1, 0, 1_757_000_000_000L, 900, 2500.0, 138, 150, 2.8, 180.0),
-        Lap(2, 1, 1, 1_757_000_900_000L, 900, 2600.0, 145, 160, 2.9, 190.0),
-    ),
-    createdAtMillis = 0,
-    updatedAtMillis = 0,
-)

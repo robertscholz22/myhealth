@@ -25,9 +25,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.running.CanonicalDistances
 import com.myhealth.domain.engine.running.RacePrediction
@@ -37,6 +39,7 @@ import com.myhealth.ui.common.DatePickerField
 import com.myhealth.ui.common.DropdownField
 import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.NumberField
+import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.charts.LineChartCard
 import com.myhealth.ui.theme.MyHealthTheme
@@ -71,21 +74,21 @@ private fun RunningPrsContent(
         modifier = modifier.fillMaxSize(),
         floatingActionButton = {
             FloatingActionButton(onClick = onAddClick) {
-                Icon(Icons.Filled.Add, contentDescription = "Add manual PR")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.running_add_manual_pr))
             }
         },
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(SCREEN_PADDING),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item { Text(vdotLabel(state.vdot), style = MaterialTheme.typography.titleMedium) }
             if (state.bests.isEmpty()) {
                 item {
                     EmptyState(
-                        title = "No personal bests yet",
-                        message = "Run a canonical distance (5 km, 10 km, ...) or add one manually.",
+                        title = stringResource(R.string.running_empty_title),
+                        message = stringResource(R.string.running_empty_message),
                     )
                 }
             } else {
@@ -107,18 +110,18 @@ private fun RunningPrsContent(
 @Composable
 private fun PrProgressionCard(progression: List<com.myhealth.ui.common.charts.ChartSeries>) {
     LineChartCard(
-        title = "PR progression",
+        title = stringResource(R.string.running_chart_pr_progression_title),
         series = progression,
         xLabels = prAxisLabels(progression),
         yFormatter = { formatRaceTime(roundHalfUpToInt(it)) },
-        emptyMessage = "Two or more efforts at the same distance are needed to show progress.",
+        emptyMessage = stringResource(R.string.running_chart_pr_progression_empty),
         alwaysShowLegend = true,
     )
 }
 
 @Composable
 private fun PrTableCard(bests: List<RunningBest>, onOpenActivity: (Long) -> Unit) {
-    SectionCard(title = "Personal bests") {
+    SectionCard(title = stringResource(R.string.running_pr_table_title)) {
         bests.forEach { best ->
             Row(
                 modifier = Modifier
@@ -137,7 +140,7 @@ private fun PrTableCard(bests: List<RunningBest>, onOpenActivity: (Long) -> Unit
                     )
                 }
                 Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
-                    val estimatedSuffix = if (best.isEstimated) " (est.)" else ""
+                    val estimatedSuffix = if (best.isEstimated) stringResource(R.string.running_pr_estimated_suffix) else ""
                     Text(formatRaceTime(best.timeSec) + estimatedSuffix, style = MaterialTheme.typography.bodyLarge)
                     Text(formatPaceSecPerKm(best.paceSecPerKm), style = MaterialTheme.typography.bodySmall)
                 }
@@ -148,7 +151,7 @@ private fun PrTableCard(bests: List<RunningBest>, onOpenActivity: (Long) -> Unit
 
 @Composable
 private fun PredictionsCard(predictions: List<RacePrediction>) {
-    SectionCard(title = "Riegel predictions") {
+    SectionCard(title = stringResource(R.string.running_predictions_title)) {
         predictions.forEach { prediction ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(distanceLabel(prediction.distanceMeters), style = MaterialTheme.typography.bodyMedium)
@@ -174,11 +177,11 @@ private fun AddManualPrDialog(onDismiss: () -> Unit, onSave: (Double, Int, Long)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add manual PR") },
+        title = { Text(stringResource(R.string.running_add_manual_pr)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 DropdownField(
-                    label = "Distance",
+                    label = stringResource(R.string.running_pr_distance_field),
                     options = CanonicalDistances.ALL,
                     selected = distance,
                     optionLabel = ::distanceLabel,
@@ -186,30 +189,34 @@ private fun AddManualPrDialog(onDismiss: () -> Unit, onSave: (Double, Int, Long)
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     NumberField(
-                        label = "Minutes",
+                        label = stringResource(R.string.running_pr_minutes_field),
                         value = minutes,
                         onValueChange = { minutes = it },
                         decimals = 0,
                         modifier = Modifier.weight(1f),
                     )
                     NumberField(
-                        label = "Seconds",
+                        label = stringResource(R.string.running_pr_seconds_field),
                         value = seconds,
                         onValueChange = { seconds = it },
                         decimals = 0,
                         modifier = Modifier.weight(1f),
                     )
                 }
-                DatePickerField(label = "Date", value = date, onValueChange = { date = it })
+                DatePickerField(
+                    label = stringResource(R.string.running_pr_date_field),
+                    value = date,
+                    onValueChange = { date = it },
+                )
             }
         },
         confirmButton = {
             Button(
                 onClick = { date?.let { onSave(distance, timeSec, it.toEpochDay()) } },
                 enabled = canSave,
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.action_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
 

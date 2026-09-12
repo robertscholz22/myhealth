@@ -28,7 +28,7 @@ fun SectionCard(
     action: @Composable (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+    Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(CARD_CORNER_RADIUS)) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),

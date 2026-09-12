@@ -8,6 +8,7 @@ import com.myhealth.domain.model.MacroTotals
 import com.myhealth.domain.model.MealSlot
 import com.myhealth.domain.model.MealTemplate
 import com.myhealth.domain.model.MealTemplateItem
+import com.myhealth.ui.common.UiMessage
 
 /** The slot "Log now" pre-selects when a template has no `defaultSlot` (§4.2 Meal templates). */
 val FALLBACK_SLOT: MealSlot = MealSlot.LUNCH
@@ -32,7 +33,7 @@ data class MealTemplatesUiState(
     val logTemplate: MealTemplate? = null,
     val logDay: Long = 0L,
     val logSlot: MealSlot = FALLBACK_SLOT,
-    val message: String? = null,
+    val message: UiMessage? = null,
 )
 
 /**

@@ -2,11 +2,13 @@ package com.myhealth.ui.goals
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.R
 import com.myhealth.domain.model.EventType
 import com.myhealth.domain.model.GoalStatus
 import com.myhealth.domain.repository.CalendarRepository
 import com.myhealth.domain.repository.GoalRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,11 +28,11 @@ data class GoalEditUiState(
     val isLoading: Boolean = true,
     val isNew: Boolean = true,
     val draft: GoalDraft = GoalDraft(),
-    val errors: Map<GoalField, String> = emptyMap(),
+    val errors: Map<GoalField, UiMessage> = emptyMap(),
     val races: List<RaceOption> = emptyList(),
     val isSaving: Boolean = false,
-    val saveError: String? = null,
-    val loadError: String? = null,
+    val saveError: UiMessage? = null,
+    val loadError: UiMessage? = null,
     val pendingDelete: Boolean = false,
     /** One-shot: the screen pops back once either flips to `true`. */
     val saved: Boolean = false,
@@ -64,7 +66,7 @@ class GoalEditViewModel(
         viewModelScope.launch {
             val goal = goalRepo.getById(id)
             if (goal == null) {
-                _state.update { it.copy(isLoading = false, loadError = "Goal not found.") }
+                _state.update { it.copy(isLoading = false, loadError = UiMessage.of(R.string.goal_edit_load_error)) }
             } else {
                 _state.update { it.copy(isLoading = false, draft = goalDraftOf(goal)) }
             }
@@ -118,7 +120,7 @@ class GoalEditViewModel(
             when (goalRepo.upsert(draft.toGoal(clock))) {
                 is Outcome.Ok -> _state.update { it.copy(isSaving = false, saved = true) }
                 is Outcome.Err -> _state.update {
-                    it.copy(isSaving = false, saveError = "Could not save the goal. Please try again.")
+                    it.copy(isSaving = false, saveError = UiMessage.of(R.string.goal_edit_save_error))
                 }
             }
         }
@@ -133,7 +135,7 @@ class GoalEditViewModel(
         viewModelScope.launch {
             when (goalRepo.delete(id)) {
                 is Outcome.Ok -> _state.update { it.copy(deleted = true) }
-                is Outcome.Err -> _state.update { it.copy(saveError = "Could not delete the goal.") }
+                is Outcome.Err -> _state.update { it.copy(saveError = UiMessage.of(R.string.goal_edit_delete_error)) }
             }
         }
     }

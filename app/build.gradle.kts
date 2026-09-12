@@ -27,8 +27,14 @@ android {
             isMinifyEnabled = false
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // P8.7 — personal-use sideload only: the app is never published, so the release APK is
+            // signed with the debug keystore. That keeps `adb install -r` working over an existing
+            // debug install (same signature, data preserved) and means there is no release key to
+            // manage or lose. It must be replaced with a real upload key if this ever ships.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

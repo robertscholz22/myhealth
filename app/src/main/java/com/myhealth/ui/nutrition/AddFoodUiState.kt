@@ -1,5 +1,8 @@
 package com.myhealth.ui.nutrition
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.myhealth.R
 import com.myhealth.domain.engine.nutrition.MealMath
 import com.myhealth.domain.engine.nutrition.MealQuantity
 import com.myhealth.domain.model.Ingredient
@@ -8,17 +11,19 @@ import com.myhealth.domain.model.MealSlot
 import com.myhealth.domain.model.MealTemplate
 import com.myhealth.domain.model.MeasureBasis
 import com.myhealth.domain.model.QuantityUnit
+import com.myhealth.ui.common.UiMessage
 import java.util.Locale
 
 /** The Add-food tabs of §4.2 in display order; `SCAN` navigates out to `ScanRoute` (P4.8). */
 enum class AddFoodTab { RECENTS, FAVORITES, SEARCH, TEMPLATES, SCAN }
 
+@Composable
 fun AddFoodTab.label(): String = when (this) {
-    AddFoodTab.RECENTS -> "Recents"
-    AddFoodTab.FAVORITES -> "Favorites"
-    AddFoodTab.SEARCH -> "Search"
-    AddFoodTab.TEMPLATES -> "Templates"
-    AddFoodTab.SCAN -> "Scan"
+    AddFoodTab.RECENTS -> stringResource(R.string.addfood_tab_recents)
+    AddFoodTab.FAVORITES -> stringResource(R.string.addfood_tab_favorites)
+    AddFoodTab.SEARCH -> stringResource(R.string.addfood_tab_search)
+    AddFoodTab.TEMPLATES -> stringResource(R.string.addfood_tab_templates)
+    AddFoodTab.SCAN -> stringResource(R.string.addfood_tab_scan)
 }
 
 /** Display label for a logged quantity's unit (§2.1 `QuantityUnit`). */
@@ -45,7 +50,7 @@ data class AddFoodUiState(
     val quantity: Double? = null,
     val unit: QuantityUnit = QuantityUnit.G,
     val isSaving: Boolean = false,
-    val message: String? = null,
+    val message: UiMessage? = null,
     /** One-shot: the screen pops back once this flips to `true`. */
     val added: Boolean = false,
 ) {

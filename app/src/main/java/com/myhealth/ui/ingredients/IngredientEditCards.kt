@@ -18,13 +18,18 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.myhealth.R
 import com.myhealth.domain.model.MeasureBasis
 import com.myhealth.domain.util.EngineWarning
 import com.myhealth.ui.common.DropdownField
 import com.myhealth.ui.common.ErrorBanner
 import com.myhealth.ui.common.NumberField
 import com.myhealth.ui.common.SectionCard
+import com.myhealth.ui.common.UiMessage
+import com.myhealth.ui.common.resolve
 
 /**
  * The four cards of [IngredientEditScreen] plus its warnings banner (PLAN P4.3), split out of the
@@ -41,26 +46,26 @@ internal fun WarningsBanner(warnings: List<EngineWarning>) {
 @Composable
 internal fun IdentityCard(
     draft: IngredientDraft,
-    errors: Map<IngredientField, String>,
+    errors: Map<IngredientField, UiMessage>,
     isLookingUp: Boolean,
     onDraftChange: ((IngredientDraft) -> IngredientDraft) -> Unit,
     onScan: () -> Unit,
     onLookUp: () -> Unit,
 ) {
-    SectionCard(title = "Ingredient") {
+    SectionCard(title = stringResource(R.string.ingredient_edit_section_ingredient)) {
         OutlinedTextField(
             value = draft.name,
             onValueChange = { name -> onDraftChange { it.copy(name = name) } },
-            label = { Text("Name") },
+            label = { Text(stringResource(R.string.ingredient_edit_name_label)) },
             singleLine = true,
             isError = errors.containsKey(IngredientField.NAME),
-            supportingText = errors[IngredientField.NAME]?.let { { Text(it) } },
+            supportingText = errors[IngredientField.NAME]?.let { { Text(it.resolve()) } },
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
             value = draft.brand,
             onValueChange = { brand -> onDraftChange { it.copy(brand = brand) } },
-            label = { Text("Brand (optional)") },
+            label = { Text(stringResource(R.string.ingredient_edit_brand_label)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -72,13 +77,13 @@ internal fun IdentityCard(
             OutlinedTextField(
                 value = draft.barcode,
                 onValueChange = { code -> onDraftChange { it.copy(barcode = code) } },
-                label = { Text("Barcode (optional)") },
+                label = { Text(stringResource(R.string.ingredient_edit_barcode_label)) },
                 singleLine = true,
                 modifier = Modifier.weight(1f),
             )
             OutlinedButton(onClick = onScan) {
                 Icon(Icons.Filled.CameraAlt, contentDescription = null)
-                Text(" Scan")
+                Text(stringResource(R.string.ingredient_edit_scan_action))
             }
         }
         Row(
@@ -90,7 +95,7 @@ internal fun IdentityCard(
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
             }
             TextButton(onClick = onLookUp, enabled = !isLookingUp && draft.barcode.isNotBlank()) {
-                Text("Look up barcode")
+                Text(stringResource(R.string.ingredient_edit_lookup_action))
             }
         }
         Row(
@@ -98,7 +103,7 @@ internal fun IdentityCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Favorite", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.ingredient_edit_favorite_label), style = MaterialTheme.typography.bodyMedium)
             Switch(checked = draft.isFavorite, onCheckedChange = { v -> onDraftChange { it.copy(isFavorite = v) } })
         }
     }
@@ -107,39 +112,40 @@ internal fun IdentityCard(
 @Composable
 internal fun BasisCard(
     draft: IngredientDraft,
-    errors: Map<IngredientField, String>,
+    errors: Map<IngredientField, UiMessage>,
     onDraftChange: ((IngredientDraft) -> IngredientDraft) -> Unit,
 ) {
-    SectionCard(title = "Basis & serving") {
+    val context = LocalContext.current
+    SectionCard(title = stringResource(R.string.ingredient_edit_section_basis)) {
         DropdownField(
-            label = "Values are per",
+            label = stringResource(R.string.ingredient_edit_values_per_label),
             options = MeasureBasis.entries,
             selected = draft.basis,
-            optionLabel = { it.unitSuffix() },
+            optionLabel = { it.unitSuffix(context) },
             onSelect = { basis -> onDraftChange { it.copy(basis = basis) } },
         )
         if (draft.basis == MeasureBasis.PER_PIECE) {
             NumberField(
-                label = "Piece weight",
+                label = stringResource(R.string.ingredient_edit_piece_weight_label),
                 value = draft.pieceGrams,
                 onValueChange = { v -> onDraftChange { it.copy(pieceGrams = v) } },
-                suffix = "g",
+                suffix = stringResource(R.string.ingredient_edit_grams_suffix),
                 decimals = 1,
                 isError = errors.containsKey(IngredientField.PIECE_GRAMS),
-                supportingText = errors[IngredientField.PIECE_GRAMS],
+                supportingText = errors[IngredientField.PIECE_GRAMS]?.resolve(),
             )
         }
         NumberField(
-            label = "Default serving",
+            label = stringResource(R.string.ingredient_edit_default_serving_label),
             value = draft.servingGrams,
             onValueChange = { v -> onDraftChange { it.copy(servingGrams = v) } },
-            suffix = "g",
+            suffix = stringResource(R.string.ingredient_edit_grams_suffix),
             decimals = 1,
         )
         OutlinedTextField(
             value = draft.servingLabel,
             onValueChange = { label -> onDraftChange { it.copy(servingLabel = label) } },
-            label = { Text("Serving label (optional, e.g. \"1 slice (30 g)\")") },
+            label = { Text(stringResource(R.string.ingredient_edit_serving_label_label)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -149,43 +155,44 @@ internal fun BasisCard(
 @Composable
 internal fun EnergyMacrosCard(
     draft: IngredientDraft,
-    errors: Map<IngredientField, String>,
+    errors: Map<IngredientField, UiMessage>,
     onDraftChange: ((IngredientDraft) -> IngredientDraft) -> Unit,
 ) {
-    val suffix = draft.basis.unitSuffix()
-    SectionCard(title = "Energy & macros ($suffix)") {
+    val context = LocalContext.current
+    val suffix = draft.basis.unitSuffix(context)
+    SectionCard(title = stringResource(R.string.ingredient_edit_section_energy_macros, suffix)) {
         NumberField(
-            label = "Calories",
+            label = stringResource(R.string.ingredient_edit_calories_label),
             value = draft.kcal,
             onValueChange = { v -> onDraftChange { it.copy(kcal = v) } },
-            suffix = "kcal",
+            suffix = stringResource(R.string.ingredient_edit_kcal_suffix),
             decimals = 0,
             isError = errors.containsKey(IngredientField.KCAL),
-            supportingText = errors[IngredientField.KCAL],
+            supportingText = errors[IngredientField.KCAL]?.resolve(),
         )
         NumberField(
-            label = "Protein",
+            label = stringResource(R.string.ingredient_edit_protein_label),
             value = draft.proteinG,
             onValueChange = { v -> onDraftChange { it.copy(proteinG = v) } },
-            suffix = "g",
+            suffix = stringResource(R.string.ingredient_edit_grams_suffix),
             isError = errors.containsKey(IngredientField.PROTEIN),
-            supportingText = errors[IngredientField.PROTEIN],
+            supportingText = errors[IngredientField.PROTEIN]?.resolve(),
         )
         NumberField(
-            label = "Carbohydrate",
+            label = stringResource(R.string.ingredient_edit_carbs_label),
             value = draft.carbsG,
             onValueChange = { v -> onDraftChange { it.copy(carbsG = v) } },
-            suffix = "g",
+            suffix = stringResource(R.string.ingredient_edit_grams_suffix),
             isError = errors.containsKey(IngredientField.CARBS),
-            supportingText = errors[IngredientField.CARBS],
+            supportingText = errors[IngredientField.CARBS]?.resolve(),
         )
         NumberField(
-            label = "Fat",
+            label = stringResource(R.string.ingredient_edit_fat_label),
             value = draft.fatG,
             onValueChange = { v -> onDraftChange { it.copy(fatG = v) } },
-            suffix = "g",
+            suffix = stringResource(R.string.ingredient_edit_grams_suffix),
             isError = errors.containsKey(IngredientField.FAT),
-            supportingText = errors[IngredientField.FAT],
+            supportingText = errors[IngredientField.FAT]?.resolve(),
         )
     }
 }
@@ -193,48 +200,48 @@ internal fun EnergyMacrosCard(
 @Composable
 internal fun MoreNutrientsCard(
     draft: IngredientDraft,
-    errors: Map<IngredientField, String>,
+    errors: Map<IngredientField, UiMessage>,
     onDraftChange: ((IngredientDraft) -> IngredientDraft) -> Unit,
 ) {
-    SectionCard(title = "More nutrients") {
+    SectionCard(title = stringResource(R.string.ingredient_edit_section_more_nutrients)) {
         NumberField(
-            label = "of which sugars",
+            label = stringResource(R.string.ingredient_edit_sugars_label),
             value = draft.sugarG,
             onValueChange = { v -> onDraftChange { it.copy(sugarG = v) } },
-            suffix = "g",
+            suffix = stringResource(R.string.ingredient_edit_grams_suffix),
             isError = errors.containsKey(IngredientField.SUGAR),
-            supportingText = errors[IngredientField.SUGAR],
+            supportingText = errors[IngredientField.SUGAR]?.resolve(),
         )
         NumberField(
-            label = "of which saturates",
+            label = stringResource(R.string.ingredient_edit_saturates_label),
             value = draft.satFatG,
             onValueChange = { v -> onDraftChange { it.copy(satFatG = v) } },
-            suffix = "g",
+            suffix = stringResource(R.string.ingredient_edit_grams_suffix),
             isError = errors.containsKey(IngredientField.SAT_FAT),
-            supportingText = errors[IngredientField.SAT_FAT],
+            supportingText = errors[IngredientField.SAT_FAT]?.resolve(),
         )
         NumberField(
-            label = "Fiber",
+            label = stringResource(R.string.ingredient_edit_fiber_label),
             value = draft.fiberG,
             onValueChange = { v -> onDraftChange { it.copy(fiberG = v) } },
-            suffix = "g",
+            suffix = stringResource(R.string.ingredient_edit_grams_suffix),
             isError = errors.containsKey(IngredientField.FIBER),
-            supportingText = errors[IngredientField.FIBER],
+            supportingText = errors[IngredientField.FIBER]?.resolve(),
         )
         NumberField(
-            label = "Salt",
+            label = stringResource(R.string.ingredient_edit_salt_label),
             value = draft.saltG,
             onValueChange = { v -> onDraftChange { it.copy(saltG = v) } },
-            suffix = "g",
+            suffix = stringResource(R.string.ingredient_edit_grams_suffix),
             decimals = 2,
             isError = errors.containsKey(IngredientField.SALT),
-            supportingText = errors[IngredientField.SALT],
+            supportingText = errors[IngredientField.SALT]?.resolve(),
         )
         NumberField(
-            label = "Sodium (derived)",
+            label = stringResource(R.string.ingredient_edit_sodium_label),
             value = draft.sodiumG,
             onValueChange = {},
-            suffix = "g",
+            suffix = stringResource(R.string.ingredient_edit_grams_suffix),
             decimals = 3,
             enabled = false,
         )

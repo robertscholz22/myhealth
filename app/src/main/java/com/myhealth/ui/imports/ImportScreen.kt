@@ -24,15 +24,18 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.ImportKind
 import com.myhealth.sync.ImportWorkState
 import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.ErrorBanner
+import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.theme.MyHealthTheme
 import java.time.Instant
@@ -98,12 +101,14 @@ private fun ImportContent(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(SCREEN_PADDING),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item { PickSection(state, onPickFile) }
         state.unsupportedFile?.let { name ->
-            item { ErrorBanner(message = "$name is not a .fit, .csv or .zip file.") }
+            item {
+                ErrorBanner(message = stringResource(R.string.import_unsupported_file_format, name))
+            }
         }
         item { StatusSection(state, onImportAnyway, onDismissResult) }
         item { HistorySection(state.history) }
@@ -112,14 +117,13 @@ private fun ImportContent(
 
 @Composable
 private fun PickSection(state: ImportUiState, onPickFile: () -> Unit) {
-    SectionCard(title = "Import activities") {
+    SectionCard(title = stringResource(R.string.import_section_title)) {
         Text(
-            "Pick a Garmin .fit file, an activities .csv, or the whole Export-Your-Data .zip. " +
-                "Files you have already imported are detected by their checksum and skipped.",
+            stringResource(R.string.import_description),
             style = MaterialTheme.typography.bodyMedium,
         )
         Button(onClick = onPickFile, enabled = !state.isRunning, modifier = Modifier.padding(top = 12.dp)) {
-            Text("Choose file")
+            Text(stringResource(R.string.import_action_pick_file))
         }
     }
 }
@@ -132,23 +136,23 @@ private fun StatusSection(
 ) {
     when (state.work.stage) {
         ImportWorkState.Stage.IDLE -> Unit
-        ImportWorkState.Stage.RUNNING -> SectionCard(title = "Importing") {
+        ImportWorkState.Stage.RUNNING -> SectionCard(title = stringResource(R.string.import_status_running_title)) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
             CountsRow(state.work)
             state.work.currentItem?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
-        ImportWorkState.Stage.DONE -> SectionCard(title = "Import finished") {
+        ImportWorkState.Stage.DONE -> SectionCard(title = stringResource(R.string.import_status_done_title)) {
             CountsRow(state.work)
             OutlinedButton(onClick = onDismissResult, modifier = Modifier.padding(top = 12.dp)) {
-                Text("Done")
+                Text(stringResource(R.string.import_action_done))
             }
         }
-        ImportWorkState.Stage.ALREADY_IMPORTED -> SectionCard(title = "Already imported") {
+        ImportWorkState.Stage.ALREADY_IMPORTED -> SectionCard(title = stringResource(R.string.import_status_already_imported_title)) {
             Text(
-                "This file was imported before" +
-                    (state.work.message?.let { " (as $it)" } ?: "") + ".",
+                state.work.message?.let { stringResource(R.string.import_already_imported_message_format, it) }
+                    ?: stringResource(R.string.import_already_imported_message_plain),
                 style = MaterialTheme.typography.bodyMedium,
             )
             Row(
@@ -156,13 +160,13 @@ private fun StatusSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (state.canForce) {
-                    Button(onClick = onImportAnyway) { Text("Import anyway") }
+                    Button(onClick = onImportAnyway) { Text(stringResource(R.string.import_action_import_anyway)) }
                 }
-                OutlinedButton(onClick = onDismissResult) { Text("Dismiss") }
+                OutlinedButton(onClick = onDismissResult) { Text(stringResource(R.string.import_action_dismiss)) }
             }
         }
         ImportWorkState.Stage.FAILED -> ErrorBanner(
-            message = state.work.message ?: "The import failed.",
+            message = state.work.message ?: stringResource(R.string.import_error_failed_fallback),
             onRetry = onDismissResult,
         )
     }
@@ -171,41 +175,62 @@ private fun StatusSection(
 @Composable
 private fun CountsRow(work: ImportWorkState) {
     Text(
-        "${work.parsed} parsed · ${work.inserted} saved · ${work.duplicate} duplicates · " +
-            "${work.failed} errors",
+        stringResource(
+            R.string.import_counts_format,
+            work.parsed,
+            work.inserted,
+            work.duplicate,
+            work.failed,
+        ),
         style = MaterialTheme.typography.bodyMedium,
     )
 }
 
 @Composable
 private fun HistorySection(history: List<ImportHistoryItem>) {
-    SectionCard(title = "Import history") {
+    SectionCard(title = stringResource(R.string.import_history_title)) {
         if (history.isEmpty()) {
             EmptyState(
-                title = "Nothing imported yet",
-                message = "Imports you run appear here with their counts.",
+                title = stringResource(R.string.import_history_empty_title),
+                message = stringResource(R.string.import_history_empty_message),
             )
             return@SectionCard
         }
         history.forEach { item ->
             Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
                 Text(item.fileName, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    "${formatTimestamp(item.importedAtMillis)} · ${item.kind.label()} · " +
-                        "${item.parsed} parsed, ${item.inserted} saved, ${item.duplicate} duplicates" +
-                        if (item.errorCount > 0) ", ${item.errorCount} errors" else "",
-                    style = MaterialTheme.typography.bodySmall,
-                )
+                val summary = if (item.errorCount > 0) {
+                    stringResource(
+                        R.string.import_history_summary_with_errors_format,
+                        formatTimestamp(item.importedAtMillis),
+                        item.kind.label(),
+                        item.parsed,
+                        item.inserted,
+                        item.duplicate,
+                        item.errorCount,
+                    )
+                } else {
+                    stringResource(
+                        R.string.import_history_summary_format,
+                        formatTimestamp(item.importedAtMillis),
+                        item.kind.label(),
+                        item.parsed,
+                        item.inserted,
+                        item.duplicate,
+                    )
+                }
+                Text(summary, style = MaterialTheme.typography.bodySmall)
             }
         }
     }
 }
 
+@Composable
 private fun ImportKind.label(): String = when (this) {
-    ImportKind.FIT_FILE -> "FIT file"
-    ImportKind.GARMIN_CSV -> "Garmin CSV"
-    ImportKind.GARMIN_ZIP -> "Garmin export"
-    ImportKind.JSON_BACKUP -> "JSON backup"
+    ImportKind.FIT_FILE -> stringResource(R.string.import_kind_fit_file)
+    ImportKind.GARMIN_CSV -> stringResource(R.string.import_kind_garmin_csv)
+    ImportKind.GARMIN_ZIP -> stringResource(R.string.import_kind_garmin_export)
+    ImportKind.JSON_BACKUP -> stringResource(R.string.import_kind_json_backup)
 }
 
 private fun formatTimestamp(millis: Long): String =

@@ -49,10 +49,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.ErrorBanner
@@ -124,20 +126,20 @@ fun ScanScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Scan") },
+                title = { Text(stringResource(R.string.scan_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = pickPhoto, enabled = !state.isProcessing) {
-                        Icon(Icons.Filled.PhotoLibrary, contentDescription = "Scan from photo")
+                        Icon(Icons.Filled.PhotoLibrary, contentDescription = stringResource(R.string.scan_from_photo_content_description))
                     }
                     IconButton(onClick = graphVm::toggleTorch, enabled = granted) {
                         Icon(
                             imageVector = if (state.torchOn) Icons.Filled.FlashOn else Icons.Filled.FlashOff,
-                            contentDescription = if (state.torchOn) "Torch off" else "Torch on",
+                            contentDescription = stringResource(if (state.torchOn) R.string.scan_torch_off else R.string.scan_torch_on),
                         )
                     }
                 },
@@ -214,15 +216,17 @@ private fun ScanViewfinder(
             state.lastError?.let { message ->
                 ErrorBanner(message = message, onRetry = onDismissError)
                 if (state.manualBarcode != null) {
-                    TextButton(onClick = onManual) { Text("Enter it manually") }
+                    TextButton(onClick = onManual) { Text(stringResource(R.string.scan_enter_manually_action)) }
                 }
             }
             ModeToggle(mode = state.mode, onMode = onMode)
             Text(
-                text = when (state.mode) {
-                    ScanMode.LABEL -> "Fill the frame with the nutrition table, then capture."
-                    ScanMode.BARCODE -> "Hold the barcode inside the frame."
-                },
+                text = stringResource(
+                    when (state.mode) {
+                        ScanMode.LABEL -> R.string.scan_hint_label
+                        ScanMode.BARCODE -> R.string.scan_hint_barcode
+                    },
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -248,7 +252,7 @@ private fun ScanViewfinder(
                         enabled = !state.isProcessing,
                     ) {
                         Icon(Icons.Filled.CameraAlt, contentDescription = null)
-                        Text("  Capture label")
+                        Text(stringResource(R.string.scan_capture_label_action))
                     }
                 }
             }
@@ -266,7 +270,7 @@ private fun ModeToggle(mode: ScanMode, onMode: (ScanMode) -> Unit) {
                 onClick = { onMode(entry) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = ScanMode.entries.size),
             ) {
-                Text(if (entry == ScanMode.LABEL) "Nutrition label" else "Barcode")
+                Text(stringResource(if (entry == ScanMode.LABEL) R.string.scan_mode_label else R.string.scan_mode_barcode))
             }
         }
     }
@@ -277,7 +281,7 @@ private fun ModeToggle(mode: ScanMode, onMode: (ScanMode) -> Unit) {
 private fun FromPhotoButton(onClick: () -> Unit, enabled: Boolean, modifier: Modifier = Modifier) {
     OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier) {
         Icon(Icons.Filled.PhotoLibrary, contentDescription = null)
-        Text("  From photo")
+        Text(stringResource(R.string.scan_from_photo_action))
     }
 }
 
@@ -289,11 +293,12 @@ private fun CameraDenied(
     modifier: Modifier = Modifier,
 ) {
     EmptyState(
-        title = "Camera access is off",
-        message = "Scanning a label or a barcode needs the camera. " +
-            if (showSettings) "Turn it on for MyHealth in Android settings." else "Allow it to continue.",
+        title = stringResource(R.string.scan_permission_denied_title),
+        message = stringResource(
+            if (showSettings) R.string.scan_permission_denied_message_settings else R.string.scan_permission_denied_message_allow,
+        ),
         icon = Icons.Filled.NoPhotography,
-        actionLabel = if (showSettings) "Open settings" else "Allow camera",
+        actionLabel = stringResource(if (showSettings) R.string.scan_open_settings_action else R.string.scan_allow_camera_action),
         onAction = if (showSettings) onSettings else onRequest,
         modifier = modifier.fillMaxWidth().padding(top = 48.dp),
     )

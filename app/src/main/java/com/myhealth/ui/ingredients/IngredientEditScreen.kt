@@ -28,13 +28,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.MeasureBasis
 import com.myhealth.domain.util.EngineWarning
 import com.myhealth.ui.common.ErrorBanner
+import com.myhealth.ui.common.SCREEN_PADDING
+import com.myhealth.ui.common.resolve
 import com.myhealth.ui.theme.MyHealthTheme
 
 /**
@@ -71,16 +75,16 @@ fun IngredientEditScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(if (state.isNew) "New ingredient" else "Edit ingredient") },
+                title = { Text(stringResource(if (state.isNew) R.string.ingredient_edit_title_new else R.string.ingredient_edit_title_edit)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 actions = {
                     if (!state.isNew) {
                         IconButton(onClick = vm::requestDelete) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Delete ingredient")
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.ingredient_edit_delete_content_description))
                         }
                     }
                 },
@@ -100,10 +104,10 @@ fun IngredientEditScreen(
     if (state.pendingDelete) {
         AlertDialog(
             onDismissRequest = vm::cancelDelete,
-            title = { Text("Delete ingredient?") },
-            text = { Text("If it's still used in a logged meal or a template, it will be archived instead.") },
-            confirmButton = { TextButton(onClick = vm::confirmDelete) { Text("Delete") } },
-            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text("Cancel") } },
+            title = { Text(stringResource(R.string.ingredient_edit_delete_dialog_title)) },
+            text = { Text(stringResource(R.string.ingredient_edit_delete_dialog_message)) },
+            confirmButton = { TextButton(onClick = vm::confirmDelete) { Text(stringResource(R.string.action_delete)) } },
+            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 }
@@ -122,7 +126,7 @@ private fun IngredientEditBody(
         return
     }
     if (state.loadError != null) {
-        Box(modifier = modifier, contentAlignment = Alignment.Center) { Text(state.loadError) }
+        Box(modifier = modifier, contentAlignment = Alignment.Center) { Text(state.loadError.resolve()) }
         return
     }
 
@@ -130,7 +134,7 @@ private fun IngredientEditBody(
     Column(modifier = modifier) {
         LazyColumn(
             modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(SCREEN_PADDING),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             val banners = (state.scanWarnings + state.warnings).distinctBy { it.message }
@@ -143,7 +147,7 @@ private fun IngredientEditBody(
             state.lookupNote?.let { note ->
                 item {
                     Text(
-                        text = note,
+                        text = note.resolve(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -154,11 +158,11 @@ private fun IngredientEditBody(
             item { EnergyMacrosCard(draft, state.errors, onDraftChange) }
             item { MoreNutrientsCard(draft, state.errors, onDraftChange) }
             state.saveError?.let { message ->
-                item { Text(message, color = MaterialTheme.colorScheme.error) }
+                item { Text(message.resolve(), color = MaterialTheme.colorScheme.error) }
             }
         }
         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.End) {
-            Button(onClick = onSave, enabled = !state.isSaving) { Text("Save") }
+            Button(onClick = onSave, enabled = !state.isSaving) { Text(stringResource(R.string.action_save)) }
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.myhealth.ui.body
 
+import androidx.annotation.StringRes
+import com.myhealth.R
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.model.DailyHealthSummary
 import com.myhealth.domain.model.SleepRecord
@@ -8,10 +10,10 @@ import java.time.LocalDate
 import java.util.Locale
 
 /** The three history windows the Body charts offer (PLAN P8.3). */
-enum class BodyRange(val days: Long, val label: String) {
-    D30(30, "30d"),
-    D90(90, "90d"),
-    D365(365, "365d"),
+enum class BodyRange(val days: Long, @StringRes val labelRes: Int) {
+    D30(30, R.string.body_range_30d),
+    D90(90, R.string.body_range_90d),
+    D365(365, R.string.body_range_365d),
 }
 
 /**

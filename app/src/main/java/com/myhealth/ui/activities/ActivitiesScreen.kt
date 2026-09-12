@@ -11,17 +11,23 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ActivitySummary
@@ -29,6 +35,9 @@ import com.myhealth.domain.model.LoadMethod
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
 import com.myhealth.ui.common.EmptyState
+import com.myhealth.ui.common.ErrorBanner
+import com.myhealth.ui.common.LoadingBox
+import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SourceBadgeRow
 import com.myhealth.ui.common.SportIcon
 import com.myhealth.ui.common.displayName
@@ -52,6 +61,7 @@ fun ActivitiesScreen(onOpenDetail: (Long) -> Unit, modifier: Modifier = Modifier
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ActivitiesContent(
     state: ActivitiesUiState,
@@ -62,24 +72,40 @@ private fun ActivitiesContent(
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         FilterChipsRow(selected = state.filter, onSelect = onFilterSelect)
-        if (state.isEmpty) {
-            EmptyState(
-                title = "No activities yet",
-                message = "Sync with Health Connect, or import a FIT/CSV file, to see activities here.",
-                actionLabel = "Sync now",
-                onAction = onSyncNow,
-                modifier = Modifier.fillMaxSize(),
+        // P8.6: a failed sync is the one error this screen can surface, and it is retryable.
+        state.syncError?.let { reason ->
+            ErrorBanner(
+                message = stringResource(R.string.activities_sync_failed, reason),
+                onRetry = onSyncNow,
+                modifier = Modifier.padding(horizontal = SCREEN_PADDING, vertical = 8.dp),
             )
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 16.dp),
-            ) {
-                state.groups.forEach { group ->
-                    item(key = "header-${group.label}") { MonthHeader(group.label) }
-                    items(group.items, key = { it.id }) { activity ->
-                        ActivityRow(activity = activity, onClick = { onOpenDetail(activity.id) })
-                        HorizontalDivider()
+        }
+        // P8.6: pull down to run the same "Sync now" work the empty state offers.
+        PullToRefreshBox(
+            isRefreshing = state.isSyncing,
+            onRefresh = onSyncNow,
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            when {
+                state.isLoading -> LoadingBox(modifier = Modifier.fillMaxSize())
+                state.isEmpty -> EmptyState(
+                    title = stringResource(R.string.activities_empty_title),
+                    message = stringResource(R.string.activities_empty_message),
+                    actionLabel = stringResource(R.string.activities_empty_action),
+                    onAction = onSyncNow,
+                    icon = Icons.AutoMirrored.Filled.DirectionsRun,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = SCREEN_PADDING),
+                ) {
+                    state.groups.forEach { group ->
+                        item(key = "header-${group.label}") { MonthHeader(group.label) }
+                        items(group.items, key = { it.id }) { activity ->
+                            ActivityRow(activity = activity, onClick = { onOpenDetail(activity.id) })
+                            HorizontalDivider()
+                        }
                     }
                 }
             }
@@ -94,7 +120,11 @@ private fun FilterChipsRow(selected: SportGroup?, onSelect: (SportGroup?) -> Uni
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
-            FilterChip(selected = selected == null, onClick = { onSelect(null) }, label = { Text("All") })
+            FilterChip(
+                selected = selected == null,
+                onClick = { onSelect(null) },
+                label = { Text(stringResource(R.string.activities_filter_all)) },
+            )
         }
         items(SportGroup.entries.toList()) { group ->
             FilterChip(

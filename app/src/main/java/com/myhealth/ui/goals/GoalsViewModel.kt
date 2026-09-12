@@ -2,12 +2,14 @@ package com.myhealth.ui.goals
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.R
 import com.myhealth.domain.model.GoalStatus
 import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.repository.BodyRepository
 import com.myhealth.domain.repository.GoalRepository
 import com.myhealth.domain.repository.RunningBestRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -33,7 +35,7 @@ class GoalsViewModel(
     private val clock: Clock,
 ) : ViewModel() {
 
-    private val message = MutableStateFlow<String?>(null)
+    private val message = MutableStateFlow<UiMessage?>(null)
 
     private fun today(): LocalDate = LocalDate.now(clock)
 
@@ -53,27 +55,28 @@ class GoalsViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GoalsUiState())
 
-    fun makePrimary(id: Long) = run(id, "Primary goal updated.") { goalRepo.setPrimary(id) }
+    fun makePrimary(id: Long) = run(id, UiMessage.of(R.string.goal_message_primary_updated)) { goalRepo.setPrimary(id) }
 
     fun markAchieved(id: Long) =
-        run(id, "Goal marked achieved.") { goalRepo.setStatus(id, GoalStatus.ACHIEVED) }
+        run(id, UiMessage.of(R.string.goal_message_achieved)) { goalRepo.setStatus(id, GoalStatus.ACHIEVED) }
 
     fun markAbandoned(id: Long) =
-        run(id, "Goal abandoned.") { goalRepo.setStatus(id, GoalStatus.ABANDONED) }
+        run(id, UiMessage.of(R.string.goal_message_abandoned)) { goalRepo.setStatus(id, GoalStatus.ABANDONED) }
 
-    fun reactivate(id: Long) = run(id, "Goal reactivated.") { goalRepo.setStatus(id, GoalStatus.ACTIVE) }
+    fun reactivate(id: Long) =
+        run(id, UiMessage.of(R.string.goal_message_reactivated)) { goalRepo.setStatus(id, GoalStatus.ACTIVE) }
 
-    fun delete(id: Long) = run(id, "Goal deleted.") { goalRepo.delete(id) }
+    fun delete(id: Long) = run(id, UiMessage.of(R.string.goal_message_deleted)) { goalRepo.delete(id) }
 
     fun consumeMessage() {
         message.value = null
     }
 
-    private fun run(id: Long, success: String, block: suspend () -> Outcome<*>) {
+    private fun run(id: Long, success: UiMessage, block: suspend () -> Outcome<*>) {
         viewModelScope.launch {
             message.value = when (block()) {
                 is Outcome.Ok -> success
-                is Outcome.Err -> "Could not update goal #$id. Please try again."
+                is Outcome.Err -> UiMessage.of(R.string.goal_message_update_failed, id)
             }
         }
     }

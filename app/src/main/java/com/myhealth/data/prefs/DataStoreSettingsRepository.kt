@@ -42,6 +42,7 @@ class DataStoreSettingsRepository(context: Context) : SettingsRepository {
         offUserAgentContact = this[SettingsKeys.OFF_USER_AGENT_CONTACT] ?: defaults.offUserAgentContact,
         garminDirectEnabled = this[SettingsKeys.GARMIN_DIRECT_ENABLED] ?: defaults.garminDirectEnabled,
         hasCompletedOnboarding = this[SettingsKeys.HAS_COMPLETED_ONBOARDING] ?: defaults.hasCompletedOnboarding,
+        suggestionsStale = this[SettingsKeys.SUGGESTIONS_STALE] ?: defaults.suggestionsStale,
     )
 
     override suspend fun update(transform: (AppSettings) -> AppSettings) {
@@ -58,6 +59,7 @@ class DataStoreSettingsRepository(context: Context) : SettingsRepository {
             prefs[SettingsKeys.OFF_USER_AGENT_CONTACT] = next.offUserAgentContact
             prefs[SettingsKeys.GARMIN_DIRECT_ENABLED] = next.garminDirectEnabled
             prefs[SettingsKeys.HAS_COMPLETED_ONBOARDING] = next.hasCompletedOnboarding
+            prefs[SettingsKeys.SUGGESTIONS_STALE] = next.suggestionsStale
         }
     }
 

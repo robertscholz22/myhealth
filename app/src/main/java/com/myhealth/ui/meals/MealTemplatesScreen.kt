@@ -35,9 +35,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.MacroTotals
 import com.myhealth.domain.model.MealSlot
@@ -48,7 +51,6 @@ import com.myhealth.ui.calendar.displayName
 import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.theme.MyHealthTheme
 import java.time.LocalDate
-import java.util.Locale
 
 /** Meal templates list with per-template totals and "Log now" (PLAN §4.2, P4.4). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,10 +66,11 @@ fun MealTemplatesScreen(
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(state.message) {
         state.message?.let {
-            snackbar.showSnackbar(it)
+            snackbar.showSnackbar(it.resolve(context))
             vm.consumeMessage()
         }
     }
@@ -76,10 +79,10 @@ fun MealTemplatesScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Meal templates") },
+                title = { Text(stringResource(R.string.mealtpl_list_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )
@@ -87,7 +90,7 @@ fun MealTemplatesScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             FloatingActionButton(onClick = onNewTemplate) {
-                Icon(Icons.Filled.Add, contentDescription = "New template")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.mealtpl_new_cd))
             }
         },
     ) { innerPadding ->
@@ -127,8 +130,8 @@ private fun MealTemplatesContent(
     Column(modifier = modifier) {
         if (state.rows.isEmpty()) {
             EmptyState(
-                title = "No meal templates yet",
-                message = "Build a template for a meal you eat often, then log it in one tap.",
+                title = stringResource(R.string.addfood_empty_templates_title),
+                message = stringResource(R.string.mealtpl_empty_message),
                 modifier = Modifier.padding(16.dp),
             )
         } else {
@@ -172,16 +175,16 @@ private fun TemplateListRow(
         supportingContent = { Text(macroSummary(row.totals, row.missingIngredients)) },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick = onLogNow) { Text("Log now") }
+                TextButton(onClick = onLogNow) { Text(stringResource(R.string.mealtpl_log_now_button)) }
                 IconButton(onClick = onToggleFavorite) {
                     if (row.template.isFavorite) {
                         Icon(
                             Icons.Filled.Star,
-                            contentDescription = "Unfavorite",
+                            contentDescription = stringResource(R.string.mealtpl_unfavorite_cd),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     } else {
-                        Icon(Icons.Outlined.StarBorder, contentDescription = "Favorite")
+                        Icon(Icons.Outlined.StarBorder, contentDescription = stringResource(R.string.mealtpl_favorite_cd))
                     }
                 }
             }
@@ -202,16 +205,16 @@ private fun LogNowDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log ${template.name}") },
+        title = { Text(stringResource(R.string.mealtpl_log_dialog_title, template.name)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 DatePickerField(
-                    label = "Date",
+                    label = stringResource(R.string.mealtpl_date_label),
                     value = LocalDate.ofEpochDay(day),
                     onValueChange = { onSetDay(it.toEpochDay()) },
                 )
                 DropdownField(
-                    label = "Slot",
+                    label = stringResource(R.string.mealtpl_slot_label),
                     options = MealSlot.entries.toList(),
                     selected = slot,
                     optionLabel = { it.displayName() },
@@ -219,21 +222,22 @@ private fun LogNowDialog(
                 )
             }
         },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Log") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.mealtpl_log_button)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
 
 /** "520 kcal · 31 g P · 54 g C · 18 g F", with a note when an ingredient is missing. */
+@Composable
 internal fun macroSummary(totals: MacroTotals, missingIngredients: Boolean = false): String {
-    val base = "%.0f kcal · %.0f g P · %.0f g C · %.0f g F".format(
-        Locale.US,
+    val base = stringResource(
+        R.string.mealtpl_macro_summary,
         totals.kcal,
         totals.proteinG,
         totals.carbsG,
         totals.fatG,
     )
-    return if (missingIngredients) "$base · some ingredients are missing" else base
+    return if (missingIngredients) stringResource(R.string.mealtpl_macro_summary_missing, base) else base
 }
 
 @Preview(showBackground = true, widthDp = 380, heightDp = 640)

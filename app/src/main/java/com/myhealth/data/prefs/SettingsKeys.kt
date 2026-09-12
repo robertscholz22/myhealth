@@ -23,6 +23,7 @@ object SettingsKeys {
     val OFF_USER_AGENT_CONTACT = stringPreferencesKey("off_user_agent_contact")
     val GARMIN_DIRECT_ENABLED = booleanPreferencesKey("garmin_direct_enabled")
     val HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
+    val SUGGESTIONS_STALE = booleanPreferencesKey("suggestions_stale")
 
     /** Single source of truth for every key's default — reuses [AppSettings]'s own defaults. */
     val Defaults = AppSettings()

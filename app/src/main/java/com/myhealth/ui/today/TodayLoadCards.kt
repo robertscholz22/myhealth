@@ -10,6 +10,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.myhealth.R
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.StatTile
@@ -28,11 +30,11 @@ import java.util.Locale
 @Composable
 internal fun RecoveryCard(load: DailyLoad?, topFlag: String?, onOpenLoad: () -> Unit) {
     SectionCard(
-        title = "Recovery",
+        title = stringResource(R.string.today_recovery_title),
         modifier = Modifier.clickable(onClick = onOpenLoad),
     ) {
         if (load?.recoveryScore == null) {
-            Text("Not enough data yet for a recovery score.", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.today_recovery_no_data), style = MaterialTheme.typography.bodyMedium)
             return@SectionCard
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -40,7 +42,10 @@ internal fun RecoveryCard(load: DailyLoad?, topFlag: String?, onOpenLoad: () -> 
             Column(horizontalAlignment = Alignment.End) {
                 Text(recoveryBandLabel(load.recoveryBand), style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "${(load.recoveryConfidence * 100).let { "%.0f".format(Locale.US, it) }}% confidence",
+                    stringResource(
+                        R.string.today_confidence_label,
+                        (load.recoveryConfidence * 100).let { "%.0f".format(Locale.US, it) },
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -56,18 +61,18 @@ internal fun RecoveryCard(load: DailyLoad?, topFlag: String?, onOpenLoad: () -> 
 @Composable
 internal fun LoadCard(load: DailyLoad?, weeklyTrimp: Double, onOpenLoad: () -> Unit) {
     SectionCard(
-        title = "Training load",
+        title = stringResource(R.string.today_load_title),
         modifier = Modifier.clickable(onClick = onOpenLoad),
     ) {
         if (load == null) {
-            Text("No training load yet.", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.today_load_no_data), style = MaterialTheme.typography.bodyMedium)
             return@SectionCard
         }
         val zone = acwrZoneOf(load.acwr)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
                 Text(
-                    "ACWR",
+                    stringResource(R.string.today_acwr_label),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -77,9 +82,12 @@ internal fun LoadCard(load: DailyLoad?, weeklyTrimp: Double, onOpenLoad: () -> U
                     color = zone?.color() ?: MaterialTheme.colorScheme.onSurface,
                 )
             }
-            StatTile(label = "ATL", value = "%.0f".format(Locale.US, load.atl))
-            StatTile(label = "CTL", value = "%.0f".format(Locale.US, load.ctl))
-            StatTile(label = "7d TRIMP", value = "%.0f".format(Locale.US, weeklyTrimp))
+            StatTile(label = stringResource(R.string.today_atl_label), value = "%.0f".format(Locale.US, load.atl))
+            StatTile(label = stringResource(R.string.today_ctl_label), value = "%.0f".format(Locale.US, load.ctl))
+            StatTile(
+                label = stringResource(R.string.today_weekly_trimp_label),
+                value = "%.0f".format(Locale.US, weeklyTrimp),
+            )
         }
     }
 }

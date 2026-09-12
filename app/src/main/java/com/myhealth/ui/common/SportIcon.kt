@@ -12,7 +12,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import com.myhealth.R
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
 import com.myhealth.ui.theme.MyHealthTheme
@@ -29,14 +31,15 @@ fun SportGroup.icon(): ImageVector = when (this) {
 }
 
 /** Display name for a sport-group filter chip / grouping. */
+@Composable
 fun SportGroup.displayName(): String = when (this) {
-    SportGroup.SOCCER -> "Soccer"
-    SportGroup.RUN -> "Run"
-    SportGroup.STRENGTH -> "Strength"
-    SportGroup.CYCLE -> "Cycle"
-    SportGroup.WALK -> "Walk"
-    SportGroup.SWIM -> "Swim"
-    SportGroup.OTHER -> "Other"
+    SportGroup.SOCCER -> stringResource(R.string.sport_group_soccer)
+    SportGroup.RUN -> stringResource(R.string.sport_group_run)
+    SportGroup.STRENGTH -> stringResource(R.string.sport_group_strength)
+    SportGroup.CYCLE -> stringResource(R.string.sport_group_cycle)
+    SportGroup.WALK -> stringResource(R.string.sport_group_walk)
+    SportGroup.SWIM -> stringResource(R.string.sport_group_swim)
+    SportGroup.OTHER -> stringResource(R.string.sport_group_other)
 }
 
 /** Title-cased fallback used when an activity has no user title, e.g. `RUN_OUTDOOR` -> "Run outdoor". */

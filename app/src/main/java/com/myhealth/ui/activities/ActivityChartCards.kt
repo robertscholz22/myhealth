@@ -1,6 +1,8 @@
 package com.myhealth.ui.activities
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.myhealth.R
 import com.myhealth.domain.model.ActivitySession
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.ui.common.charts.ChartSeries
@@ -12,11 +14,11 @@ import java.util.Locale
 @Composable
 internal fun HrChartCard(activity: ActivitySession) {
     LineChartCard(
-        title = "Heart rate over time",
-        series = listOf(ChartSeries(name = "HR", points = hrPoints(activity.streams))),
+        title = stringResource(R.string.activity_chart_hr_title),
+        series = listOf(ChartSeries(name = stringResource(R.string.activity_chart_hr_series), points = hrPoints(activity.streams))),
         xLabels = minuteAxisLabels(activity.streams),
         yFormatter = { "%.0f".format(Locale.US, it) },
-        emptyMessage = "This activity has no heart-rate stream.",
+        emptyMessage = stringResource(R.string.activity_chart_hr_empty),
     )
 }
 
@@ -37,19 +39,19 @@ internal fun PaceOrSpeedChartCard(activity: ActivitySession) {
     }
     if (pace != null) {
         LineChartCard(
-            title = "Pace over time",
-            series = listOf(ChartSeries(name = "Pace", points = pace.invertY())),
+            title = stringResource(R.string.activity_chart_pace_title),
+            series = listOf(ChartSeries(name = stringResource(R.string.activity_chart_pace_series), points = pace.invertY())),
             xLabels = minuteAxisLabels(streams),
             yFormatter = { formatPaceAxis(-it) },
-            emptyMessage = "This run has no distance or speed stream to derive pace from.",
+            emptyMessage = stringResource(R.string.activity_chart_pace_empty),
         )
     } else {
         LineChartCard(
-            title = "Speed over time",
-            series = listOf(ChartSeries(name = "Speed", points = speedPoints(streams))),
+            title = stringResource(R.string.activity_chart_speed_title),
+            series = listOf(ChartSeries(name = stringResource(R.string.activity_chart_speed_series), points = speedPoints(streams))),
             xLabels = minuteAxisLabels(streams),
             yFormatter = { "%.1f".format(Locale.US, it) },
-            emptyMessage = "This activity has no speed stream.",
+            emptyMessage = stringResource(R.string.activity_chart_speed_empty),
         )
     }
 }
@@ -57,10 +59,10 @@ internal fun PaceOrSpeedChartCard(activity: ActivitySession) {
 @Composable
 internal fun AltitudeChartCard(activity: ActivitySession) {
     LineChartCard(
-        title = "Altitude",
-        series = listOf(ChartSeries(name = "Altitude", points = altitudePoints(activity.streams))),
+        title = stringResource(R.string.activity_chart_altitude_title),
+        series = listOf(ChartSeries(name = stringResource(R.string.activity_chart_altitude_series), points = altitudePoints(activity.streams))),
         xLabels = minuteAxisLabels(activity.streams),
         yFormatter = { "%.0f".format(Locale.US, it) },
-        emptyMessage = "This activity has no altitude stream.",
+        emptyMessage = stringResource(R.string.activity_chart_altitude_empty),
     )
 }

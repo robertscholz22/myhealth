@@ -30,9 +30,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.EventType
 import com.myhealth.domain.model.SportType
@@ -40,9 +42,12 @@ import com.myhealth.ui.common.DatePickerField
 import com.myhealth.ui.common.DropdownField
 import com.myhealth.ui.common.DurationField
 import com.myhealth.ui.common.NumberField
+import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.TimePickerField
+import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.common.displayName
+import com.myhealth.ui.common.resolve
 import com.myhealth.ui.theme.MyHealthTheme
 import java.time.LocalDate
 
@@ -65,16 +70,24 @@ fun EventEditScreen(id: Long, epochDay: Long, onBack: () -> Unit, modifier: Modi
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(if (state.isNew) "New event" else "Edit event") },
+                title = {
+                    Text(
+                        if (state.isNew) {
+                            stringResource(R.string.event_title_new)
+                        } else {
+                            stringResource(R.string.event_title_edit)
+                        },
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 actions = {
                     if (!state.isNew) {
                         IconButton(onClick = vm::requestDelete) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Delete event")
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.event_action_delete_desc))
                         }
                     }
                 },
@@ -111,7 +124,7 @@ private fun EventEditBody(
         return
     }
     if (state.loadError != null) {
-        Box(modifier = modifier, contentAlignment = Alignment.Center) { Text(state.loadError) }
+        Box(modifier = modifier, contentAlignment = Alignment.Center) { Text(state.loadError.resolve()) }
         return
     }
 
@@ -119,7 +132,7 @@ private fun EventEditBody(
     Column(modifier = modifier) {
         LazyColumn(
             modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(SCREEN_PADDING),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item { EventTypeCard(draft, state.errors, onDraftChange) }
@@ -130,11 +143,11 @@ private fun EventEditBody(
             item { RecurrencePicker(draft, state.errors, onDraftChange) }
             item { NotesCard(draft, onDraftChange) }
             state.saveError?.let { message ->
-                item { Text(message, color = MaterialTheme.colorScheme.error) }
+                item { Text(message.resolve(), color = MaterialTheme.colorScheme.error) }
             }
         }
         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.End) {
-            Button(onClick = onSave, enabled = !state.isSaving) { Text("Save") }
+            Button(onClick = onSave, enabled = !state.isSaving) { Text(stringResource(R.string.action_save)) }
         }
     }
 }
@@ -142,12 +155,12 @@ private fun EventEditBody(
 @Composable
 private fun EventTypeCard(
     draft: EventDraft,
-    errors: Map<EventField, String>,
+    errors: Map<EventField, UiMessage>,
     onDraftChange: ((EventDraft) -> EventDraft) -> Unit,
 ) {
-    SectionCard(title = "Event") {
+    SectionCard(title = stringResource(R.string.event_section_event)) {
         DropdownField(
-            label = "Type",
+            label = stringResource(R.string.event_label_type),
             options = EventType.entries,
             selected = draft.type,
             optionLabel = { it.displayName() },
@@ -158,10 +171,10 @@ private fun EventTypeCard(
         OutlinedTextField(
             value = draft.title,
             onValueChange = { title -> onDraftChange { it.copy(title = title) } },
-            label = { Text("Title") },
+            label = { Text(stringResource(R.string.event_label_title)) },
             singleLine = true,
             isError = errors.containsKey(EventField.TITLE),
-            supportingText = errors[EventField.TITLE]?.let { { Text(it) } },
+            supportingText = errors[EventField.TITLE]?.let { { Text(it.resolve()) } },
             modifier = Modifier.fillMaxWidth(),
         )
         Row(
@@ -169,7 +182,7 @@ private fun EventTypeCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Key event", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.event_label_key_event), style = MaterialTheme.typography.bodyMedium)
             Switch(checked = draft.isKeyEvent, onCheckedChange = { v -> onDraftChange { it.copy(isKeyEvent = v) } })
         }
     }
@@ -178,28 +191,28 @@ private fun EventTypeCard(
 @Composable
 private fun WhenCard(
     draft: EventDraft,
-    errors: Map<EventField, String>,
+    errors: Map<EventField, UiMessage>,
     onDraftChange: ((EventDraft) -> EventDraft) -> Unit,
 ) {
-    SectionCard(title = "When") {
+    SectionCard(title = stringResource(R.string.event_section_when)) {
         DatePickerField(
-            label = "Date",
+            label = stringResource(R.string.event_label_date),
             value = draft.date,
             onValueChange = { d -> onDraftChange { it.copy(date = d) } },
             isError = errors.containsKey(EventField.DATE),
-            supportingText = errors[EventField.DATE],
+            supportingText = errors[EventField.DATE]?.resolve(),
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("All day", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.event_label_all_day), style = MaterialTheme.typography.bodyMedium)
             Switch(checked = !draft.hasTime, onCheckedChange = { allDay -> onDraftChange { it.copy(hasTime = !allDay) } })
         }
         if (draft.hasTime) {
             TimePickerField(
-                label = "Start time",
+                label = stringResource(R.string.event_label_start_time),
                 value = draft.startMinuteOfDay,
                 onValueChange = { m -> onDraftChange { it.copy(startMinuteOfDay = m) } },
             )
@@ -208,12 +221,12 @@ private fun WhenCard(
             value = draft.durationMin,
             onValueChange = { m -> onDraftChange { it.copy(durationMin = m) } },
             isError = errors.containsKey(EventField.DURATION),
-            supportingText = errors[EventField.DURATION],
+            supportingText = errors[EventField.DURATION]?.resolve(),
         )
         OutlinedTextField(
             value = draft.location,
             onValueChange = { loc -> onDraftChange { it.copy(location = loc) } },
-            label = { Text("Location (optional)") },
+            label = { Text(stringResource(R.string.event_label_location)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -223,13 +236,13 @@ private fun WhenCard(
 @Composable
 private fun SportDetailsCard(
     draft: EventDraft,
-    errors: Map<EventField, String>,
+    errors: Map<EventField, UiMessage>,
     onDraftChange: ((EventDraft) -> EventDraft) -> Unit,
 ) {
-    SectionCard(title = "Sport") {
+    SectionCard(title = stringResource(R.string.event_label_sport)) {
         if (draft.type.usesSportType()) {
             DropdownField(
-                label = "Sport",
+                label = stringResource(R.string.event_label_sport),
                 options = SportType.entries,
                 selected = draft.sportType ?: defaultSportTypeFor(draft.type) ?: SportType.OTHER,
                 optionLabel = { it.displayName() },
@@ -238,13 +251,13 @@ private fun SportDetailsCard(
         }
         if (draft.type.usesTargetDistance()) {
             NumberField(
-                label = "Target distance",
+                label = stringResource(R.string.event_label_target_distance),
                 value = draft.targetDistanceKm,
                 onValueChange = { v -> onDraftChange { it.copy(targetDistanceKm = v) } },
-                suffix = "km",
+                suffix = stringResource(R.string.event_unit_km),
                 decimals = 2,
                 isError = errors.containsKey(EventField.DISTANCE),
-                supportingText = errors[EventField.DISTANCE],
+                supportingText = errors[EventField.DISTANCE]?.resolve(),
             )
         }
     }
@@ -252,7 +265,7 @@ private fun SportDetailsCard(
 
 @Composable
 private fun NotesCard(draft: EventDraft, onDraftChange: ((EventDraft) -> EventDraft) -> Unit) {
-    SectionCard(title = "Notes") {
+    SectionCard(title = stringResource(R.string.event_section_notes)) {
         OutlinedTextField(
             value = draft.notes,
             onValueChange = { n -> onDraftChange { it.copy(notes = n) } },
@@ -272,23 +285,23 @@ private fun DeleteEventDialog(
     if (isRecurring) {
         AlertDialog(
             onDismissRequest = onCancel,
-            title = { Text("Delete recurring event?") },
-            text = { Text("This event repeats. Choose what to delete.") },
+            title = { Text(stringResource(R.string.event_dialog_delete_recurring_title)) },
+            text = { Text(stringResource(R.string.event_dialog_delete_recurring_text)) },
             confirmButton = {
                 Row {
-                    TextButton(onClick = onDeleteOccurrence) { Text("This occurrence") }
-                    TextButton(onClick = onDeleteSeries) { Text("Whole series") }
+                    TextButton(onClick = onDeleteOccurrence) { Text(stringResource(R.string.event_action_this_occurrence)) }
+                    TextButton(onClick = onDeleteSeries) { Text(stringResource(R.string.event_action_whole_series)) }
                 }
             },
-            dismissButton = { TextButton(onClick = onCancel) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) } },
         )
     } else {
         AlertDialog(
             onDismissRequest = onCancel,
-            title = { Text("Delete event?") },
-            text = { Text("This cannot be undone.") },
-            confirmButton = { TextButton(onClick = onDeleteSeries) { Text("Delete") } },
-            dismissButton = { TextButton(onClick = onCancel) { Text("Cancel") } },
+            title = { Text(stringResource(R.string.event_dialog_delete_title)) },
+            text = { Text(stringResource(R.string.event_dialog_delete_text)) },
+            confirmButton = { TextButton(onClick = onDeleteSeries) { Text(stringResource(R.string.action_delete)) } },
+            dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 }

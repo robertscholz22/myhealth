@@ -1,12 +1,14 @@
 package com.myhealth.ui.onboarding
 
+import com.myhealth.ui.common.UiMessage
+
 /** ViewModel state for [OnboardingScreen] (§1.4: plain `data class` behind a `StateFlow`). */
 data class OnboardingUiState(
     val step: OnboardingStep = OnboardingStep.IDENTITY,
     val draft: OnboardingDraft = OnboardingDraft(),
-    val errors: Map<OnboardingField, String> = emptyMap(),
+    val errors: Map<OnboardingField, UiMessage> = emptyMap(),
     val isSaving: Boolean = false,
-    val saveError: String? = null,
+    val saveError: UiMessage? = null,
 ) {
     /** Whether the current step's own fields are all valid — gates the Next/Finish button. */
     val canContinue: Boolean get() = step.fields.none { it in errors }

@@ -2,11 +2,13 @@ package com.myhealth.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.R
 import com.myhealth.domain.repository.BackupMode
 import com.myhealth.domain.repository.BackupRepository
 import com.myhealth.domain.repository.BackupSummary
 import com.myhealth.domain.util.AppError
 import com.myhealth.domain.util.Outcome
+import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,7 +28,7 @@ data class BackupUiState(
     /** The mode the next import runs in; the export path ignores it. */
     val importMode: BackupMode = BackupMode.MERGE,
     val result: BackupResult? = null,
-    val error: String? = null,
+    val error: UiMessage? = null,
 ) {
     val canStart: Boolean get() = !isRunning
 }
@@ -77,9 +79,9 @@ class BackupViewModel(private val backupRepo: BackupRepository) : ViewModel() {
 }
 
 /** User-facing text for a backup failure; [AppError.Validation] already carries a written one. */
-fun backupErrorMessage(error: AppError): String = when (error) {
-    is AppError.Validation -> error.message
-    is AppError.Parse -> "That file is not a MyHealth backup (${error.detail})."
-    is AppError.Storage -> "The backup file could not be read or written. Check the storage and try again."
-    else -> "The backup did not finish. Nothing was changed."
+fun backupErrorMessage(error: AppError): UiMessage = when (error) {
+    is AppError.Validation -> UiMessage.of(R.string.backup_error_dynamic_format, error.message)
+    is AppError.Parse -> UiMessage.of(R.string.backup_error_parse_format, error.detail)
+    is AppError.Storage -> UiMessage.of(R.string.backup_error_storage)
+    else -> UiMessage.of(R.string.backup_error_generic)
 }

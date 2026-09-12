@@ -18,12 +18,14 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.myhealth.R
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.theme.MyHealthTheme
 import kotlin.math.max
@@ -47,7 +49,7 @@ fun LineChartCard(
     goalLine: Double? = null,
     bands: List<ChartBand> = emptyList(),
     height: Dp = ChartHeight,
-    emptyMessage: String = "No data for this range yet.",
+    emptyMessage: String = stringResource(R.string.chart_common_no_data),
     /** Forces the legend on for a single-series chart whose title does not name the series. */
     alwaysShowLegend: Boolean = false,
     action: @Composable (() -> Unit)? = null,

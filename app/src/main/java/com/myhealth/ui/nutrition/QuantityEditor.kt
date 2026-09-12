@@ -17,8 +17,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.myhealth.R
 import com.myhealth.domain.model.Ingredient
 import com.myhealth.domain.model.MacroTotals
 import com.myhealth.domain.model.MeasureBasis
@@ -26,7 +28,6 @@ import com.myhealth.domain.model.QuantityUnit
 import com.myhealth.ui.common.DropdownField
 import com.myhealth.ui.common.NumberField
 import com.myhealth.ui.theme.MyHealthTheme
-import java.util.Locale
 
 /**
  * Quantity entry for one picked ingredient (PLAN §4.2 Add food, P4.6): a quantity field, the unit
@@ -74,14 +75,14 @@ fun QuantityEditor(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 NumberField(
-                    label = "Quantity",
+                    label = stringResource(R.string.quantity_label),
                     value = quantity,
                     onValueChange = onQuantityChange,
                     decimals = 0,
                     modifier = Modifier.weight(1f),
                 )
                 DropdownField(
-                    label = "Unit",
+                    label = stringResource(R.string.quantity_unit_label),
                     options = units,
                     selected = unit,
                     optionLabel = { it.label() },
@@ -90,22 +91,25 @@ fun QuantityEditor(
                 )
             }
             Text(
-                text = preview?.let { previewLabel(it) } ?: "Enter a quantity to see the macros.",
+                text = preview?.let { previewLabel(it) } ?: stringResource(R.string.quantity_enter_prompt),
                 style = MaterialTheme.typography.bodyLarge,
             )
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
-                Button(onClick = onAdd, enabled = canAdd, modifier = Modifier.weight(1f)) { Text("Add") }
+                TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
+                Button(onClick = onAdd, enabled = canAdd, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.quantity_add_button))
+                }
             }
         }
     }
 }
 
-internal fun previewLabel(totals: MacroTotals): String = "%d kcal · %.1f g P · %.1f g C · %.1f g F".format(
-    Locale.US,
+@Composable
+internal fun previewLabel(totals: MacroTotals): String = stringResource(
+    R.string.quantity_preview_summary,
     roundHalfUp(totals.kcal),
     totals.proteinG,
     totals.carbsG,

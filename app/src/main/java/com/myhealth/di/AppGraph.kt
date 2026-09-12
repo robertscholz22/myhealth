@@ -186,6 +186,7 @@ class AppGraph(private val app: Application) {
             sleepDao = db.sleepDao(),
             activityRepo = activityRepo,
             clock = clock,
+            onPlanChanged = { suggestionRepo.markProposedStale() },
             zone = zoneId,
         )
     }
@@ -210,6 +211,7 @@ class AppGraph(private val app: Application) {
             calendarRepo = calendarRepo,
             loadRepo = loadRepo,
             activityRepo = activityRepo,
+            settingsRepo = settings,
             engine = suggestionEngine,
             clock = clock,
             onPlanChanged = { syncScheduler.requestTargetRecompute() },

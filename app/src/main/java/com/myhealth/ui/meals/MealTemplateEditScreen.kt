@@ -38,9 +38,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.Ingredient
 import com.myhealth.domain.model.MealSlot
@@ -50,6 +52,7 @@ import com.myhealth.ui.common.DropdownField
 import com.myhealth.ui.common.ErrorBanner
 import com.myhealth.ui.common.NumberField
 import com.myhealth.ui.common.SectionCard
+import com.myhealth.ui.common.resolve
 import com.myhealth.ui.nutrition.label
 import com.myhealth.ui.nutrition.validUnitsFor
 import com.myhealth.ui.theme.MyHealthTheme
@@ -71,16 +74,24 @@ fun MealTemplateEditScreen(id: Long, onBack: () -> Unit, modifier: Modifier = Mo
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(if (state.isNew) "New template" else "Edit template") },
+                title = {
+                    Text(
+                        if (state.isNew) {
+                            stringResource(R.string.mealtpl_title_new)
+                        } else {
+                            stringResource(R.string.mealtpl_title_edit)
+                        },
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
                 actions = {
                     if (!state.isNew) {
                         IconButton(onClick = vm::requestDelete) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Delete template")
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.mealtpl_delete_cd))
                         }
                     }
                 },
@@ -123,10 +134,10 @@ fun MealTemplateEditScreen(id: Long, onBack: () -> Unit, modifier: Modifier = Mo
     if (state.pendingDelete) {
         AlertDialog(
             onDismissRequest = vm::cancelDelete,
-            title = { Text("Delete this template?") },
-            text = { Text("Meals already logged from it keep their own copy of the ingredients.") },
-            confirmButton = { TextButton(onClick = vm::confirmDelete) { Text("Delete") } },
-            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text("Cancel") } },
+            title = { Text(stringResource(R.string.mealtpl_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.mealtpl_delete_confirm_message)) },
+            confirmButton = { TextButton(onClick = vm::confirmDelete) { Text(stringResource(R.string.action_delete)) } },
+            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
 }
@@ -155,31 +166,32 @@ private fun MealTemplateEditContent(
         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        state.loadError?.let { item { ErrorBanner(message = it) } }
-        state.saveError?.let { item { ErrorBanner(message = it) } }
+        state.loadError?.let { item { ErrorBanner(message = it.resolve()) } }
+        state.saveError?.let { item { ErrorBanner(message = it.resolve()) } }
 
         item {
-            SectionCard(title = "Template") {
+            SectionCard(title = stringResource(R.string.mealtpl_section_template)) {
                 OutlinedTextField(
                     value = state.draft.name,
                     onValueChange = actions.onNameChange,
-                    label = { Text("Name") },
+                    label = { Text(stringResource(R.string.mealtpl_name_label)) },
                     singleLine = true,
                     isError = state.errors.containsKey(TemplateField.NAME),
                     supportingText = state.errors[TemplateField.NAME]?.let { { Text(it) } },
                     modifier = Modifier.fillMaxWidth(),
                 )
+                val noDefaultSlotLabel = stringResource(R.string.mealtpl_no_default)
                 DropdownField(
-                    label = "Default slot",
+                    label = stringResource(R.string.mealtpl_default_slot_label),
                     options = listOf(null) + MealSlot.entries.toList(),
                     selected = state.draft.defaultSlot,
-                    optionLabel = { slot -> slot?.displayName() ?: "No default" },
+                    optionLabel = { slot -> slot?.displayName() ?: noDefaultSlotLabel },
                     onSelect = actions.onSlotChange,
                 )
                 OutlinedTextField(
                     value = state.draft.note,
                     onValueChange = actions.onNoteChange,
-                    label = { Text("Note") },
+                    label = { Text(stringResource(R.string.mealtpl_note_label)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(
@@ -187,7 +199,7 @@ private fun MealTemplateEditContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Favorite", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.mealtpl_favorite_label), style = MaterialTheme.typography.bodyMedium)
                     Switch(checked = state.draft.isFavorite, onCheckedChange = actions.onFavoriteChange)
                 }
             }
@@ -195,16 +207,16 @@ private fun MealTemplateEditContent(
 
         item {
             SectionCard(
-                title = "Ingredients",
+                title = stringResource(R.string.mealtpl_section_ingredients),
                 action = {
                     IconButton(onClick = actions.onAddItemClick) {
-                        Icon(Icons.Filled.Add, contentDescription = "Add ingredient")
+                        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.mealtpl_add_ingredient_cd))
                     }
                 },
             ) {
                 if (state.draft.items.isEmpty()) {
                     Text(
-                        text = "No ingredients yet — add one with +.",
+                        text = stringResource(R.string.mealtpl_empty_items),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -224,7 +236,7 @@ private fun MealTemplateEditContent(
         }
 
         item {
-            SectionCard(title = "Totals") {
+            SectionCard(title = stringResource(R.string.mealtpl_section_totals)) {
                 Text(text = macroSummary(state.totals), style = MaterialTheme.typography.bodyLarge)
             }
         }
@@ -234,7 +246,7 @@ private fun MealTemplateEditContent(
                 onClick = actions.onSave,
                 enabled = !state.isSaving,
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Save template") }
+            ) { Text(stringResource(R.string.mealtpl_save_button)) }
         }
     }
 }
@@ -254,12 +266,12 @@ private fun TemplateItemRow(
         ) {
             Text(text = item.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
             IconButton(onClick = onRemove) {
-                Icon(Icons.Filled.Delete, contentDescription = "Remove ${item.name}")
+                Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.mealtpl_remove_item_cd, item.name))
             }
         }
         if (item.ingredient == null) {
             Text(
-                text = "This ingredient is no longer available; it will not count towards the totals.",
+                text = stringResource(R.string.mealtpl_ingredient_missing),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
@@ -270,7 +282,7 @@ private fun TemplateItemRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             NumberField(
-                label = "Quantity",
+                label = stringResource(R.string.quantity_label),
                 value = item.quantity,
                 onValueChange = onQuantityChange,
                 decimals = 0,
@@ -278,7 +290,7 @@ private fun TemplateItemRow(
             )
             val units = item.ingredient?.let { validUnitsFor(it.basis, it) } ?: listOf(item.unit)
             DropdownField(
-                label = "Unit",
+                label = stringResource(R.string.quantity_unit_label),
                 options = units,
                 selected = item.unit,
                 optionLabel = { it.label() },
@@ -305,13 +317,13 @@ private fun IngredientPickerSheet(
             OutlinedTextField(
                 value = query,
                 onValueChange = onQueryChange,
-                label = { Text("Search ingredients") },
+                label = { Text(stringResource(R.string.addfood_search_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             if (results.isEmpty()) {
                 Text(
-                    text = "No matching ingredients.",
+                    text = stringResource(R.string.mealtpl_picker_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(vertical = 16.dp),
                 )
@@ -329,7 +341,7 @@ private fun IngredientPickerSheet(
             OutlinedButton(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-            ) { Text("Close") }
+            ) { Text(stringResource(R.string.mealtpl_close_button)) }
         }
     }
 }

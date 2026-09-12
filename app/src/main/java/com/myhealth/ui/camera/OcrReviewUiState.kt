@@ -1,5 +1,7 @@
 package com.myhealth.ui.camera
 
+import androidx.annotation.StringRes
+import com.myhealth.R
 import com.myhealth.domain.model.MeasureBasis
 import com.myhealth.domain.model.NutritionFacts
 import com.myhealth.domain.model.NutritionFactsDraft
@@ -9,16 +11,16 @@ import com.myhealth.ui.common.ConfidenceLevel
 import com.myhealth.ui.common.confidenceLevelOf
 
 /** The nine editable rows of the review form, in the order a label prints them (§3.6). */
-enum class OcrField(val label: String, val suffix: String, val decimals: Int) {
-    KCAL("Calories", "kcal", 0),
-    FAT("Fat", "g", 1),
-    SAT_FAT("of which saturates", "g", 1),
-    CARBS("Carbohydrate", "g", 1),
-    SUGAR("of which sugars", "g", 1),
-    FIBER("Fiber", "g", 1),
-    PROTEIN("Protein", "g", 1),
-    SALT("Salt", "g", 2),
-    KJ("Energy", "kJ", 0),
+enum class OcrField(@StringRes val labelRes: Int, @StringRes val suffixRes: Int, val decimals: Int) {
+    KCAL(R.string.ocr_field_calories, R.string.ocr_unit_kcal, 0),
+    FAT(R.string.ocr_field_fat, R.string.ocr_unit_grams, 1),
+    SAT_FAT(R.string.ocr_field_saturates, R.string.ocr_unit_grams, 1),
+    CARBS(R.string.ocr_field_carbs, R.string.ocr_unit_grams, 1),
+    SUGAR(R.string.ocr_field_sugars, R.string.ocr_unit_grams, 1),
+    FIBER(R.string.ocr_field_fiber, R.string.ocr_unit_grams, 1),
+    PROTEIN(R.string.ocr_field_protein, R.string.ocr_unit_grams, 1),
+    SALT(R.string.ocr_field_salt, R.string.ocr_unit_grams, 2),
+    KJ(R.string.ocr_field_energy, R.string.ocr_unit_kj, 0),
 }
 
 /** One row: what the parser read, how sure it was, and whether it was a `< x` upper bound. */

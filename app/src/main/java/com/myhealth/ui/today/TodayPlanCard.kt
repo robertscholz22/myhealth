@@ -13,9 +13,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.myhealth.R
 import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.PlannedStatus
@@ -27,6 +29,7 @@ import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.SportIcon
 import com.myhealth.ui.theme.MyHealthTheme
 import com.myhealth.ui.training.label
+import com.myhealth.ui.training.StaleSuggestionsHint
 import com.myhealth.ui.training.plannedSessionSubtitle
 
 /**
@@ -37,30 +40,38 @@ import com.myhealth.ui.training.plannedSessionSubtitle
  * 2. **Nothing planned but a proposal is waiting** — the best-scoring suggestion for today from
  *    the latest `PROPOSED` batch, with its leading rationale line and a way into the review.
  * 3. **Neither** — an invitation to generate a week, which opens the training screen.
+ *
+ * On top of any of the three, [isStale] (POLISH-8) says the open `PROPOSED` batch was generated
+ * before the calendar changed: the card then leads with a "Calendar changed — regenerate" hint
+ * that opens the training screen, where the suggester actually runs.
  */
 @Composable
 fun TodayPlanCard(
     planned: List<PlannedSession>,
     suggested: SuggestedSession?,
+    isStale: Boolean = false,
     onMarkDone: (Long) -> Unit,
     onReviewSuggestions: () -> Unit,
     onOpenTraining: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     SectionCard(
-        title = "Today's plan",
+        title = stringResource(R.string.today_plan_title),
         modifier = modifier,
-        action = { TextButton(onClick = onOpenTraining) { Text("Plan") } },
+        action = { TextButton(onClick = onOpenTraining) { Text(stringResource(R.string.today_plan_action)) } },
     ) {
+        if (isStale) StaleSuggestionsHint(onRegenerate = onOpenTraining)
         when {
             planned.isNotEmpty() -> planned.forEach { PlannedRow(it, onMarkDone) }
             suggested != null -> SuggestedRow(suggested, onReviewSuggestions)
             else -> {
                 Text(
-                    text = "Nothing planned for today.",
+                    text = stringResource(R.string.today_plan_empty),
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                TextButton(onClick = onOpenTraining) { Text("Generate suggestions") }
+                TextButton(onClick = onOpenTraining) {
+                    Text(stringResource(R.string.training_generate_suggestions))
+                }
             }
         }
     }
@@ -88,13 +99,13 @@ private fun PlannedRow(session: PlannedSession, onMarkDone: (Long) -> Unit) {
                 AssistChip(onClick = {}, enabled = false, label = { Text(session.intensity.label()) })
             }
             Text(
-                text = plannedSessionSubtitle(session),
+                text = plannedSessionSubtitle(session, linkedLabel = stringResource(R.string.training_session_linked)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         if (session.status == PlannedStatus.PLANNED) {
-            TextButton(onClick = { onMarkDone(session.id) }) { Text("Done") }
+            TextButton(onClick = { onMarkDone(session.id) }) { Text(stringResource(R.string.today_mark_done)) }
         }
     }
 }
@@ -122,7 +133,7 @@ private fun SuggestedRow(session: SuggestedSession, onReviewSuggestions: () -> U
             }
             Text(
                 text = listOfNotNull(
-                    "Suggested",
+                    stringResource(R.string.today_suggested_label),
                     session.targetDurationMin?.let { "$it min" },
                     "${Math.round(session.estimatedTrimp)} AU",
                 ).joinToString(" · "),
@@ -140,7 +151,7 @@ private fun SuggestedRow(session: SuggestedSession, onReviewSuggestions: () -> U
                 )
             }
         }
-        TextButton(onClick = onReviewSuggestions) { Text("Review") }
+        TextButton(onClick = onReviewSuggestions) { Text(stringResource(R.string.today_review_action)) }
     }
 }
 

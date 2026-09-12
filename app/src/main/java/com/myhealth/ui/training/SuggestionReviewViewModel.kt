@@ -2,11 +2,14 @@ package com.myhealth.ui.training
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.R
 import com.myhealth.domain.model.SuggestedSession
 import com.myhealth.domain.model.SuggestionBatch
+import com.myhealth.domain.model.SuggestionStatus
 import com.myhealth.domain.repository.SettingsRepository
 import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +19,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -24,7 +28,7 @@ import kotlinx.coroutines.launch
 private data class ReviewAction(
     val accepted: Map<Long, Boolean> = emptyMap(),
     val isWorking: Boolean = false,
-    val message: String? = null,
+    val message: UiMessage? = null,
     val done: Boolean = false,
 )
 
@@ -44,7 +48,13 @@ class SuggestionReviewViewModel(
 
     private val action = MutableStateFlow(ReviewAction())
 
+    /**
+     * POLISH-9: only a `PROPOSED` batch is a proposal. Once the review has been saved the batch is
+     * `ACCEPTED`/`REJECTED` and this screen must stop offering it, even though
+     * `observeLatestBatch` still returns it for the Training phase badge.
+     */
     private val batch: Flow<SuggestionBatch?> = suggestionRepo.observeLatestBatch()
+        .map { it?.takeIf { batch -> batch.status == SuggestionStatus.PROPOSED } }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val sessions: Flow<List<SuggestedSession>> = batch.flatMapLatest { current ->
@@ -93,7 +103,7 @@ class SuggestionReviewViewModel(
                 if (accepted is Outcome.Ok && rejected is Outcome.Ok) {
                     it.copy(isWorking = false, done = true)
                 } else {
-                    it.copy(isWorking = false, message = "Could not save the review. Please try again.")
+                    it.copy(isWorking = false, message = UiMessage.of(R.string.review_save_error))
                 }
             }
         }
@@ -110,7 +120,7 @@ class SuggestionReviewViewModel(
                     is Outcome.Ok -> it.copy(isWorking = false, accepted = emptyMap())
                     is Outcome.Err -> it.copy(
                         isWorking = false,
-                        message = "Could not generate suggestions. Please try again.",
+                        message = UiMessage.of(R.string.review_generate_error),
                     )
                 }
             }
@@ -126,10 +136,21 @@ class SuggestionReviewViewModel(
     }
 }
 
-/** The screen's read of the batch header: `"Build · target 620 AU · 540 AU suggested"`. */
-internal fun SuggestionReviewUiState.headerLine(): String = buildList {
+/**
+ * The screen's read of the batch header: `"Build · target 620 AU · 540 AU suggested"`. The words
+ * around the numbers are passed in already resolved, since this is a plain (non-`@Composable`)
+ * function and cannot call `stringResource` itself.
+ */
+internal fun SuggestionReviewUiState.headerLine(
+    targetLabel: String,
+    suggestedLabel: String,
+    restDaySingular: String,
+    restDayPlural: String,
+): String = buildList {
     phase?.let { add(it.label()) }
-    if (weeklyTarget > 0.0) add("target ${Math.round(weeklyTarget)} AU")
-    add("${Math.round(totalSuggestedLoad)} AU suggested")
-    if (restDayCount > 0) add("$restDayCount rest ${if (restDayCount == 1) "day" else "days"}")
+    if (weeklyTarget > 0.0) add("$targetLabel ${Math.round(weeklyTarget)} AU")
+    add("${Math.round(totalSuggestedLoad)} AU $suggestedLabel")
+    if (restDayCount > 0) {
+        add("$restDayCount ${if (restDayCount == 1) restDaySingular else restDayPlural}")
+    }
 }.joinToString(" · ")

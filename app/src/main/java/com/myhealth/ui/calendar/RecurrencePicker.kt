@@ -9,10 +9,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.myhealth.R
 import com.myhealth.ui.common.DatePickerField
 import com.myhealth.ui.common.NumberField
 import com.myhealth.ui.common.SectionCard
+import com.myhealth.ui.common.UiMessage
+import com.myhealth.ui.common.resolve
 import java.time.DayOfWeek
 
 /** Monday-first, matching the ISO week used everywhere else in the app (§1.6). */
@@ -44,25 +48,25 @@ private fun DayOfWeek.shortLabel(): String = when (this) {
 @Composable
 fun RecurrencePicker(
     draft: EventDraft,
-    errors: Map<EventField, String>,
+    errors: Map<EventField, UiMessage>,
     onDraftChange: ((EventDraft) -> EventDraft) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    SectionCard(title = "Recurrence", modifier = modifier) {
+    SectionCard(title = stringResource(R.string.event_section_recurrence), modifier = modifier) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = draft.recurrenceMode == RecurrenceMode.NONE,
                 onClick = { onDraftChange { it.copy(recurrenceMode = RecurrenceMode.NONE) } },
-                label = { Text("None") },
+                label = { Text(stringResource(R.string.event_recurrence_none)) },
             )
             FilterChip(
                 selected = draft.recurrenceMode == RecurrenceMode.WEEKLY,
                 onClick = { onDraftChange { it.copy(recurrenceMode = RecurrenceMode.WEEKLY) } },
-                label = { Text("Weekly") },
+                label = { Text(stringResource(R.string.event_recurrence_weekly)) },
             )
         }
         if (draft.recurrenceMode == RecurrenceMode.WEEKLY) {
-            Text("Repeat on", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.event_label_repeat_on), style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 WEEKDAY_ORDER.forEach { day ->
                     FilterChip(
@@ -82,26 +86,28 @@ fun RecurrencePicker(
                 }
             }
             errors[EventField.RECURRENCE_WEEKDAYS]?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                Text(it.resolve(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
             NumberField(
-                label = "Repeat every",
+                label = stringResource(R.string.event_label_repeat_every),
                 value = draft.recurrenceIntervalWeeks.toDouble(),
                 onValueChange = { v -> onDraftChange { it.copy(recurrenceIntervalWeeks = (v?.toInt() ?: 1).coerceAtLeast(1)) } },
-                suffix = "week(s)",
+                suffix = stringResource(R.string.event_unit_weeks_suffix),
                 decimals = 0,
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 DatePickerField(
-                    label = "Until (optional)",
+                    label = stringResource(R.string.event_label_until),
                     value = draft.recurrenceUntil,
                     onValueChange = { d -> onDraftChange { it.copy(recurrenceUntil = d) } },
                     isError = errors.containsKey(EventField.RECURRENCE_UNTIL),
-                    supportingText = errors[EventField.RECURRENCE_UNTIL],
+                    supportingText = errors[EventField.RECURRENCE_UNTIL]?.resolve(),
                     modifier = Modifier.weight(1f),
                 )
                 if (draft.recurrenceUntil != null) {
-                    TextButton(onClick = { onDraftChange { it.copy(recurrenceUntil = null) } }) { Text("Clear") }
+                    TextButton(onClick = { onDraftChange { it.copy(recurrenceUntil = null) } }) {
+                        Text(stringResource(R.string.event_action_clear))
+                    }
                 }
             }
         }

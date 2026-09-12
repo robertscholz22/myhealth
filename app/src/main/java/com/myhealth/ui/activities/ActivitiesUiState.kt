@@ -16,6 +16,10 @@ data class ActivitiesUiState(
     val isLoading: Boolean = true,
     val filter: SportGroup? = null,
     val groups: List<MonthGroup> = emptyList(),
+    /** P8.6: drives the pull-to-refresh spinner — the same "Sync now" work the empty state runs. */
+    val isSyncing: Boolean = false,
+    /** P8.6: the last sync failure, shown as a retryable error banner above the list. */
+    val syncError: String? = null,
 ) {
     val isEmpty: Boolean get() = !isLoading && groups.all { it.items.isEmpty() }
 }

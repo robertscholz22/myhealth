@@ -9,18 +9,21 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.myhealth.R
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.ui.theme.MyHealthTheme
 
 /** Short label for one [ActivitySource], shown on [SourceBadge]. */
+@Composable
 fun ActivitySource.label(): String = when (this) {
-    ActivitySource.HEALTH_CONNECT -> "Health Connect"
-    ActivitySource.FIT_IMPORT -> "FIT"
-    ActivitySource.CSV_IMPORT -> "CSV"
-    ActivitySource.GARMIN_API -> "Garmin"
-    ActivitySource.MANUAL -> "Manual"
+    ActivitySource.HEALTH_CONNECT -> stringResource(R.string.source_health_connect)
+    ActivitySource.FIT_IMPORT -> stringResource(R.string.source_fit_import)
+    ActivitySource.CSV_IMPORT -> stringResource(R.string.source_csv_import)
+    ActivitySource.GARMIN_API -> stringResource(R.string.source_garmin_api)
+    ActivitySource.MANUAL -> stringResource(R.string.source_manual)
 }
 
 /** Small pill showing where a piece of data came from (§4.3). */

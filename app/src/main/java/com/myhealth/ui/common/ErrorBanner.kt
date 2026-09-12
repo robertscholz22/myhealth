@@ -12,8 +12,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.myhealth.R
 import com.myhealth.ui.theme.MyHealthTheme
 
 /** Inline error strip with an optional retry action (§4.3). */
@@ -21,7 +23,7 @@ import com.myhealth.ui.theme.MyHealthTheme
 fun ErrorBanner(message: String, modifier: Modifier = Modifier, onRetry: (() -> Unit)? = null) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(CARD_CORNER_RADIUS),
         color = MaterialTheme.colorScheme.errorContainer,
     ) {
         Row(
@@ -36,7 +38,7 @@ fun ErrorBanner(message: String, modifier: Modifier = Modifier, onRetry: (() -> 
                 modifier = Modifier.weight(1f),
             )
             if (onRetry != null) {
-                TextButton(onClick = onRetry) { Text("Retry") }
+                TextButton(onClick = onRetry) { Text(stringResource(R.string.common_retry)) }
             }
         }
     }

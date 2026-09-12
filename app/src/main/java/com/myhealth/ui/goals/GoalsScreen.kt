@@ -32,16 +32,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.goal.GoalProgress
 import com.myhealth.domain.model.GoalStatus
 import com.myhealth.domain.model.GoalType
 import com.myhealth.ui.common.EmptyState
+import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
+import com.myhealth.ui.common.resolve
 import com.myhealth.ui.theme.MyHealthTheme
 import java.time.LocalDate
 
@@ -69,10 +74,11 @@ fun GoalsScreen(
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(state.message) {
         state.message?.let {
-            snackbar.showSnackbar(it)
+            snackbar.showSnackbar(it.resolve(context))
             vm.consumeMessage()
         }
     }
@@ -81,10 +87,10 @@ fun GoalsScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Goals") },
+                title = { Text(stringResource(R.string.goals_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
                     }
                 },
             )
@@ -92,7 +98,7 @@ fun GoalsScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             FloatingActionButton(onClick = onNewGoal) {
-                Icon(Icons.Filled.Add, contentDescription = "New goal")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.goals_new_content_description))
             }
         },
     ) { innerPadding ->
@@ -119,20 +125,20 @@ internal fun GoalsContent(
 ) {
     if (state.isEmpty) {
         EmptyState(
-            title = "No goals yet",
-            message = "Add a race time, a target weight or a weekly session count to steer the plan.",
+            title = stringResource(R.string.goals_empty_title),
+            message = stringResource(R.string.goals_empty_message),
             modifier = modifier,
         )
         return
     }
     LazyColumn(
         modifier = modifier,
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(SCREEN_PADDING),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         items(state.active, key = { it.goal.id }) { row -> GoalCard(row, actions) }
         if (state.archived.isNotEmpty()) {
-            item { Text("Archived", style = MaterialTheme.typography.titleMedium) }
+            item { Text(stringResource(R.string.goals_archived_header), style = MaterialTheme.typography.titleMedium) }
             items(state.archived, key = { it.goal.id }) { row -> GoalCard(row, actions) }
         }
     }
@@ -146,7 +152,7 @@ private fun GoalCard(row: GoalRow, actions: GoalListActions) {
         modifier = Modifier.clickable { actions.onOpen(goal.id) },
         action = {
             if (row.isPrimary) {
-                AssistChip(onClick = {}, label = { Text("Primary") })
+                AssistChip(onClick = {}, label = { Text(stringResource(R.string.goals_primary_chip)) })
             } else if (goal.status != GoalStatus.ACTIVE) {
                 AssistChip(onClick = {}, label = { Text(goalStatusLabel(goal.status)) })
             }
@@ -184,13 +190,17 @@ private fun GoalActionRow(row: GoalRow, actions: GoalListActions) {
     ) {
         if (goal.status == GoalStatus.ACTIVE) {
             if (!row.isPrimary) {
-                TextButton(onClick = { actions.onMakePrimary(goal.id) }) { Text("Make primary") }
+                TextButton(onClick = { actions.onMakePrimary(goal.id) }) {
+                    Text(stringResource(R.string.goals_action_make_primary))
+                }
             }
-            TextButton(onClick = { actions.onAchieved(goal.id) }) { Text("Achieved") }
-            TextButton(onClick = { actions.onAbandoned(goal.id) }) { Text("Abandon") }
+            TextButton(onClick = { actions.onAchieved(goal.id) }) { Text(stringResource(R.string.goals_action_achieved)) }
+            TextButton(onClick = { actions.onAbandoned(goal.id) }) { Text(stringResource(R.string.goals_action_abandon)) }
         } else {
-            TextButton(onClick = { actions.onReactivate(goal.id) }) { Text("Reactivate") }
-            TextButton(onClick = { actions.onDelete(goal.id) }) { Text("Delete") }
+            TextButton(onClick = { actions.onReactivate(goal.id) }) {
+                Text(stringResource(R.string.goals_action_reactivate))
+            }
+            TextButton(onClick = { actions.onDelete(goal.id) }) { Text(stringResource(R.string.action_delete)) }
         }
     }
 }

@@ -2,10 +2,12 @@ package com.myhealth.ui.training
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.R
 import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.SportType
 import com.myhealth.domain.repository.PlanRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,8 +24,8 @@ data class PlannedSessionEditUiState(
     val draft: PlannedSessionDraft = PlannedSessionDraft(),
     val errors: Map<PlannedSessionField, String> = emptyMap(),
     val isSaving: Boolean = false,
-    val saveError: String? = null,
-    val loadError: String? = null,
+    val saveError: UiMessage? = null,
+    val loadError: UiMessage? = null,
     val pendingDelete: Boolean = false,
     /** One-shot: the screen pops back once either flips to `true`. */
     val saved: Boolean = false,
@@ -74,7 +76,9 @@ class PlannedSessionEditViewModel(
             }
             val session = planRepo.getSession(id)
             if (session == null) {
-                _state.update { it.copy(isLoading = false, loadError = "Session not found.") }
+                _state.update {
+                    it.copy(isLoading = false, loadError = UiMessage.of(R.string.session_not_found))
+                }
             } else {
                 _state.update { it.copy(isLoading = false, draft = plannedSessionDraftOf(session)) }
             }
@@ -121,7 +125,7 @@ class PlannedSessionEditViewModel(
             when (planRepo.upsertSession(draft.toPlannedSession(clock))) {
                 is Outcome.Ok -> _state.update { it.copy(isSaving = false, saved = true) }
                 is Outcome.Err -> _state.update {
-                    it.copy(isSaving = false, saveError = "Could not save the session. Please try again.")
+                    it.copy(isSaving = false, saveError = UiMessage.of(R.string.session_save_error))
                 }
             }
         }
@@ -136,7 +140,9 @@ class PlannedSessionEditViewModel(
         viewModelScope.launch {
             when (planRepo.deleteSession(id)) {
                 is Outcome.Ok -> _state.update { it.copy(deleted = true) }
-                is Outcome.Err -> _state.update { it.copy(saveError = "Could not delete the session.") }
+                is Outcome.Err -> _state.update {
+                    it.copy(saveError = UiMessage.of(R.string.session_delete_error))
+                }
             }
         }
     }

@@ -175,3 +175,115 @@ Notes:
 - Navigation note for future runtime checks: the More tab remembers its own back stack, so tapping
   "More" while already on a More sub-screen does nothing. Press Back once to return to the More hub
   (this is safe — Body/Load/PRs are nested destinations, not the app root).
+
+## Polish batch — 2026-09-12 (P8.1 + P8.6 + P8.7 + POLISH-8 + POLISH-9)
+
+`bash tools/verify.sh` → **VERIFY OK**: **691 unit tests**, 0 failures, lint clean with
+`HardcodedText` as an **error**, and `:app:assembleRelease` now part of the script.
+
+| Artifact | Size |
+|---|---|
+| Debug APK (unminified) | **87.2 MB** (91,440,511 bytes) |
+| Release APK (R8 + `shrinkResources`) | **13.9 MB** (14,569,988 bytes) — **6.3× smaller**, well under the ≤ 40 MB budget of §6.6 |
+
+### POLISH-8 — `C13` and the staleness hint
+
+- `Constraints.C13` (`domain/engine/suggest/Constraints.kt`): no identical `SessionType` on two
+  adjacent grid days, and ≥ 48 h between any two `STRENGTH_*` sessions (the three variants are
+  spaced as one family, so `STRENGTH_UPPER` the day after `STRENGTH_FULL` is now rejected). Both
+  halves look at **every** grid item, fixed or suggested, so a soccer training already on the
+  calendar blocks a suggested one the next day — the exact 13/14 and 17/18 Sep case from session 3.
+  `MOBILITY` is exempt from the same-type half, because post-pass 7c deliberately puts one on every
+  rest day (`sug18`).
+- Tests `c13_no_same_session_type_on_consecutive_days` and `c13b_strength_sessions_48h_apart` in
+  `ConstraintsTest`. **No `sug01…sug20` fixture needed changing** — C13 only removes candidates the
+  greedy loop could have chosen, and every named case still asserts the same outcome.
+- Staleness: `SuggestionRepository` gained `markProposedStale()` / `observeStale()`.
+  `RoomCalendarRepository` takes an `onPlanChanged: suspend () -> Unit` hook, fired from
+  `upsertEvent` / `deleteEvent` / `upsertOverride` / `deleteOverride`; `AppGraph` wires it to
+  `suggestionRepo.markProposedStale()`. The flag is `AppSettings.suggestionsStale` in DataStore —
+  **no schema change**, as the brief requires — and `observeStale()` only reports `true` while the
+  latest batch is still `PROPOSED`. `generate()` and a completed review clear it.
+- Tests: `RoomCalendarRepositoryTest.every_event_write_notifies_the_plan_changed_hook`,
+  `RoomSuggestionRepositoryTest.a_calendar_change_marks_an_open_proposed_batch_stale_until_it_is_regenerated`
+  and `…marking_stale_does_nothing_when_no_batch_is_awaiting_review`.
+
+### POLISH-9 — the batch closes when the review is saved
+
+`RoomSuggestionRepository.closeBatches()` runs after `accept`/`reject`: a batch with at least one
+`ACCEPTED` session becomes `ACCEPTED`, one whose sessions are all `REJECTED` becomes `REJECTED`, and
+a partly-reviewed batch (still holding `PROPOSED` rows) is left alone so the rest can be reviewed.
+`observeLatestBatch()` still returns the row — the Training phase badge reads it — but
+`SuggestionReviewViewModel` and `TodayViewModel` now only propose from a `PROPOSED` batch. Tests:
+`a_partly_reviewed_batch_stays_proposed_until_every_session_is_decided`,
+`a_batch_whose_sessions_are_all_rejected_becomes_rejected`, and the extended
+`accept_copies_suggestions_into_planned_sessions_and_creates_the_default_plan`.
+
+### Release smoke test (R8 build on `emulator-5554`, existing data kept)
+
+`adb install -r -g app/build/outputs/apk/release/app-release.apk` over the debug install (same debug
+signature ⇒ no data loss, no `pm clear`, no reboot).
+
+| Step | Result | Evidence |
+|---|---|---|
+| Launch → Today: nutrition card, plan card, recovery 70/100, "Last synced 19:38" | PASS | `screenshots/rel_today.png` |
+| Calendar (month grid), Nutrition (diary with meals + water 750 ml / 3.2 l), Training (week board, 7–13 Sep, 505/696 AU) | PASS | — |
+| More → Activities (6 rows, source badges) → activity "Lauf" detail: 12.36 km, HR/pace charts, laps | PASS | `screenshots/rel_activity.png` |
+| More → Ingredients, Import (history with 2 records), Backup, Integrations (all HC permissions listed) | PASS | — |
+| Integrations → **Sync now**: `HealthSyncWorker` → SUCCESS, `LoadRecomputeWorker` → SUCCESS, every channel timestamp advanced to 21:51 | PASS | logcat `WM-WorkerWrapper` |
+| Training → Generate suggestions → review (6 sessions, 395 AU, "In season · target 600 AU") | PASS | `screenshots/rel_suggestions.png` |
+| **C13 in the field**: the generated week places Soccer training on Wed **and Fri** with a mobility day between them — previously two in a row | PASS | `rel_suggestions.png` |
+| **POLISH-8 in the field**: creating a calendar event under the open batch → "Calendar changed — regenerate" on both Training and the Today card; "Regenerate" reruns the suggester and clears it | PASS | `screenshots/rel_today_stale.png`, `rel_training_stale.png` |
+| **POLISH-9 in the field**: "Accept selected" → the Today card stops offering the batch and shows the accepted sessions instead, while the Training phase badge still reads "In season" | PASS | — |
+| `adb logcat -d \| grep -E "FATAL\|AndroidRuntime"` after the whole walkthrough | **clean** — 0 `FATAL`, no `ClassNotFoundException` / `NoSuchMethodException` / serialization errors | — |
+
+No keep rule had to be added after the fact: `app/proguard-rules.pro` was written up front for
+kotlinx-serialization (`@Serializable` classes + `$$serializer` + `Companion.serializer()`), Room
+(`*_Impl`, entities, converters), the type-safe navigation routes, DataStore's protobuf,
+`ListenableWorker` subclasses, Health Connect, ML Kit / Play Services, CameraX, `com.garmin.fit.**`
+and OkHttp. The debug APK was reinstalled afterwards (`bash tools/emu.sh install`).
+
+### P8.1 — string extraction
+
+`res/values/strings.xml` went from **43** to **778** `<string>` entries; `HardcodedText` is now
+`error` in `app/lint.xml` and `lintDebug` is clean. ViewModel/UiState text that used to be a `String`
+now travels as `com.myhealth.ui.common.UiMessage` (`@StringRes` + args) and is resolved in the
+composable, so `domain/` stays Android-free and no ViewModel holds a `Context`.
+
+**Deliberately left as literals (68 strings, listed in the run's `skipped_*.txt` notes):** the pure,
+non-`@Composable` label helpers that unit tests assert verbatim — `goalTypeLabel`/`goalStatusLabel`/
+`goalHeadline` (`GoalDraftTest`), `permissionLabel`/`syncChannelLabel` (`IntegrationsUiStateTest`),
+`flagExplanation`/`recoveryBandLabel` (`LoadUiStateTest`), `distanceLabel` (`RunningPrsUiStateTest`),
+`validatePlannedSession` (`PlannedSessionDraftTest`), `validateTemplate` (`MealTemplateDraftTest`),
+`OcrReviewUiState.basisNote` (`OcrReviewUiStateTest`), the `targetProgressRows` macro labels and
+`formatSleepDuration` (`DayDetailUiStateTest`), and the number-glued unit suffixes (`" min"`,
+`" AU"`, `" g"`) and `" · "` separators inside those same helpers. Moving them would mean rewriting
+the §3/§4 named tests that pin their exact output, which R8 (rule R8 of §0.1) forbids doing
+casually. They are single-language English constants in an English-only app, so nothing is lost
+today; a follow-up could convert them together with their tests.
+
+### P8.6 — visual polish
+
+- New `ui/common/Dimens.kt` (`SCREEN_PADDING` 16 dp, `CARD_CORNER_RADIUS` 12 dp) and
+  `ui/common/LoadingBox.kt`; every screen root list now uses `PaddingValues(SCREEN_PADDING)` and
+  every card surface `RoundedCornerShape(CARD_CORNER_RADIUS)`.
+- `PullToRefreshBox` (M3 1.4) on **Today** and **Activities**, both triggering `syncNow()`; the
+  spinner is driven by the real `SyncScheduler.observeState()`, and Activities gained a retryable
+  `ErrorBanner` for a failed sync plus a `LoadingBox` for its first load.
+- Body & Health's history list gained the standard icon + title + message + action empty state
+  (`EmptyState`), and its "Last N days" header/empty text now follows the 30/90/365-day selector
+  instead of being hard-coded to 90.
+- Launcher icon: the P0 flat square is replaced by a diagonal green gradient background, a white
+  heart carrying a pulse trace with a leaf on its top-right lobe (`ic_launcher_foreground.xml`), and
+  a dedicated `ic_launcher_monochrome.xml` (heart + pulse as one `evenOdd` path) for themed icons.
+  All vector, no external assets.
+- `TodayScreen.kt` (415 lines) and `ActivityDetailScreen.kt` (402) were split by moving their
+  `@Preview`s into `TodayScreenPreviews.kt` / `ActivityDetailPreviews.kt`, back inside R10's budget.
+
+Notes:
+
+- NOTE-11: lint now reports 21 `PluralsCandidate` warnings against the new strings (e.g. "%1$d
+  logged"). English-only app, so they stay warnings; converting them to `<plurals>` is a tidy-up for
+  whenever a second language appears.
+- NOTE-12: P8.8 (Glance home-screen widget) is **skipped** — it is the one task PLAN §5 marks
+  optional, and Glance would need a dependency addition that R4/R5 forbid outside a task that lists it.

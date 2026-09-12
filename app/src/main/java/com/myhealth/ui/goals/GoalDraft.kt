@@ -1,10 +1,12 @@
 package com.myhealth.ui.goals
 
+import com.myhealth.R
 import com.myhealth.domain.engine.goal.GoalProgress
 import com.myhealth.domain.engine.running.CanonicalDistances
 import com.myhealth.domain.model.Goal
 import com.myhealth.domain.model.GoalStatus
 import com.myhealth.domain.model.GoalType
+import com.myhealth.ui.common.UiMessage
 import java.time.Clock
 import java.time.LocalDate
 
@@ -60,22 +62,26 @@ fun GoalDraft.withType(newType: GoalType): GoalDraft = copy(
 )
 
 /** Blocking errors only; an empty map means the draft can be saved. */
-fun validateGoal(draft: GoalDraft): Map<GoalField, String> {
-    val errors = mutableMapOf<GoalField, String>()
-    if (draft.title.isBlank()) errors[GoalField.TITLE] = "Title is required."
+fun validateGoal(draft: GoalDraft): Map<GoalField, UiMessage> {
+    val errors = mutableMapOf<GoalField, UiMessage>()
+    if (draft.title.isBlank()) errors[GoalField.TITLE] = UiMessage.of(R.string.goal_error_title_required)
     when (draft.type) {
         GoalType.RACE_TIME -> {
-            if ((draft.targetDistanceMeters ?: 0.0) <= 0.0) errors[GoalField.DISTANCE] = "Pick a distance."
+            if ((draft.targetDistanceMeters ?: 0.0) <= 0.0) {
+                errors[GoalField.DISTANCE] = UiMessage.of(R.string.goal_error_distance_required)
+            }
             val seconds = draft.targetTimeSec
-            if (seconds == null || seconds <= 0) errors[GoalField.TIME] = "Enter a target time."
-            if ((draft.targetSeconds ?: 0) !in 0..59) errors[GoalField.TIME] = "Seconds must be 0–59."
+            if (seconds == null || seconds <= 0) errors[GoalField.TIME] = UiMessage.of(R.string.goal_error_time_required)
+            if ((draft.targetSeconds ?: 0) !in 0..59) {
+                errors[GoalField.TIME] = UiMessage.of(R.string.goal_error_seconds_range)
+            }
         }
         GoalType.BODY_WEIGHT ->
-            if ((draft.targetWeightKg ?: 0.0) <= 0.0) errors[GoalField.WEIGHT] = "Enter a target weight."
+            if ((draft.targetWeightKg ?: 0.0) <= 0.0) errors[GoalField.WEIGHT] = UiMessage.of(R.string.goal_error_weight_required)
         GoalType.CONSISTENCY ->
-            if ((draft.targetValue ?: 0.0) <= 0.0) errors[GoalField.VALUE] = "Enter sessions per week."
+            if ((draft.targetValue ?: 0.0) <= 0.0) errors[GoalField.VALUE] = UiMessage.of(R.string.goal_error_sessions_required)
         GoalType.STRENGTH_LIFT, GoalType.SOCCER_AVAILABILITY ->
-            if ((draft.targetValue ?: 0.0) <= 0.0) errors[GoalField.VALUE] = "Enter a target value."
+            if ((draft.targetValue ?: 0.0) <= 0.0) errors[GoalField.VALUE] = UiMessage.of(R.string.goal_error_value_required)
     }
     return errors
 }
