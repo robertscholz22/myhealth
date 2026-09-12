@@ -287,3 +287,13 @@ Notes:
   whenever a second language appears.
 - NOTE-12: P8.8 (Glance home-screen widget) is **skipped** — it is the one task PLAN §5 marks
   optional, and Glance would need a dependency addition that R4/R5 forbid outside a task that lists it.
+
+## Session 5 — 2026-09-12 (final debug build e461e57, tests 691)
+
+| Step | Result | Evidence |
+|---|---|---|
+| Regression pass: Today (plan card with completed + planned sessions, recovery 70, targets), Training (phase "In season" now that the match event is typed, planned/target/actual bar), Nutrition diary, Ingredients (empty query lists the ingredient — BUG-2 fixed), Body charts; no crashes in logcat | PASS | 90_final_*.png |
+
+## Scope decision — P9 (direct Garmin Connect client)
+
+Not built, deliberately. Garmin offers no personal API; the only route is the reverse-engineered SSO flow used by community Python libraries, which Garmin broke in March 2026 and can break again at any time, and which requires storing the Garmin password on the device. Everything the owner asked for (activities, HR, sleep, steps, calories, weight, body fat, HRV, VO2max) arrives through Health Connect, which is the supported path. The isolation seam (`GarminMetricsProvider`, PLAN P9.1) remains available should Garmin's Body Battery / stress / training readiness ever be wanted; it would be a self-contained, optional, default-off module.

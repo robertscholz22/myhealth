@@ -164,12 +164,12 @@ Known limitation: when one of several sources is deleted, the canonical row keep
 
 | Task | Model | Done | Tests | APK MB | Notes |
 |---|---|---|---|---|---|
-| P9.1 Isolation boundary and feature flag | opus | no | — | — | |
-| P9.2 Garmin SSO client (OAuth1 → OAuth2) | opus | no | — | — | |
-| P9.3 MFA flow and encrypted credential storage | opus | no | — | — | |
-| P9.4 Wellness endpoints and merge into daily summaries | opus | no | — | — | |
-| P9.5 Garmin direct screen | sonnet | no | — | — | |
-| P9.6 Recovery engine uses Body Battery / HRV when available | sonnet | no | — | — | |
+| P9.1 Isolation boundary and feature flag | opus | skipped (optional, see VERIFICATION.md) | — | — | |
+| P9.2 Garmin SSO client (OAuth1 → OAuth2) | opus | skipped (optional, see VERIFICATION.md) | — | — | |
+| P9.3 MFA flow and encrypted credential storage | opus | skipped (optional, see VERIFICATION.md) | — | — | |
+| P9.4 Wellness endpoints and merge into daily summaries | opus | skipped (optional, see VERIFICATION.md) | — | — | |
+| P9.5 Garmin direct screen | sonnet | skipped (optional, see VERIFICATION.md) | — | — | |
+| P9.6 Recovery engine uses Body Battery / HRV when available | sonnet | skipped (optional, see VERIFICATION.md) | — | — | |
 
 ---
 
