@@ -294,6 +294,48 @@ Notes:
 |---|---|---|
 | Regression pass: Today (plan card with completed + planned sessions, recovery 70, targets), Training (phase "In season" now that the match event is typed, planned/target/actual bar), Nutrition diary, Ingredients (empty query lists the ingredient — BUG-2 fixed), Body charts; no crashes in logcat | PASS | 90_final_*.png |
 
+## Instrumented tests (PLAN P10.2)
+
+`JAVA_HOME=/home/robert/jdk/current ANDROID_HOME=/home/robert/android-sdk ./gradlew :app:connectedDebugAndroidTest`
+on `emulator-5554` (Android 15, `myhealth_api35`): **10/10 pass** —
+`MyHealthDatabaseTest` (4), `BottomNavTest`, `CalendarEventTest`, `IngredientTest`,
+`MealTemplateAndDiaryTest`, `OnboardingFlowTest`, `SettingsPersistenceTest`. Two consecutive full
+runs were both 10/10 green (no flakiness observed); no test was `@Ignore`d.
+
+Starting state was 6/10 (the same 4 UI tests failing); all 4 failures were test-code bugs, not
+product bugs, and were fixed without touching production code except reading the two pre-existing
+`Modifier.testTag("settings_dynamic_color_switch")` uses already in `SettingsSections.kt` — no new
+`testTag` was added anywhere.
+
+- **`IngredientTest`** ("Calories" not found) and **`MealTemplateAndDiaryTest`** ("Save template"
+  not found): both screens' energy/macro fields and the Save button sit in `item {}`s below the
+  fold of a `LazyColumn`. A `LazyColumn` only composes items near the viewport, so a plain
+  `performScrollTo()` fails outright (there is no node yet to scroll to) — fixed with
+  `onNode(hasScrollAction()).performScrollToNode(hasText(label))`, which scrolls the list by index
+  until the target composes, then acts on it. `MealTemplateAndDiaryTest` additionally needed
+  `Espresso.closeSoftKeyboard()` after the quantity-field edit so the keyboard did not intercept
+  the Save click.
+- **`OnboardingFlowTest`** ("found 2 nodes that satisfy SetText"): `onNode(hasSetTextAction())`
+  matched both the read-only birth-date `OutlinedTextField` (which still carries a SetText
+  semantics action despite `readOnly = true`) and the `DatePickerDialog`'s real text-input field.
+  Scoped the matcher to `hasSetTextAction() and hasAnyAncestor(isDialog())`.
+- **`SettingsPersistenceTest`** (10 s `waitUntil` timeout): a `printToLog` semantics-tree dump
+  showed two separate issues. First, the same below-the-fold problem — `ProfileSection` (the
+  Settings `LazyColumn`'s first item) is by itself taller than the viewport, so
+  `AppPreferencesSection` (item 2, holding the "Use wallpaper colours" switch) never composes from
+  a plain `waitUntilTextExists` on its label; fixed with the same `performScrollToNode` pattern,
+  scrolling to the switch's existing test tag. Second, the dump showed that after
+  `scenario.recreate()` (which restores the NavController's saved back stack straight back onto
+  Settings, not Today), re-tapping the bottom-nav "More" tab is a **dead click**: Settings is
+  reached from the More list by a plain `navigate()` push, not through the bottom bar's own
+  save/restore machinery, and tapping "More" from it left the app on Settings with no navigation
+  at all. The fix does not re-navigate after the second `recreate()` — it scrolls and asserts on
+  the screen that is already showing.
+- **`MealTemplateAndDiaryTest`** (diary total right, but the logged item never found): the new
+  template is created with no default slot, so `defaultSlotFor` falls back to `MealSlot.LUNCH`;
+  the diary's `LazyColumn` renders "Breakfast" first, so the logged item row is further down the
+  list than the fold — same `performScrollToNode` fix, applied to the diary screen.
+
 ## Scope decision — P9 (direct Garmin Connect client)
 
 Not built, deliberately. Garmin offers no personal API; the only route is the reverse-engineered SSO flow used by community Python libraries, which Garmin broke in March 2026 and can break again at any time, and which requires storing the Garmin password on the device. Everything the owner asked for (activities, HR, sleep, steps, calories, weight, body fat, HRV, VO2max) arrives through Health Connect, which is the supported path. The isolation seam (`GarminMetricsProvider`, PLAN P9.1) remains available should Garmin's Body Battery / stress / training readiness ever be wanted; it would be a self-contained, optional, default-off module.

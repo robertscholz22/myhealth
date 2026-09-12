@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import com.myhealth.R
 import com.myhealth.domain.model.AppSettings
@@ -32,6 +33,9 @@ internal fun AppPreferencesSection(settings: AppSettings, onSettingsChange: (App
             label = stringResource(R.string.settings_dynamic_color_label),
             checked = settings.useDynamicColor,
             onCheckedChange = { onSettingsChange(settings.copy(useDynamicColor = it)) },
+            // Testing hook (PLAN P10.2): every SwitchRow's Switch is otherwise indistinguishable
+            // from the others by text, since the label sits next to it rather than on it.
+            switchTestTag = "settings_dynamic_color_switch",
         )
         NumberField(
             label = stringResource(R.string.settings_sync_interval_label),
@@ -80,13 +84,22 @@ internal fun AdvancedSection(settings: AppSettings, onSettingsChange: (AppSettin
 }
 
 @Composable
-private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun SwitchRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    switchTestTag: String? = null,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = switchTestTag?.let { Modifier.testTag(it) } ?: Modifier,
+        )
     }
 }

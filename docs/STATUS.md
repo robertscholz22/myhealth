@@ -171,6 +171,12 @@ Known limitation: when one of several sources is deleted, the canonical row keep
 | P9.5 Garmin direct screen | sonnet | skipped (optional, see VERIFICATION.md) | — | — | |
 | P9.6 Recovery engine uses Body Battery / HRV when available | sonnet | skipped (optional, see VERIFICATION.md) | — | — | |
 
+## P10 — Instrumented UI tests
+
+| Task | Model | Done | Tests | APK MB | Notes |
+|---|---|---|---|---|---|
+| P10.2 Fix the instrumented (`connectedDebugAndroidTest`) UI test suite | sonnet | **yes** | 10/10 (691 unit) | 13.9 | All 4 failing tests were test-code bugs, not product bugs; no production code changed except reading two pre-existing `Modifier.testTag`s (`settings_dynamic_color_switch`) that were already in place. `IngredientTest`/`MealTemplateEditScreen`'s "Save template": the energy/macro fields and the Save button sit in `item {}`s below the fold of a `LazyColumn`, so they are never composed at all until the list itself is told to scroll (`onNode(hasScrollAction()).performScrollToNode(hasText(...))`) — a plain `performScrollTo()` on the target only works once a node already exists in the tree. `OnboardingFlowTest`: `onNode(hasSetTextAction())` matched both the read-only birth-date `OutlinedTextField` and the `DatePickerDialog`'s real text-input field; scoped with `hasAnyAncestor(isDialog())`. `SettingsPersistenceTest`: same below-the-fold issue for the "Use wallpaper colours" switch (`ProfileSection`, item 1, is by itself taller than the screen); a `printToLog` dump also showed that re-tapping the bottom-nav "More" tab from Settings (reached via a plain `navigate()` push, not the bottom bar's own save/restore path) is a dead click after `recreate()` restores the back stack to Settings — the fixed test scrolls the already-showing screen instead of re-navigating into it. `MealTemplateAndDiaryTest`: the new template has no default slot, so "Log now" logs it under the fallback slot (Lunch); the diary's `LazyColumn` shows "Breakfast" first, so the item row needed the same `performScrollToNode` fix (the header's kcal total was correct all along). Two full `connectedDebugAndroidTest` runs in a row were 10/10 green — no flakiness, no `@Ignore` needed. |
+
 ---
 
 ## Roll-up
