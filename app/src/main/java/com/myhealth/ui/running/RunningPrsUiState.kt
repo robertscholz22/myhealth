@@ -3,6 +3,7 @@ package com.myhealth.ui.running
 import com.myhealth.domain.engine.running.CanonicalDistances
 import com.myhealth.domain.engine.running.RacePrediction
 import com.myhealth.domain.model.RunningBest
+import com.myhealth.ui.common.charts.ChartSeries
 import java.util.Locale
 import kotlin.math.abs
 
@@ -14,6 +15,8 @@ data class RunningPrsUiState(
     /** Riegel projections onto every canonical distance from the best recent qualifying effort. */
     val predictions: List<RacePrediction> = emptyList(),
     val vdot: Double? = null,
+    /** One line per canonical distance with two or more efforts (P8.3). */
+    val progression: List<ChartSeries> = emptyList(),
     val showAddDialog: Boolean = false,
 )
 

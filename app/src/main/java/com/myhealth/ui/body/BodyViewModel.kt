@@ -5,42 +5,72 @@ import androidx.lifecycle.viewModelScope
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.repository.BodyRepository
+import com.myhealth.domain.repository.HealthRepository
 import com.myhealth.domain.repository.ProfileRepository
 import com.myhealth.sync.SyncScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.LocalDate
 
-private const val HISTORY_WINDOW_DAYS = 90L
-
-/** Backs [BodyScreen] — latest weight + goal delta, "Log weight", and the 90-day history list. */
+/**
+ * Backs [BodyScreen] — latest weight + goal delta, "Log weight", the P8.3 charts (weight with a
+ * 7-day average and the goal line, body fat, resting HR, sleep duration) and the history list.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
 class BodyViewModel(
     private val profileRepo: ProfileRepository,
     private val bodyRepo: BodyRepository,
+    private val healthRepo: HealthRepository,
     private val syncScheduler: SyncScheduler,
     private val clock: Clock,
 ) : ViewModel() {
 
     private val dialogOpen = MutableStateFlow(false)
+    private val range = MutableStateFlow(BodyRange.D90)
     private fun today(): LocalDate = LocalDate.now(clock)
+
+    private val windowed = range.flatMapLatest { selected ->
+        val to = today().toEpochDay()
+        combine(
+            bodyRepo.observeRange(to - selected.days + 1, to),
+            healthRepo.observeRange(to - selected.days + 1, to),
+        ) { measurements, health -> selected to (measurements to health) }
+    }
+
+    private val sleep = healthRepo.observeSleepRange(
+        today().toEpochDay() - SLEEP_BAR_NIGHTS + 1,
+        today().toEpochDay(),
+    )
 
     val state: StateFlow<BodyUiState> = combine(
         profileRepo.observeProfile(),
-        bodyRepo.observeRange(today().toEpochDay() - HISTORY_WINDOW_DAYS, today().toEpochDay()),
+        windowed,
+        sleep,
         dialogOpen,
-    ) { profile, measurements, showDialog ->
+    ) { profile, (selected, data), nights, showDialog ->
+        val (measurements, health) = data
         BodyUiState(
             isLoading = false,
             goalWeightKg = profile?.goalWeightKg,
-            measurements = measurements.withinLastDays(HISTORY_WINDOW_DAYS, today()).sortedByRecencyDescending(),
+            range = selected,
+            measurements = measurements.withinLastDays(selected.days, today()).sortedByRecencyDescending(),
+            health = health,
+            sleep = nights,
+            today = today().toEpochDay(),
             showLogDialog = showDialog,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BodyUiState())
+
+    fun setRange(newRange: BodyRange) {
+        range.value = newRange
+    }
 
     fun openLogDialog() {
         dialogOpen.value = true

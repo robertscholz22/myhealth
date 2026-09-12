@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.ActivitySession
 import com.myhealth.domain.model.ActivitySource
+import com.myhealth.domain.model.ActivityStreams
 import com.myhealth.domain.model.EventOccurrence
 import com.myhealth.domain.model.Lap
 import com.myhealth.domain.model.LoadMethod
@@ -142,6 +143,11 @@ private fun ActivityDetailBody(
         item { TitleEditCard(activity.title, onSaveTitle) }
         item { NoteEditCard(activity.note, onSaveNote) }
         item { LinkedEventCard(state.linkedEvent, onOpenEventPicker, onUnlinkEvent) }
+        item { HrChartCard(activity) }
+        item { PaceOrSpeedChartCard(activity) }
+        if (altitudePoints(activity.streams).any { it.y != null }) {
+            item { AltitudeChartCard(activity) }
+        }
         if (state.hasHrZones) {
             item { HrSummaryCard(state) }
         }
@@ -337,6 +343,19 @@ private fun ActivityDetailBodyLoadingPreview() {
     }
 }
 
+private fun previewStreams(): ActivityStreams {
+    val offsets = (0..1800 step 10).toList()
+    return ActivityStreams(
+        sampleOffsetsSec = offsets.toIntArray(),
+        hr = offsets.map { 120 + (it / 60) % 40 },
+        distanceMeters = offsets.map { it * 2.9 }.toDoubleArray(),
+        speedMps = offsets.map { 2.9 }.toDoubleArray(),
+        altitudeM = offsets.map { 30.0 + (it / 120) % 25 }.toDoubleArray(),
+        sampleCount = offsets.size,
+        medianIntervalSec = 10.0,
+    )
+}
+
 private fun previewSession(): ActivitySession = ActivitySession(
     id = 1,
     startAtMillis = 1_757_000_000_000L,
@@ -365,7 +384,7 @@ private fun previewSession(): ActivitySession = ActivitySession(
     dedupeBucket = "RUN|1",
     userEditedFields = emptyList(),
     hasStreams = true,
-    streams = null,
+    streams = previewStreams(),
     laps = listOf(
         Lap(1, 1, 0, 1_757_000_000_000L, 900, 2500.0, 138, 150, 2.8, 180.0),
         Lap(2, 1, 1, 1_757_000_900_000L, 900, 2600.0, 145, 160, 2.9, 190.0),

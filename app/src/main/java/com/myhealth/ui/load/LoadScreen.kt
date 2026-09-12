@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -25,12 +24,16 @@ import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.load.AcwrZone
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.RecoveryState
-import com.myhealth.domain.util.toLocalDate
 import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.StatTile
+import com.myhealth.ui.common.charts.BarChartCard
+import com.myhealth.ui.common.charts.ChartBand
+import com.myhealth.ui.common.charts.ChartSeries
+import com.myhealth.ui.common.charts.LineChartCard
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.format.DateTimeFormatter
+import com.myhealth.ui.theme.PositiveGreen
+import com.myhealth.ui.theme.WarningAmber
 import java.util.Locale
 
 @Composable
@@ -64,7 +67,10 @@ private fun LoadContent(
             }
         } else {
             item { LoadTilesCard(state.latest) }
+            item { AtlCtlChartCard(state.series) }
+            item { AcwrChartCard(state.series) }
             item { DailyTrimpCard(state.series) }
+            item { RecoveryTrendCard(state.series) }
         }
         item { RecoveryCard(state.recovery) }
     }
@@ -131,21 +137,76 @@ private fun AcwrTile(acwr: Double?) {
     }
 }
 
+/** Acute (7-day) and chronic (28-day) load, the two EWMAs of §3.2.2. */
+@Composable
+private fun AtlCtlChartCard(series: List<DailyLoad>) {
+    LineChartCard(
+        title = "Acute vs chronic load",
+        series = listOf(
+            ChartSeries(name = "ATL (7d)", points = atlPoints(series)),
+            ChartSeries(name = "CTL (28d)", points = ctlPoints(series)),
+        ),
+        xLabels = loadAxisLabels(series),
+        yFormatter = { "%.0f".format(Locale.US, it) },
+        emptyMessage = "No cached load for this range yet.",
+    )
+}
+
+/** ACWR with the §3.2.3 risk zones shaded behind the line. */
+@Composable
+private fun AcwrChartCard(series: List<DailyLoad>) {
+    val bands = listOf(
+        ChartBand(
+            label = "Optimal",
+            from = ACWR_OPTIMAL_MIN,
+            to = ACWR_OPTIMAL_MAX,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+        ),
+        ChartBand(
+            label = "Caution",
+            from = ACWR_OPTIMAL_MAX,
+            to = ACWR_CAUTION_MAX,
+            color = WarningAmber.copy(alpha = 0.20f),
+        ),
+        ChartBand(
+            label = "High risk",
+            from = ACWR_CAUTION_MAX,
+            to = Double.MAX_VALUE,
+            color = MaterialTheme.colorScheme.error.copy(alpha = 0.16f),
+        ),
+    )
+    LineChartCard(
+        title = "ACWR",
+        series = listOf(ChartSeries(name = "ACWR", points = acwrPoints(series))),
+        xLabels = loadAxisLabels(series),
+        yFormatter = { "%.1f".format(Locale.US, it) },
+        bands = bands,
+        emptyMessage = "Not enough chronic load yet for an ACWR.",
+    )
+}
+
 @Composable
 private fun DailyTrimpCard(series: List<DailyLoad>) {
-    SectionCard(title = "Daily TRIMP") {
-        val maxTrimp = series.maxOfOrNull { it.trimp }?.takeIf { it > 0.0 } ?: 1.0
-        series.forEach { day ->
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(day.day.toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE), style = MaterialTheme.typography.bodySmall)
-                Text("%.0f AU".format(Locale.US, day.trimp), style = MaterialTheme.typography.bodySmall)
-            }
-            LinearProgressIndicator(
-                progress = { (day.trimp / maxTrimp).toFloat().coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-            )
-        }
-    }
+    val bars = trimpBars(series)
+    BarChartCard(
+        title = "Daily TRIMP",
+        values = bars,
+        xLabels = loadAxisLabels(series),
+        yFormatter = { "%.0f".format(Locale.US, it) },
+        highlightIndex = bars.lastIndex.takeIf { it >= 0 },
+        emptyMessage = "No training logged in this range yet.",
+    )
+}
+
+@Composable
+private fun RecoveryTrendCard(series: List<DailyLoad>) {
+    LineChartCard(
+        title = "Recovery score",
+        series = listOf(ChartSeries(name = "Recovery", points = recoveryPoints(series))),
+        xLabels = loadAxisLabels(series),
+        yFormatter = { "%.0f".format(Locale.US, it) },
+        emptyMessage = "No recovery scores cached for this range yet.",
+    )
 }
 
 @Composable
@@ -180,9 +241,9 @@ private fun AcwrZone.label(): String = when (this) {
 
 @Composable
 internal fun AcwrZone.color(): Color = when (this) {
-    AcwrZone.DETRAINING -> Color(0xFF64B5F6)
-    AcwrZone.OPTIMAL -> Color(0xFF2E7D32)
-    AcwrZone.CAUTION -> Color(0xFFF9A825)
+    AcwrZone.DETRAINING -> MaterialTheme.colorScheme.secondary
+    AcwrZone.OPTIMAL -> PositiveGreen
+    AcwrZone.CAUTION -> WarningAmber
     AcwrZone.HIGH_RISK -> MaterialTheme.colorScheme.error
 }
 

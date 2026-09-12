@@ -38,6 +38,7 @@ import com.myhealth.ui.common.DropdownField
 import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.NumberField
 import com.myhealth.ui.common.SectionCard
+import com.myhealth.ui.common.charts.LineChartCard
 import com.myhealth.ui.theme.MyHealthTheme
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -90,6 +91,7 @@ private fun RunningPrsContent(
             } else {
                 item { PrTableCard(state.bests, onOpenActivity) }
             }
+            item { PrProgressionCard(state.progression) }
             if (state.predictions.isNotEmpty()) {
                 item { PredictionsCard(state.predictions) }
             }
@@ -99,6 +101,19 @@ private fun RunningPrsContent(
     if (state.showAddDialog) {
         AddManualPrDialog(onDismiss = onDismissAdd, onSave = onSaveManualPr)
     }
+}
+
+/** One line per canonical distance with at least two efforts: finishing time against date. */
+@Composable
+private fun PrProgressionCard(progression: List<com.myhealth.ui.common.charts.ChartSeries>) {
+    LineChartCard(
+        title = "PR progression",
+        series = progression,
+        xLabels = prAxisLabels(progression),
+        yFormatter = { formatRaceTime(roundHalfUpToInt(it)) },
+        emptyMessage = "Two or more efforts at the same distance are needed to show progress.",
+        alwaysShowLegend = true,
+    )
 }
 
 @Composable

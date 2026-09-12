@@ -126,3 +126,52 @@ Notes:
 Notes:
 - `bash tools/verify.sh` → **VERIFY OK**, APK 86.1 MB, **643 unit tests**, 0 failures, lint clean; `./gradlew :app:compileDebugAndroidTestKotlin` → BUILD SUCCESSFUL.
 - NOTE-7 (new, informational): `sync_state` is part of a backup, so a REPLACE restore also restores the Health Connect `changesToken`. On a different device that token is rejected as expired and `HcSyncService` falls back to one full 30-day re-read plus a fresh token (amendment A6), so this is safe — but it is the one row in a backup that is device-specific.
+
+## Session 4 — 2026-09-12 (bundled-ML-Kit test build of the fix-batch-2 tree, on the emulator)
+
+| Step | Result | Evidence |
+|---|---|---|
+| Scan → "From photo" → Android photo picker → label_haferflocken_de.png → ML Kit text recognition → parser → "Check the scan": Calories 373, Fat 7.0, saturates 1.2, Carbs 58.7, sugars 1.1, Fibre 10.0, Protein 13.5, "Values are per 100 g", per-serving column detected (toggle offered), one field flagged "check this value" | PASS | 82_ocr_review.png, 83_ocr_review_values.png |
+| Accept → Ingredient editor prefilled with the recognised values (name left for the user) | PASS | 84_editor_prefilled.png |
+- NOTE-8: this run used a one-off build with the bundled `com.google.mlkit:text-recognition` model because the emulator cannot download the unbundled model; the shipped build uses the unbundled Play-Services model (same API), which downloads once on the Pixel. Camera capture on the phone follows the same code path as "From photo".
+
+## Charts — 2026-09-12 (P8.2 + P8.3, build after the chart layer, tests 684)
+
+`bash tools/verify.sh` → **VERIFY OK**, APK 86.1 MB, **684 unit tests**, 0 failures, lint clean.
+Installed with `bash tools/emu.sh install` over the existing `emulator-5554` data (no clear, no
+reboot) and driven through the UI; every chart below is drawn with Compose `Canvas` only
+(amendment A2 — no chart library) and takes all of its colours from `MaterialTheme.colorScheme`.
+
+| Screen | What the screenshot shows | Status | Evidence |
+|---|---|---|---|
+| Body & Health | 30/90/365 d selector (90 d); **Weight** card with the weight line, the dashed 7-day average and the legend — y ticks 76.0…80.0, x "15 Jun / 29 Jul / 12 Sep"; **Body fat** line 17.0–19.0 % | PASS | `p8_body_chart.png` |
+| Body & Health (scrolled) | **Resting heart rate** line 50–60 bpm over the same 90-day x domain; **Sleep (last 14 nights)** bars with per-bar value labels (7.1 … 8.3 h, ≤ 14 bars so the labels are drawn) and `30/8 · 5/9 · 12/9` x labels; the range-aware "Last 90 days" list below | PASS | `p8_body_chart_2.png` |
+| Load & Recovery | **Acute vs chronic load**: ATL (primary) and CTL (tertiary) lines with the legend, ticks 50/100/150 AU; the ATL/CTL/ACWR/TSB tiles above are unchanged | PASS | `p8_load_chart.png` |
+| Load & Recovery (scrolled) | **ACWR** with the §3.2.3 zones shaded — 0.8–1.3 green tint, 1.3–1.5 amber (the > 1.5 error band is off-scale because the data tops out at 1.4); **Daily TRIMP** 28 bars (no value labels above 14 bars, today highlighted); **Recovery score** line 60–100 | PASS | `p8_load_chart_2.png` |
+| Activity detail (run "Lauf", 12.36 km) | **Heart rate over time** 120–180 bpm against elapsed minutes (`0:00 / 34:00 / 68:00`); the existing HR min/avg/max + time-in-zone table is untouched below it | PASS | `p8_activity_chart.png` |
+| Activity detail (scrolled) | **Pace over time** on an inverted axis — 5:00 at the top, 6:20 at the bottom, so a faster kilometre sits higher | PASS | `p8_activity_chart_2.png` |
+| Running PRs | **PR progression**: one line per canonical distance with ≥ 2 efforts (here 5 km: 25:00 → 20:29 → 20:43), y labels formatted as race times, x as months, legend forced on so the single distance is named | PASS | `p8_prs_chart.png` |
+
+Fixes made while reviewing the screenshots:
+
+- Body weight/body-fat lines were a dot cloud: both quantities are *sampled* irregularly, so a day
+  without a reading is "not weighed", not "nothing happened". The daily grid is still used to
+  compute the 7-day average, then `dropGaps()` joins the sampled points. Sensor streams (HR, pace)
+  keep the gap semantics.
+- A Health Connect run rendered "Speed over time" instead of pace: HC exercise sessions carry
+  `speedMps` but no cumulative distance stream, so `paceSeriesFromSpeed` was added as the fallback
+  (FIT imports still use the distance channel).
+- The single-series PR chart had no legend and the title does not name the distance →
+  `LineChartCard(alwaysShowLegend = true)`.
+
+Notes:
+
+- NOTE-9: PLAN P8.3 says "ATL/CTL lines with ACWR zone shading". ATL/CTL are in AU (50–150 here)
+  and ACWR is a ratio around 1.0, so shading ACWR zones on the AU axis would be meaningless; the
+  zones are shaded on their own ACWR chart instead and ATL/CTL get a plain two-series chart.
+- NOTE-10: PR progression plots absolute finishing time, as the plan specifies. With efforts at
+  very different distances (1 km and a marathon) the short-distance line would flatten against the
+  bottom of the axis; a per-distance y axis or a pace axis would be the fix if that ever happens.
+- Navigation note for future runtime checks: the More tab remembers its own back stack, so tapping
+  "More" while already on a More sub-screen does nothing. Press Back once to return to the More hub
+  (this is safe — Body/Load/PRs are nested destinations, not the app root).

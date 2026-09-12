@@ -14,11 +14,15 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,6 +40,10 @@ import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.ui.common.NumberField
 import com.myhealth.ui.common.SectionCard
+import com.myhealth.ui.common.charts.BarChartCard
+import com.myhealth.ui.common.charts.ChartSeries
+import com.myhealth.ui.common.charts.LineChartCard
+import com.myhealth.ui.common.charts.dropGaps
 import com.myhealth.ui.theme.MyHealthTheme
 import com.myhealth.domain.util.toLocalDate
 import java.time.format.DateTimeFormatter
@@ -43,11 +51,14 @@ import java.util.Locale
 
 @Composable
 fun BodyScreen(modifier: Modifier = Modifier) {
-    val vm = rememberVm { graph -> BodyViewModel(graph.profileRepo, graph.bodyRepo, graph.syncScheduler, graph.clock) }
+    val vm = rememberVm { graph ->
+        BodyViewModel(graph.profileRepo, graph.bodyRepo, graph.healthRepo, graph.syncScheduler, graph.clock)
+    }
     val state by vm.state.collectAsStateWithLifecycle()
 
     BodyContent(
         state = state,
+        onRangeSelect = vm::setRange,
         onLogWeightClick = vm::openLogDialog,
         onDismissDialog = vm::dismissLogDialog,
         onSaveWeight = vm::logWeight,
@@ -59,6 +70,7 @@ fun BodyScreen(modifier: Modifier = Modifier) {
 @Composable
 private fun BodyContent(
     state: BodyUiState,
+    onRangeSelect: (BodyRange) -> Unit,
     onLogWeightClick: () -> Unit,
     onDismissDialog: () -> Unit,
     onSaveWeight: (Double, Double?) -> Unit,
@@ -81,16 +93,21 @@ private fun BodyContent(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item { CurrentWeightCard(state.latest, state.goalWeightKg, state.deltaToGoalKg) }
+            item { RangeSelector(state.range, onRangeSelect) }
+            item { WeightChartCard(state) }
+            item { BodyFatChartCard(state) }
+            item { RestingHrChartCard(state) }
+            item { SleepChartCard(state) }
             item {
                 Text(
-                    text = "Last 90 days",
+                    text = "Last ${state.range.days} days",
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
             if (state.measurements.isEmpty()) {
                 item {
                     Text(
-                        text = "No measurements in the last 90 days. Log your weight to start tracking it here.",
+                        text = "No measurements in this window. Log your weight to start tracking it here.",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -105,6 +122,81 @@ private fun BodyContent(
     if (state.showLogDialog) {
         LogWeightDialog(onDismiss = onDismissDialog, onSave = onSaveWeight)
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RangeSelector(selected: BodyRange, onSelect: (BodyRange) -> Unit) {
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        BodyRange.entries.forEachIndexed { index, range ->
+            SegmentedButton(
+                selected = range == selected,
+                onClick = { onSelect(range) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = BodyRange.entries.size),
+            ) { Text(range.label) }
+        }
+    }
+}
+
+/** Weight, its dashed 7-day average and the goal-weight line (PLAN P8.3). */
+@Composable
+private fun WeightChartCard(state: BodyUiState) {
+    val daily = weightPoints(state.measurements, state.fromDay, state.today)
+    LineChartCard(
+        title = "Weight",
+        series = listOf(
+            // The average is computed on the daily grid, then both lines drop the un-weighed days
+            // so an every-third-day routine still reads as one trend rather than a dot cloud.
+            ChartSeries(name = "Weight", points = daily.dropGaps()),
+            ChartSeries(name = "7-day average", points = movingAveragePoints(daily).dropGaps(), dashed = true),
+        ),
+        xLabels = dayAxisLabels(state.fromDay, state.today),
+        yFormatter = { "%.1f".format(Locale.US, it) },
+        goalLine = state.goalWeightKg,
+        emptyMessage = "No weight logged in this window yet.",
+    )
+}
+
+@Composable
+private fun BodyFatChartCard(state: BodyUiState) {
+    LineChartCard(
+        title = "Body fat",
+        series = listOf(
+            ChartSeries(
+                name = "Body fat %",
+                points = bodyFatPoints(state.measurements, state.fromDay, state.today).dropGaps(),
+            ),
+        ),
+        xLabels = dayAxisLabels(state.fromDay, state.today),
+        yFormatter = { "%.1f".format(Locale.US, it) },
+        emptyMessage = "No body-fat readings in this window yet.",
+    )
+}
+
+@Composable
+private fun RestingHrChartCard(state: BodyUiState) {
+    LineChartCard(
+        title = "Resting heart rate",
+        series = listOf(
+            ChartSeries(name = "Resting HR", points = restingHrPoints(state.health, state.fromDay, state.today)),
+        ),
+        xLabels = dayAxisLabels(state.fromDay, state.today),
+        yFormatter = { "%.0f".format(Locale.US, it) },
+        emptyMessage = "No resting heart rate recorded in this window yet.",
+    )
+}
+
+@Composable
+private fun SleepChartCard(state: BodyUiState) {
+    val hours = sleepHoursBars(state.sleep, state.sleepFromNight, state.today)
+    BarChartCard(
+        title = "Sleep (last $SLEEP_BAR_NIGHTS nights)",
+        values = if (hours.all { it == 0.0 }) emptyList() else hours,
+        xLabels = nightAxisLabels(state.sleepFromNight, state.today),
+        yFormatter = { "%.1f".format(Locale.US, it) },
+        highlightIndex = hours.lastIndex.takeIf { it >= 0 },
+        emptyMessage = "No sleep sessions recorded in the last $SLEEP_BAR_NIGHTS nights.",
+    )
 }
 
 @Composable
@@ -187,6 +279,7 @@ private fun BodyContentPreview() {
             state = BodyUiState(
                 isLoading = false,
                 goalWeightKg = 75.0,
+                today = 19990,
                 measurements = listOf(
                     BodyMeasurement(
                         id = 1,
@@ -201,6 +294,7 @@ private fun BodyContentPreview() {
                     ),
                 ),
             ),
+            onRangeSelect = {},
             onLogWeightClick = {},
             onDismissDialog = {},
             onSaveWeight = { _, _ -> },
