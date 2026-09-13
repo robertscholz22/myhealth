@@ -3,6 +3,8 @@ package com.myhealth.data.repository
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.data.db.entity.SuggestedSessionEntity
 import com.myhealth.data.db.entity.SuggestionBatchEntity
+import com.myhealth.domain.engine.suggest.IntervalBuilder
+import com.myhealth.domain.engine.suggest.IntervalContext
 import com.myhealth.domain.engine.suggest.SuggestFixtures
 import com.myhealth.domain.engine.suggest.SuggestionEngine
 import com.myhealth.domain.model.Intensity
@@ -12,6 +14,7 @@ import com.myhealth.domain.model.PlannedStatus
 import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.SportType
 import com.myhealth.domain.model.SuggestionStatus
+import com.myhealth.domain.model.WorkoutStructureCodec
 import com.myhealth.domain.model.TrainingPhase
 import com.myhealth.domain.util.Outcome
 import com.myhealth.testutil.Fixtures
@@ -232,6 +235,42 @@ class RoomSuggestionRepositoryTest {
 
         assertThat(settingsRepo.settings.first().suggestionsStale).isFalse()
         assertThat(repo.observeStale().first()).isFalse()
+    }
+
+    @Test
+    fun sug35_structure_survives_accept() = runTest {
+        val batchId = suggestionDao.upsert(
+            SuggestionBatchEntity(
+                id = 0L,
+                generatedAtMillis = clock.millis(),
+                horizonStartDay = today,
+                horizonEndDay = today + 7,
+                phase = TrainingPhase.PEAK,
+                weeklyLoadTarget = 400.0,
+                inputsHash = "hash",
+            ),
+        )
+        val structureJson = WorkoutStructureCodec.encode(
+            IntervalBuilder.buildFor(
+                candidate = SuggestFixtures.candidate(SessionType.INTERVAL_RUN, today + 2, minutes = 55),
+                ctx = IntervalContext(phase = TrainingPhase.BUILD, vdot = 50.0),
+            )!!,
+        )
+        suggestionDao.upsertSessions(
+            listOf(
+                suggested(batchId, day = today + 2, sessionType = SessionType.INTERVAL_RUN)
+                    .copy(structureJson = structureJson, targetPaceSecPerKm = 234),
+            ),
+        )
+        val proposed = suggestionDao.getSessionsForBatch(batchId)
+
+        assertThat(repo.accept(proposed.map { it.id })).isInstanceOf(Outcome.Ok::class.java)
+
+        val planned = planRepo.getSessions(today, today + 7).single()
+        assertThat(planned.structureJson).isEqualTo(structureJson)
+        assertThat(planned.targetPaceSecPerKm).isEqualTo(234)
+        assertThat(WorkoutStructureCodec.decode(planned.structureJson)?.templateId)
+            .isEqualTo("RUN_1000_I")
     }
 
     // ---- helpers -------------------------------------------------------------------------------

@@ -243,6 +243,9 @@ class AppGraph(private val app: Application) {
             engine = suggestionEngine,
             clock = clock,
             cycleRepo = cycleRepo,
+            runningBestRepo = runningBestRepo,
+            rideBestRepo = rideBestRepo,
+            healthRepo = healthRepo,
             onPlanChanged = { syncScheduler.requestTargetRecompute() },
         )
     }

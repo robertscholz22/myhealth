@@ -1655,6 +1655,25 @@ Rationale ids: `INTERVAL_STRUCTURE` ("5 × 1000 m at 3:54/km with 2:00 jog — i
 | `sug35_structure_survives_accept` | suggested → `planned_session.structureJson` identical |
 | `sug36_no_vdot_no_ftp_output_is_zone_only` | no crash, no pace/power fields |
 
+**P14.3 notes (2026-09-13, corrections and readings found while implementing).** `iv03`: rule 2's own
+formula `reps = max(minReps, roundHalfUp(reps × 0.6))` floors `RUN_1000_I`'s 5 reps at its `minReps`
+of **4**, not at the 3 the row quotes — the formula wins and the case is named
+`iv03_taper_shortens_to_the_min_reps_floor`. `iv07`: `2 × (10 × 30/30)` cannot be a `REPEAT` inside a
+`REPEAT` (the P14.1 codec allows exactly one level), so the inner ten live as `repeat = 10` on the
+outer repeat's two children — outer `REPEAT` 2, children `WORK`/`RECOVERY` with `repeat` 10, read as
+"10 × (30 s hard / 30 s easy), twice". Five readings §3.11 leaves open: `TAPER`/`RACE_WEEK` have no
+template of their own and reuse the `PEAK` choice (the phase a taper follows); a **distance** rep
+needs a pace to become seconds, so an athlete with no VDOT and no measured band gets the time-based
+`RUN_4X4` instead of 400s/1000s (which is what the catalog's "`RUN_4X4`: `INTERVAL_RUN` without a
+VDOT" means); rule 7's 6 km cap is applied to distance-based work only, since applying it to time
+would cut 5 × 8 min of threshold work (≈ 9.4 km) to three reps and could never be met by the
+continuous tempo run; the three rationale ids are appended only when the structure actually names a
+pace or a power, so a zone-only structure adds no line and every pre-P14 rationale — the whole
+`sug28` baseline — stays byte-identical; and `targetPaceSecPerKm` is filled for every **running**
+session type that has a zone target (§3.10's own rule), not only for the four that get a structure,
+while a ride's prescription stays zone/power. `RUN_800_I` is in the catalog but is never selected by
+the seven rules (the table jumps from 400 m to 1000 m); it is there for P14.6's manual picker.
+
 ### 3.12 Strength: exercises, workouts and body-part load (P14.4/P14.5)
 
 **Location** `domain/engine/strength/` — `ExerciseCatalog*.kt`, `StrengthTemplates.kt`, `MuscleLoadEngine.kt`, `MuscleDistribution.kt`; `domain/engine/suggest/StrengthRules.kt`.

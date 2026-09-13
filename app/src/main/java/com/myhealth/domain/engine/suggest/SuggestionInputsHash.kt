@@ -39,6 +39,7 @@ object SuggestionInputsHash {
             ).joinToString("|"),
         )
         bikeLine(input)?.let { line("bike", it) }
+        pacesLine(input)?.let { line("paces", it) }
         input.goals.sortedWith(compareBy({ it.priority }, { it.id })).forEach { goal ->
             line(
                 "goal",
@@ -120,6 +121,27 @@ object SuggestionInputsHash {
         val trainer = input.profile.indoorTrainerAvailable
         if (ftp == null && !trainer) return null
         return listOf(ftp?.toString() ?: "", trainer.toString()).joinToString("|")
+    }
+
+    /**
+     * P14.3's `vdot` / `paceBands` / `ftpWatts`, emitted **only when at least one of them is
+     * known** — the same "omitted when empty" rule [bikeLine] follows, and for the same reason: an
+     * athlete with no running PR, no measured band and no FTP hashes exactly as before P14, so
+     * `sug01`…`sug33` keep their digests (`sug28`). A new PR, a newly measured band or a changed
+     * FTP does move the digest, which is what makes the week regenerate.
+     */
+    private fun pacesLine(input: SuggestionInput): String? {
+        if (input.vdot == null && input.paceBands.isEmpty() && input.ftpWatts == null) return null
+        val bands = input.paceBands.sortedBy { it.zone }.joinToString(",") { band ->
+            listOf(
+                band.zone.toString(),
+                band.centreSecPerKm?.toString() ?: "",
+                band.lowSecPerKm?.toString() ?: "",
+                band.highSecPerKm?.toString() ?: "",
+                band.confidence.name,
+            ).joinToString(":")
+        }
+        return listOf(num(input.vdot), input.ftpWatts?.toString() ?: "", bands).joinToString("|")
     }
 
     fun sha256(value: String): String {

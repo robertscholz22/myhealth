@@ -1,5 +1,6 @@
 package com.myhealth.domain.engine.suggest
 
+import com.myhealth.domain.engine.running.PaceZoneBand
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.model.DailyLoad
@@ -19,6 +20,10 @@ import java.time.LocalDate
  *   §3.5.1 does not carry. `null` (no active plan) simply disables the override.
  * - [horizonDays] keeps its §3.5.1 default of 7; the settings key `suggestionHorizonDays` feeds it.
  * - [cycleStatusByDay] — added by P11.2; empty unless the user tracks their cycle.
+ * - [vdot] / [paceBands] / [ftpWatts] — added by P14.3 for `IntervalBuilder`. All three default to
+ *   "unknown", and the engine's candidate generation, scoring and constraints never read them: they
+ *   only decide how much of a *structure* a placed session can carry, which is what keeps every
+ *   pre-P14 output byte-identical (`sug28`).
  */
 data class SuggestionInput(
     val today: LocalDate,
@@ -41,6 +46,12 @@ data class SuggestionInput(
      * off, which is exactly what makes the four `CYCLE_*` rules inert for everybody else.
      */
     val cycleStatusByDay: Map<Long, CycleStatus> = emptyMap(),
+    /** P14.3: the athlete's VDOT (§3.4), the Daniels anchor of every pace target. */
+    val vdot: Double? = null,
+    /** P14.3: the measured pace band per heart-rate zone (§3.10.2), Z1…Z5. */
+    val paceBands: List<PaceZoneBand> = emptyList(),
+    /** P14.3: the FTP every bike power target is a percentage of (§3.8.1). */
+    val ftpWatts: Int? = null,
 ) {
     val todayDay: Long get() = today.toEpochDay()
 

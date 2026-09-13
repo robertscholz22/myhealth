@@ -5,8 +5,10 @@ import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.SuggestedSession
 import com.myhealth.domain.model.SuggestionBatch
+import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SuggestionStatus
 import com.myhealth.domain.model.TrainingPhase
+import com.myhealth.domain.model.WorkoutStructureCodec
 import java.time.Clock
 import kotlin.math.ceil
 import kotlin.math.max
@@ -250,24 +252,10 @@ class SuggestionEngine(private val clock: Clock) {
         periodization: PeriodizationResult,
         grid: SuggestionGrid,
     ): SuggestionResult {
+        val intervalCtx = IntervalContext.of(input, periodization)
         val sessions = grid.suggested()
             .sortedWith(compareBy({ it.first }, { it.second.sessionType.ordinal }))
-            .map { (day, item) ->
-                SuggestedSession(
-                    id = 0L,
-                    batchId = 0L,
-                    day = day,
-                    sportType = item.sportType,
-                    sessionType = item.sessionType,
-                    intensity = item.intensity,
-                    targetDurationMin = item.minutes,
-                    targetDistanceMeters = null,
-                    estimatedTrimp = item.estTrimp,
-                    score = item.score,
-                    rationale = item.rationale,
-                    status = SuggestionStatus.PROPOSED,
-                )
-            }
+            .map { (day, item) -> sessionOf(day, item, intervalCtx) }
         val hash = SuggestionInputsHash.of(input)
         return SuggestionResult(
             batch = SuggestionBatch(
@@ -284,6 +272,41 @@ class SuggestionEngine(private val clock: Clock) {
             phase = periodization.phase,
             weeklyTarget = periodization.weeklyTarget,
             inputsHash = hash,
+        )
+    }
+
+    /**
+     * P14.3 (§3.11): the placed item as a [SuggestedSession], with the structured workout and the
+     * target pace the zone model prescribes for it.
+     *
+     * Nothing here can change *which* sessions were placed — candidate generation, scoring and the
+     * constraints all ran already. Without a VDOT, a measured band or an FTP the structure is
+     * zone-only and the pace is `null`, and [Rationale.intervalEntries] then adds no line at all.
+     */
+    private fun sessionOf(day: Long, item: GridItem, ctx: IntervalContext): SuggestedSession {
+        val entry = SessionCatalog.entryFor(item.sessionType)
+        val plan = entry?.let { IntervalBuilder.plan(Candidate(it, day, item.minutes), ctx) }
+        val pace = if (item.sportGroup == SportGroup.RUN) {
+            IntervalBuilder.targetPaceFor(item.sessionType, ctx)
+        } else {
+            null
+        }
+        return SuggestedSession(
+            id = 0L,
+            batchId = 0L,
+            day = day,
+            sportType = item.sportType,
+            sessionType = item.sessionType,
+            intensity = item.intensity,
+            targetDurationMin = item.minutes,
+            targetDistanceMeters = null,
+            estimatedTrimp = item.estTrimp,
+            score = item.score,
+            rationale = item.rationale +
+                Rationale.intervalEntries(plan, pace, ctx, item.sessionType),
+            status = SuggestionStatus.PROPOSED,
+            targetPaceSecPerKm = pace,
+            structureJson = plan?.let { WorkoutStructureCodec.encode(it.structure) },
         )
     }
 

@@ -13,6 +13,7 @@ import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
 import com.myhealth.domain.model.TrainingPhase
+import java.util.Locale
 
 /** What [Rationale.forSession] needs to explain one placement (PLAN §3.5.6 step 8). */
 data class RationaleContext(
@@ -56,6 +57,11 @@ object Rationale {
     const val RULE_ACTIVE_RECOVERY: String = "ACTIVE_RECOVERY"
     const val RULE_DOWNGRADED: String = "DOWNGRADED_BEFORE_EVENT"
     const val RULE_STARTER_WEEK: String = "STARTER_WEEK"
+
+    /** P14.3's three interval ids (§3.11); only ever attached to a structured session. */
+    const val RULE_INTERVAL_STRUCTURE: String = "INTERVAL_STRUCTURE"
+    const val RULE_INTERVAL_SHORTENED_TAPER: String = "INTERVAL_SHORTENED_TAPER"
+    const val RULE_PACE_TARGET: String = "PACE_TARGET"
 
     /** P12.3's four cycling ids (§3.5.8); only ever attached to a `CYCLE` session. */
     const val RULE_BIKE_FTP_GOAL: String = "BIKE_FTP_GOAL"
@@ -145,6 +151,64 @@ object Rationale {
             text = "November to March: planned indoors on the trainer.",
         )
     }
+
+    /**
+     * P14.3 (§3.11): the interval lines of a structured session — what the session actually is,
+     * why it is shorter than usual in a taper, and the pace to run it at.
+     *
+     * All three are **appended only when there is a number to name**: a zone-only structure (no
+     * VDOT, no FTP) and a session with no target pace add nothing, so every pre-P14 rationale — and
+     * with it the whole `sug28` baseline — stays byte-identical.
+     */
+    fun intervalEntries(
+        plan: IntervalPlan?,
+        targetPaceSecPerKm: Int?,
+        ctx: IntervalContext,
+        sessionType: SessionType,
+    ): List<RationaleEntry> {
+        val entries = mutableListOf<RationaleEntry>()
+        if (plan != null && plan.hasQuantifiedTarget) {
+            entries += RationaleEntry(RULE_INTERVAL_STRUCTURE, intervalText(plan, ctx))
+            if (plan.shortenedForTaper) {
+                entries += RationaleEntry(
+                    ruleId = RULE_INTERVAL_SHORTENED_TAPER,
+                    text = "${phaseLabel(ctx.phase)}: shortened to ${plan.reps} " +
+                        "${if (plan.reps == 1) "rep" else "reps"} so the legs stay fresh.",
+                )
+            }
+        }
+        if (targetPaceSecPerKm != null) {
+            val zone = IntervalBuilder.recommendedZoneFor(sessionType)
+            val zoneText = zone?.let { ", zone $it" } ?: ""
+            entries += RationaleEntry(
+                ruleId = RULE_PACE_TARGET,
+                text = "Target pace ${IntervalBuilder.mmss(targetPaceSecPerKm)}/km$zoneText.",
+            )
+        }
+        return entries
+    }
+
+    private fun intervalText(plan: IntervalPlan, ctx: IntervalContext): String {
+        val recovery = if (plan.recoverySec > 0) {
+            " with ${IntervalBuilder.mmss(plan.recoverySec)} recovery"
+        } else {
+            ""
+        }
+        val source = when {
+            plan.workPaceSecPerKm != null && ctx.vdot != null ->
+                " — ${paceLabel(plan)} pace from VDOT ${vdotLabel(ctx.vdot)}"
+            plan.workPowerLowW != null && ctx.ftpWatts != null -> " — from an FTP of ${ctx.ftpWatts} W"
+            else -> ""
+        }
+        return "${plan.summary}$recovery$source."
+    }
+
+    private fun paceLabel(plan: IntervalPlan): String =
+        plan.template.work.pace?.name?.lowercase() ?: "target"
+
+    /** "50" rather than "50.0"; a measured VDOT keeps its single decimal. */
+    private fun vdotLabel(vdot: Double): String =
+        String.format(Locale.US, "%.1f", vdot).removeSuffix(".0")
 
     /** P11.2: LOW confidence keeps the rule and adds the "log your period" nudge. */
     private fun lowConfidenceSuffix(cycle: CycleStatus): String =

@@ -20,9 +20,12 @@ import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.repository.CalendarRepository
 import com.myhealth.domain.repository.CycleRepository
 import com.myhealth.domain.repository.GoalRepository
+import com.myhealth.domain.repository.HealthRepository
 import com.myhealth.domain.repository.LoadRepository
 import com.myhealth.domain.repository.PlanRepository
 import com.myhealth.domain.repository.ProfileRepository
+import com.myhealth.domain.repository.RideBestRepository
+import com.myhealth.domain.repository.RunningBestRepository
 import com.myhealth.domain.repository.SettingsRepository
 import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.util.AppError
@@ -72,6 +75,14 @@ class RoomSuggestionRepository(
      * `CYCLE_*` rules stay inert for everybody else.
      */
     private val cycleRepo: CycleRepository? = null,
+    /**
+     * P14.3: the three sources of `SuggestionInput.vdot` / `paceBands` / `ftpWatts` (§3.11). `null`
+     * wherever they are not wired (and in the P6.5 tests): the engine then builds zone-only
+     * structures and the week is exactly the pre-P14 one.
+     */
+    private val runningBestRepo: RunningBestRepository? = null,
+    private val rideBestRepo: RideBestRepository? = null,
+    private val healthRepo: HealthRepository? = null,
     private val onPlanChanged: () -> Unit = {},
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : SuggestionRepository {
@@ -186,11 +197,20 @@ class RoomSuggestionRepository(
 
     // ---- engine inputs (§3.5.1) ------------------------------------------------------------
 
+    private val paceResolver = SuggestionPaceResolver(
+        activityRepo = activityRepo,
+        settingsRepo = settingsRepo,
+        runningBestRepo = runningBestRepo,
+        rideBestRepo = rideBestRepo,
+        healthRepo = healthRepo,
+    )
+
     private suspend fun gatherInput(profile: Profile, horizonDays: Int): SuggestionInput {
         val today = LocalDate.now(clock)
         val todayDay = today.toEpochDay()
         val horizonEnd = todayDay + horizonDays
         val latestLoad = loadRepo.getLatest()
+        val paces = paceResolver.resolve(profile, todayDay)
         return SuggestionInput(
             today = today,
             horizonDays = horizonDays,
@@ -207,6 +227,9 @@ class RoomSuggestionRepository(
                 .first(),
             planStartDay = planRepo.observeActivePlan().first()?.startDay,
             cycleStatusByDay = cycleStatuses(todayDay, horizonEnd),
+            vdot = paces.vdot,
+            paceBands = paces.paceBands,
+            ftpWatts = paces.ftpWatts,
         )
     }
 
@@ -270,7 +293,7 @@ class RoomSuggestionRepository(
             intensity = intensity,
             targetDurationMin = targetDurationMin,
             targetDistanceMeters = targetDistanceMeters,
-            targetPaceSecPerKm = null,
+            targetPaceSecPerKm = targetPaceSecPerKm,
             estimatedTrimp = estimatedTrimp,
             description = null,
             rationale = rationale.joinToString(RATIONALE_SEPARATOR) { it.text }.takeIf { it.isNotBlank() },
@@ -280,6 +303,7 @@ class RoomSuggestionRepository(
             sourceSuggestionId = id,
             createdAtMillis = now,
             updatedAtMillis = now,
+            structureJson = structureJson,
         )
     }
 
