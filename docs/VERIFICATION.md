@@ -455,3 +455,4 @@ Fresh profile (onboarding: run 2 / strength 1 / ride 2 sessions per week, mobili
 - The fillers show the mobility-style nominal score and 30 min; the header's "304 AU suggested" includes them (they are real minutes on the calendar), while the budget lines ("150 AU still unallocated") only count the greedy loop's sessions — by design (§3.5.6 step 7c).
 - NOTE-17: with both sports available the first filler's sport is decided by the epoch-day parity (deterministic, but arbitrary); a "preferred recovery sport" setting could replace it.
 - 0.3.0 was published (https://github.com/robertscholz22/myhealth/releases/tag/v0.3.0) but **not yet installed on the Pixel** — the phone was unplugged when the build finished.
+| 0.3.0 installed on the Pixel over 0.2.1 (data kept); owner generated a week and confirmed the active-recovery fillers ("Works on the phone") | PASS (owner) | — |
