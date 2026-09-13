@@ -59,7 +59,7 @@ class CycleScreenTest {
         // ---- Calendar: today's cell carries a cycle marker ------------------------------------
         composeTestRule.onNodeWithText(activity.getString(R.string.nav_calendar)).performClick()
         composeTestRule.waitUntil(timeoutMillis = 10_000) {
-            composeTestRule.onAllNodesWithTag(CYCLE_MARKER_TEST_TAG).fetchSemanticsNodes().isNotEmpty()
+            composeTestRule.onAllNodesWithTag(CYCLE_MARKER_TEST_TAG, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
         }
     }
 }

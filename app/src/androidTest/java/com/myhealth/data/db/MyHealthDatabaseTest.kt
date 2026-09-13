@@ -266,8 +266,10 @@ class MyHealthDatabaseTest {
                 assertThat(dao.getAll()).hasSize(1)
                 assertThat(dao.getByStartDay(20_800L)?.id).isEqualTo(id)
 
-                // The unique index is what keeps one cycle per start day.
-                val duplicate = runCatching {
+                // The unique index is what keeps one cycle per start day: Room's @Upsert resolves
+                // the UNIQUE conflict by updating by primary key (id 0 matches nothing), so the
+                // duplicate is dropped without an exception and the original row survives.
+                runCatching {
                     dao.upsert(
                         CycleEntryEntity(
                             periodStartDay = 20_800L,
@@ -276,8 +278,9 @@ class MyHealthDatabaseTest {
                         ),
                     )
                 }
-                assertThat(duplicate.isFailure).isTrue()
                 assertThat(dao.getAll()).hasSize(1)
+                assertThat(dao.getByStartDay(20_800L)?.id).isEqualTo(id)
+                assertThat(dao.getByStartDay(20_800L)?.periodEndDay).isEqualTo(20_804L)
             }
         } finally {
             migrated.close()
