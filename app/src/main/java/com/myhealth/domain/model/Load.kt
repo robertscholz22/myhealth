@@ -76,6 +76,10 @@ data class RideBest(
  * What undoing one import removed (§2.2.6). [activitiesDeleted] only counts canonical rows whose
  * last source record was this import's; an activity Health Connect also knows is re-merged from
  * the sources that remain and counted in [activitiesKept].
+ *
+ * Also reused by `ImportRepository.removeOrphanedImportData` (BUG-12b hotfix 1.0.3), which is not
+ * tied to a single import: [importId] is `0` there, since the file imports it sweeps up predate
+ * DB v4 and their own `import_record` rows may already be gone.
  */
 data class ImportUndoSummary(
     val importId: Long,

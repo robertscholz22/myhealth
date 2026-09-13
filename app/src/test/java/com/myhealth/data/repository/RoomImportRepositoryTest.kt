@@ -75,6 +75,112 @@ class RoomImportRepositoryTest {
         assertThat(recomputeDays).containsExactly(DAY)
     }
 
+    /**
+     * BUG-12: imports written before DB v4 left their `activity_source_record` rows with a null
+     * `importRecordId`, so the primary lookup in [undo] finds nothing. It falls back to unstamped
+     * records of the import's source kind received within ±15 minutes of `importedAtMillis`.
+     */
+    @Test
+    fun undo_falls_back_to_unstamped_records_in_the_import_time_window() = runTest {
+        val importId = (repo.record(record("activities.csv", "hash-a")) as Outcome.Ok).value
+        // Arrived 10 minutes before the import ran, but never stamped with it (pre-v4 arrival).
+        ingest(
+            ActivitySource.CSV_IMPORT,
+            "csv-1",
+            start = START,
+            day = DAY,
+            importRecordId = null,
+            receivedAtMillis = NOW - 10 * 60_000L,
+        )
+        assertThat(activityDao.sourceRecords).hasSize(1)
+
+        val summary = (repo.undo(importId) as Outcome.Ok).value
+
+        assertThat(summary.sourceRecordsRemoved).isEqualTo(1)
+        assertThat(summary.activitiesDeleted).isEqualTo(1)
+        assertThat(summary.activitiesKept).isEqualTo(0)
+        assertThat(activityDao.rows()).isEmpty()
+        assertThat(activityDao.sourceRecords).isEmpty()
+        assertThat(repo.getByHash("hash-a")).isNull()
+        assertThat(recomputeDays).containsExactly(DAY)
+    }
+
+    /**
+     * The fallback window and source-kind filter are both selective: a record outside ±15 minutes,
+     * and one of a different source kind, survive an undo that finds nothing to remove.
+     */
+    @Test
+    fun undo_fallback_ignores_records_outside_the_window_and_other_sources() = runTest {
+        val importId = (repo.record(record("activities.csv", "hash-a")) as Outcome.Ok).value
+        // 20 minutes outside the +/-15 minute window.
+        ingest(
+            ActivitySource.CSV_IMPORT,
+            "csv-late",
+            start = START,
+            day = DAY,
+            importRecordId = null,
+            receivedAtMillis = NOW + 20 * 60_000L,
+        )
+        // Within the window, but the wrong source kind for a GARMIN_CSV import.
+        ingest(
+            ActivitySource.FIT_IMPORT,
+            "fit-1",
+            start = START + DAY_MILLIS,
+            day = DAY + 1,
+            importRecordId = null,
+            receivedAtMillis = NOW,
+        )
+
+        val summary = (repo.undo(importId) as Outcome.Ok).value
+
+        assertThat(summary.sourceRecordsRemoved).isEqualTo(0)
+        assertThat(activityDao.sourceRecords.map { it.externalId })
+            .containsExactly("csv-late", "fit-1")
+        assertThat(recomputeDays).isEmpty()
+    }
+
+    /**
+     * BUG-12b: the orphan cleanup sweeps every unstamped CSV_IMPORT/FIT_IMPORT record regardless
+     * of when it arrived, but leaves stamped file imports and non-file sources (e.g. Health
+     * Connect, which is legitimately unstamped) alone.
+     */
+    @Test
+    fun remove_orphaned_import_data_removes_only_unstamped_file_imports() = runTest {
+        val importId = (repo.record(record("kept.csv", "hash-kept")) as Outcome.Ok).value
+        ingest(ActivitySource.CSV_IMPORT, "orphan-csv", start = START, day = DAY, importRecordId = null)
+        ingest(
+            ActivitySource.FIT_IMPORT,
+            "orphan-fit",
+            start = START + DAY_MILLIS,
+            day = DAY + 1,
+            importRecordId = null,
+        )
+        ingest(
+            ActivitySource.CSV_IMPORT,
+            "stamped-csv",
+            start = START + 2 * DAY_MILLIS,
+            day = DAY + 2,
+            importRecordId = importId,
+        )
+        ingest(
+            ActivitySource.HEALTH_CONNECT,
+            "hc-1",
+            start = START + 3 * DAY_MILLIS,
+            day = DAY + 3,
+            importRecordId = null,
+        )
+
+        val summary = (repo.removeOrphanedImportData() as Outcome.Ok).value
+
+        assertThat(summary.sourceRecordsRemoved).isEqualTo(2)
+        assertThat(summary.activitiesDeleted).isEqualTo(2)
+        assertThat(activityDao.sourceRecords.map { it.externalId })
+            .containsExactly("stamped-csv", "hc-1")
+        assertThat(recomputeDays).containsExactly(DAY)
+        // The orphan cleanup is not tied to one import, so its own record survives untouched.
+        assertThat(repo.getByHash("hash-kept")).isNotNull()
+    }
+
     @Test
     fun undoing_an_import_that_wrote_nothing_is_a_no_op_that_still_forgets_the_file() = runTest {
         val importId = (repo.record(record("empty.csv", "hash-empty")) as Outcome.Ok).value
@@ -95,6 +201,7 @@ class RoomImportRepositoryTest {
         start: Long,
         day: Long,
         importRecordId: Long?,
+        receivedAtMillis: Long = NOW,
     ) {
         ingestor.ingest(
             listOf(
@@ -105,7 +212,7 @@ class RoomImportRepositoryTest {
                         source = source,
                         externalId = externalId,
                         payloadJson = "{}",
-                        receivedAtMillis = NOW,
+                        receivedAtMillis = receivedAtMillis,
                         importRecordId = importRecordId,
                     ),
                     session = hcSession(

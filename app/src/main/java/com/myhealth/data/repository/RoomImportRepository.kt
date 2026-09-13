@@ -2,8 +2,11 @@ package com.myhealth.data.repository
 
 import com.myhealth.data.db.dao.ActivityDao
 import com.myhealth.data.db.dao.ImportDao
+import com.myhealth.data.db.entity.ActivitySourceRecordEntity
 import com.myhealth.data.mapper.toDomain
 import com.myhealth.data.mapper.toEntity
+import com.myhealth.domain.model.ActivitySource
+import com.myhealth.domain.model.ImportKind
 import com.myhealth.domain.model.ImportRecord
 import com.myhealth.domain.model.ImportUndoSummary
 import com.myhealth.domain.repository.ImportRepository
@@ -26,6 +29,13 @@ import kotlinx.coroutines.withContext
  * activity two sources know survives with the other source's data — and then drops the audit row,
  * which is what makes the checksum forgotten and the file importable again. [onUndone] is the hook
  * the DI graph points at `SyncScheduler.requestLoadRecompute`; `data/` never imports `sync/`.
+ *
+ * BUG-12 (hotfix 1.0.3): imports written before DB v4 left their `activity_source_record` rows
+ * with a null `importRecordId`, so [undo] found nothing to remove. [undo] now falls back to
+ * [ActivityDao.getUnstampedSourceRecordsInWindow] — unstamped records of the import's source kind
+ * received within ±15 minutes of `importedAtMillis` — and stamps them before removing them, so a
+ * retried undo (or a crash mid-way) still finds them. [removeOrphanedImportData] sweeps up the
+ * same kind of row across all imports at once, for files whose `import_record` may itself be gone.
  */
 class RoomImportRepository(
     private val importDao: ImportDao,
@@ -53,23 +63,80 @@ class RoomImportRepository(
     override suspend fun undo(importId: Long): Outcome<ImportUndoSummary> = withContext(ioDispatcher) {
         var minAffectedDay: Long? = null
         val outcome = runCatchingApp {
-            val records = activityDao.getSourceRecordsOfImport(importId)
-            val activityIds = records.mapNotNull { it.activityId }.distinct()
-            // The days have to be read before the rows go, or the recompute has nothing to start at.
-            minAffectedDay = activityIds.mapNotNull { activityDao.getById(it)?.day }.minOrNull()
-            for (record in records) {
-                ingestor.removeSourceRecord(record.source, record.externalId)
-            }
-            val deleted = activityIds.count { activityDao.getById(it) == null }
+            val records = recordsToUndo(importId)
+            val (summary, minDay) = removeAndSummarize(importId, records)
+            minAffectedDay = minDay
             importDao.deleteById(importId)
-            ImportUndoSummary(
-                importId = importId,
-                sourceRecordsRemoved = records.size,
-                activitiesDeleted = deleted,
-                activitiesKept = activityIds.size - deleted,
-            )
+            summary
         }
         if (outcome is Outcome.Ok) minAffectedDay?.let { onUndone(it) }
         outcome
+    }
+
+    override suspend fun removeOrphanedImportData(): Outcome<ImportUndoSummary> = withContext(ioDispatcher) {
+        var minAffectedDay: Long? = null
+        val outcome = runCatchingApp {
+            val records = activityDao.getAllUnstampedSourceRecords(FILE_IMPORT_SOURCES)
+            val (summary, minDay) = removeAndSummarize(importId = 0L, records)
+            minAffectedDay = minDay
+            summary
+        }
+        if (outcome is Outcome.Ok) minAffectedDay?.let { onUndone(it) }
+        outcome
+    }
+
+    /**
+     * The records "Undo import" removes: the ones stamped with [importId], or — BUG-12 — when
+     * there are none, unstamped records of the import's source kind received within ±15 minutes
+     * of its `importedAtMillis`, stamped with [importId] first so the link survives a retry.
+     */
+    private suspend fun recordsToUndo(importId: Long): List<ActivitySourceRecordEntity> {
+        val stamped = activityDao.getSourceRecordsOfImport(importId)
+        if (stamped.isNotEmpty()) return stamped
+        val importRecord = importDao.getById(importId) ?: return emptyList()
+        val sources = fileImportSourcesOf(importRecord.kind)
+        if (sources.isEmpty()) return emptyList()
+        val fallback = activityDao.getUnstampedSourceRecordsInWindow(
+            sources = sources,
+            fromMillis = importRecord.importedAtMillis - UNDO_FALLBACK_WINDOW_MILLIS,
+            toMillis = importRecord.importedAtMillis + UNDO_FALLBACK_WINDOW_MILLIS,
+        )
+        fallback.forEach { activityDao.stampImportRecordId(it.id, importId) }
+        return fallback
+    }
+
+    /** Removes every [records] row through [ActivityIngestor.removeSourceRecord] and tallies the result. */
+    private suspend fun removeAndSummarize(
+        importId: Long,
+        records: List<ActivitySourceRecordEntity>,
+    ): Pair<ImportUndoSummary, Long?> {
+        val activityIds = records.mapNotNull { it.activityId }.distinct()
+        // The days have to be read before the rows go, or the recompute has nothing to start at.
+        val minDay = activityIds.mapNotNull { activityDao.getById(it)?.day }.minOrNull()
+        for (record in records) {
+            ingestor.removeSourceRecord(record.source, record.externalId)
+        }
+        val deleted = activityIds.count { activityDao.getById(it) == null }
+        val summary = ImportUndoSummary(
+            importId = importId,
+            sourceRecordsRemoved = records.size,
+            activitiesDeleted = deleted,
+            activitiesKept = activityIds.size - deleted,
+        )
+        return summary to minDay
+    }
+
+    private companion object {
+        /** The undo fallback's time window (BUG-12): Garmin's own export timestamps this loosely. */
+        const val UNDO_FALLBACK_WINDOW_MILLIS = 15 * 60 * 1000L
+
+        val FILE_IMPORT_SOURCES = listOf(ActivitySource.CSV_IMPORT, ActivitySource.FIT_IMPORT)
+
+        /** Which [ActivitySource] an import kind's arrivals are stamped with (§2.4). */
+        fun fileImportSourcesOf(kind: ImportKind): List<ActivitySource> = when (kind) {
+            ImportKind.GARMIN_CSV -> listOf(ActivitySource.CSV_IMPORT)
+            ImportKind.FIT_FILE, ImportKind.GARMIN_ZIP -> listOf(ActivitySource.FIT_IMPORT)
+            ImportKind.JSON_BACKUP -> emptyList()
+        }
     }
 }

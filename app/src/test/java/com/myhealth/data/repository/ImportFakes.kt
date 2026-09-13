@@ -76,6 +76,14 @@ class FakeImportRepository : ImportRepository {
 
     override suspend fun undo(importId: Long): Outcome<ImportUndoSummary> =
         checkNotNull(undoDelegate) { "No undo delegate set on FakeImportRepository" }(importId)
+
+    /** Set by a test that exercises the orphan-cleanup path; otherwise never called (BUG-12b). */
+    var removeOrphanedImportDataDelegate: (suspend () -> Outcome<ImportUndoSummary>)? = null
+
+    override suspend fun removeOrphanedImportData(): Outcome<ImportUndoSummary> =
+        checkNotNull(removeOrphanedImportDataDelegate) {
+            "No removeOrphanedImportData delegate set on FakeImportRepository"
+        }()
 }
 
 /**

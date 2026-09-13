@@ -708,6 +708,11 @@
     <string name="settings_off_contact_label">Open Food Facts contact (for the API user agent)</string>
     <string name="settings_garmin_direct_label">Garmin direct client (experimental)</string>
     <string name="settings_allow_destructive_migration_label">Allow destructive DB migration (debug builds only)</string>
+    <string name="settings_orphan_cleanup_button">Remove orphaned import data</string>
+    <string name="settings_orphan_cleanup_dialog_title">Remove orphaned import data?</string>
+    <string name="settings_orphan_cleanup_dialog_message">Removes activities imported from files before version 1.0.2 that can no longer be undone individually. Activities also known from Health Connect are kept.</string>
+    <string name="settings_orphan_cleanup_result_format">Removed %1$d activities, %2$d kept</string>
+    <string name="settings_orphan_cleanup_failed">Orphaned import data could not be removed.</string>
     <!-- Import screen (ui/imports/ImportScreen.kt) -->
     <string name="import_unsupported_file_format">%1$s is not a .fit, .csv or .zip file.</string>
     <string name="import_section_title">Import activities</string>

@@ -128,6 +128,34 @@ interface ActivityDao {
     @Query("SELECT * FROM activity_source_record WHERE importRecordId = :importRecordId")
     suspend fun getSourceRecordsOfImport(importRecordId: Long): List<ActivitySourceRecordEntity>
 
+    /**
+     * Source records of [sources] that were never stamped with an import (BUG-12): rows written
+     * before DB v4, received within `[fromMillis, toMillis]` — the undo fallback's ±15 minute
+     * window around the import's `importedAtMillis`, used only when the import wrote no stamped
+     * rows of its own.
+     */
+    @Query(
+        "SELECT * FROM activity_source_record WHERE source IN (:sources) AND importRecordId IS NULL " +
+            "AND receivedAtMillis BETWEEN :fromMillis AND :toMillis",
+    )
+    suspend fun getUnstampedSourceRecordsInWindow(
+        sources: List<ActivitySource>,
+        fromMillis: Long,
+        toMillis: Long,
+    ): List<ActivitySourceRecordEntity>
+
+    /**
+     * Every unstamped source record of [sources] regardless of when it arrived — the orphan
+     * cleanup's selection (BUG-12b): file imports from before DB v4 that "Undo import" can no
+     * longer find by `importRecordId` and whose originating `import_record` may since be gone.
+     */
+    @Query("SELECT * FROM activity_source_record WHERE source IN (:sources) AND importRecordId IS NULL")
+    suspend fun getAllUnstampedSourceRecords(sources: List<ActivitySource>): List<ActivitySourceRecordEntity>
+
+    /** Retroactively links a record to the import the undo fallback determined wrote it (BUG-12). */
+    @Query("UPDATE activity_source_record SET importRecordId = :importRecordId WHERE id = :id")
+    suspend fun stampImportRecordId(id: Long, importRecordId: Long)
+
     // ---- streams and laps --------------------------------------------------------------------
 
     @Upsert
