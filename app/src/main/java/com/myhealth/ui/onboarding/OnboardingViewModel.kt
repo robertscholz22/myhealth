@@ -134,8 +134,9 @@ class OnboardingViewModel(
             }
 
             settingsRepo.setHasCompletedOnboarding(true)
-            // P11.1: the cycle tracker is on by default for the users it was requested for.
-            if (draft.sex == Sex.FEMALE) settingsRepo.setCycleTrackingEnabled(true)
+            // P11.1/P11.3: the cycle tracker is on by default for the users it was requested for,
+            // via the switch on step 3 (shown only for FEMALE; the draft default is `true`).
+            if (draft.sex == Sex.FEMALE) settingsRepo.setCycleTrackingEnabled(draft.cycleTrackingEnabled)
             // First profile + weight: compute the whole target window right away (P4.12).
             syncScheduler.requestTargetRecompute()
             _state.update { it.copy(isSaving = false) }

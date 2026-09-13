@@ -3,6 +3,7 @@ package com.myhealth.ui.today
 import com.myhealth.domain.engine.calendar.LinkProposal
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.BodyMeasurement
+import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.model.DailyHealthSummary
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.MacroTotals
@@ -48,6 +49,11 @@ data class TodayUiState(
     val suggestedToday: SuggestedSession? = null,
     /** POLISH-8: the open `PROPOSED` batch predates a calendar change and should be regenerated. */
     val suggestionsStale: Boolean = false,
+    /** P11.3: whether the cycle card should show at all — `settings.cycleTrackingEnabled` or
+     * `profile.sex == FEMALE` (see `CycleRepository.isTrackingEnabled`). */
+    val cycleTrackingEnabled: Boolean = false,
+    /** Today's cycle status, or `null` before a first period start is logged. */
+    val cycleStatus: CycleStatus? = null,
 ) {
     val weightChipText: String? get() = weightChipLabel(latestWeight?.weightKg, goalWeightKg)
 

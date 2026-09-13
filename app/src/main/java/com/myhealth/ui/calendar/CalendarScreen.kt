@@ -48,7 +48,7 @@ fun CalendarScreen(
     modifier: Modifier = Modifier,
 ) {
     val vm = rememberVmWithSavedState { graph, handle ->
-        CalendarViewModel(graph.calendarRepo, handle, graph.clock)
+        CalendarViewModel(graph.calendarRepo, graph.cycleRepo, handle, graph.clock)
     }
     val state by vm.state.collectAsStateWithLifecycle()
 
@@ -171,6 +171,7 @@ private fun MonthPager(
         MonthGrid(
             anchor = base.plusMonths((page - PAGE_CENTER).toLong()),
             days = state.days,
+            cycleMarkers = state.cycleMarkers,
             today = state.today,
             selectedDay = state.selectedDay,
             onDayClick = onDayClick,
@@ -208,6 +209,7 @@ private fun WeekPager(
             WeekStrip(
                 weekAnchor = base.plusWeeks((page - PAGE_CENTER).toLong()),
                 days = state.days,
+                cycleMarkers = state.cycleMarkers,
                 today = state.today,
                 selectedDay = state.selectedDay,
                 onSelect = onSelectDay,

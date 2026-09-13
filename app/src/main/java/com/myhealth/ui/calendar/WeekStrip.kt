@@ -38,6 +38,7 @@ fun WeekStrip(
     selectedDay: Long,
     onSelect: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    cycleMarkers: Map<Long, CycleDayMarker> = emptyMap(),
 ) {
     Row(
         modifier = modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
@@ -51,6 +52,7 @@ fun WeekStrip(
                 isToday = epochDay == today,
                 isSelected = epochDay == selectedDay,
                 onClick = { onSelect(epochDay) },
+                cycleMarker = cycleMarkers[epochDay],
                 modifier = Modifier.weight(1f),
             )
         }
@@ -65,6 +67,7 @@ private fun WeekStripDay(
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    cycleMarker: CycleDayMarker? = null,
 ) {
     val background =
         if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
@@ -107,6 +110,7 @@ private fun WeekStripDay(
                 Box(modifier = Modifier.size(5.dp).background(marker.color(), CircleShape))
             }
         }
+        cycleMarker?.let { CycleMarkerDot(it) }
     }
 }
 

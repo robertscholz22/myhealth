@@ -5,6 +5,7 @@ import com.myhealth.domain.engine.calendar.LinkProposal
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.CalendarDay
+import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.DayType
 import com.myhealth.domain.model.EventOccurrence
@@ -44,6 +45,10 @@ data class DayDetailUiState(
     val linkProposals: List<LinkProposal> = emptyList(),
     /** One-shot informational text shown in a snackbar. */
     val message: UiMessage? = null,
+    /** P11.3: whether the "Cycle" line should show at all. */
+    val cycleTrackingEnabled: Boolean = false,
+    /** This day's cycle status, or `null` while tracking is off or nothing is logged yet. */
+    val cycleStatus: CycleStatus? = null,
 ) {
     val date: LocalDate get() = day.toLocalDate()
 

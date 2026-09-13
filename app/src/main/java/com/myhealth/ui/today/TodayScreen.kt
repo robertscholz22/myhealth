@@ -60,6 +60,7 @@ fun TodayScreen(
     onOpenLoad: () -> Unit,
     onOpenTraining: () -> Unit,
     onReviewSuggestions: () -> Unit,
+    onOpenCycle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val vm = rememberVm { graph ->
@@ -76,6 +77,7 @@ fun TodayScreen(
             graph.loadRepo,
             graph.planRepo,
             graph.suggestionRepo,
+            graph.cycleRepo,
             graph.clock,
         )
     }
@@ -93,6 +95,7 @@ fun TodayScreen(
         onMarkPlannedDone = vm::markPlannedDone,
         onOpenTraining = onOpenTraining,
         onReviewSuggestions = onReviewSuggestions,
+        onOpenCycle = onOpenCycle,
         modifier = modifier,
     )
 }
@@ -111,6 +114,7 @@ internal fun TodayContent(
     onMarkPlannedDone: (Long) -> Unit,
     onOpenTraining: () -> Unit,
     onReviewSuggestions: () -> Unit,
+    onOpenCycle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // P8.6 — pull down anywhere on Today to run the same sync as the banner's "Sync now".
@@ -131,6 +135,7 @@ internal fun TodayContent(
             onMarkPlannedDone = onMarkPlannedDone,
             onOpenTraining = onOpenTraining,
             onReviewSuggestions = onReviewSuggestions,
+            onOpenCycle = onOpenCycle,
         )
     }
 }
@@ -148,6 +153,7 @@ private fun TodayList(
     onMarkPlannedDone: (Long) -> Unit,
     onOpenTraining: () -> Unit,
     onReviewSuggestions: () -> Unit,
+    onOpenCycle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -172,6 +178,9 @@ private fun TodayList(
         }
         item { RecoveryCard(state.latestLoad, state.topRecoveryFlag, onOpenLoad) }
         item { LoadCard(state.latestLoad, state.weeklyTrimp, onOpenLoad) }
+        if (state.cycleTrackingEnabled) {
+            item { TodayCycleCard(state.cycleStatus, onOpenCycle) }
+        }
         item { TodayActivitiesSection(state.activities, onOpenActivity) { onOpenDay(state.day) } }
         item { BodyChip(state.weightChipText) }
         item { SleepTile(state.sleep) }

@@ -23,6 +23,8 @@ data class CalendarUiState(
     val selectedDay: Long = 0L,
     val today: Long = 0L,
     val days: Map<Long, CalendarDay> = emptyMap(),
+    /** One [CycleDayMarker] per day in [days]'s range, or empty while tracking is off (P11.3). */
+    val cycleMarkers: Map<Long, CycleDayMarker> = emptyMap(),
     val isLoading: Boolean = true,
 ) {
     val anchorDate: LocalDate get() = anchorDay.toLocalDate()

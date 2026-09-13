@@ -28,6 +28,7 @@ fun MonthGrid(
     selectedDay: Long,
     onDayClick: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    cycleMarkers: Map<Long, CycleDayMarker> = emptyMap(),
 ) {
     val cells = monthGridDays(anchor)
     val anchorMonth = anchor.month
@@ -44,6 +45,7 @@ fun MonthGrid(
                         isToday = epochDay == today,
                         isSelected = epochDay == selectedDay,
                         onClick = { onDayClick(epochDay) },
+                        cycleMarker = cycleMarkers[epochDay],
                         modifier = Modifier.weight(1f),
                     )
                 }

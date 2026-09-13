@@ -71,14 +71,16 @@ fun ComposeTestRule.waitUntilTextExists(
     }
 }
 
-/** A minimal valid [Profile] (PLAN §2.2.1) so a test can skip onboarding and land on Today. */
-fun AppGraph.seedProfileBlocking(name: String = "Test Runner") {
+/** A minimal valid [Profile] (PLAN §2.2.1) so a test can skip onboarding and land on Today.
+ * [sex] defaults to `MALE`; pass `Sex.FEMALE` for a cycle-tracker test (PLAN §5 P11.3) — a FEMALE
+ * profile turns `cycleTrackingEnabled` on via the same repository rule Settings/Onboarding use. */
+fun AppGraph.seedProfileBlocking(name: String = "Test Runner", sex: Sex = Sex.MALE) {
     val now = clock.millis()
     runBlocking {
         profileRepo.upsert(
             Profile(
                 displayName = name,
-                sex = Sex.MALE,
+                sex = sex,
                 birthDay = LocalDate.of(1990, 1, 1).toEpochDay(),
                 heightCm = 180.0,
                 neatLevel = NeatLevel.LIGHT_ACTIVE,

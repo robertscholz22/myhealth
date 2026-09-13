@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.myhealth.R
 import com.myhealth.domain.model.ActivitySummary
+import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.EventOccurrence
 import com.myhealth.domain.model.MacroTotals
@@ -44,6 +45,8 @@ import com.myhealth.ui.common.SourceBadgeRow
 import com.myhealth.ui.common.SportIcon
 import com.myhealth.ui.common.displayName
 import com.myhealth.ui.common.resolve
+import com.myhealth.ui.cycle.dayOfCycleLabel
+import com.myhealth.ui.cycle.phaseLabelRes
 import java.util.Locale
 
 /** The per-item overflow menu shared by the event and planned-session rows (§4.2 Day detail). */
@@ -338,6 +341,24 @@ internal fun LoadSection(load: DailyLoad?) {
         if (load.flags.isNotEmpty()) {
             Text(text = load.flags.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
         }
+    }
+}
+
+/** The "Cycle" line (PLAN §5 P11.3): phase + day of cycle, "(predicted)" when the day is beyond
+ * the last logged cycle. Shown only while tracking is enabled. */
+@Composable
+internal fun CycleSection(status: CycleStatus?) {
+    SectionCard(title = stringResource(R.string.daydetail_section_cycle)) {
+        if (status == null) {
+            EmptyLine(stringResource(R.string.cycle_history_empty))
+            return@SectionCard
+        }
+        Text(
+            text = stringResource(phaseLabelRes(status.phase)) +
+                " · " + dayOfCycleLabel(status.dayOfCycle, status.cycleLengthDays) +
+                if (status.isPredicted) stringResource(R.string.daydetail_cycle_predicted_suffix) else "",
+            style = MaterialTheme.typography.bodyLarge,
+        )
     }
 }
 

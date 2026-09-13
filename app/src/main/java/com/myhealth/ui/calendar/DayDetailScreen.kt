@@ -57,7 +57,7 @@ fun DayDetailScreen(
     modifier: Modifier = Modifier,
 ) {
     val vm = rememberVmWithSavedState { graph, handle ->
-        DayDetailViewModel(epochDay, graph.calendarRepo, graph.planRepo, graph.syncScheduler, handle)
+        DayDetailViewModel(epochDay, graph.calendarRepo, graph.planRepo, graph.syncScheduler, graph.cycleRepo, handle)
     }
     val state by vm.state.collectAsStateWithLifecycle()
 
@@ -189,6 +189,9 @@ private fun DayDetailContent(
                 )
             }
             item("load") { LoadSection(state.data.load) }
+            if (state.cycleTrackingEnabled) {
+                item("cycle") { CycleSection(state.cycleStatus) }
+            }
         }
     }
 }

@@ -6,6 +6,7 @@ import com.myhealth.domain.engine.calendar.EventActivityLinker
 import com.myhealth.domain.engine.calendar.LinkProposal
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.BodyMeasurement
+import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.model.DailyHealthSummary
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.LinkMethod
@@ -21,6 +22,7 @@ import com.myhealth.domain.model.SyncState
 import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.repository.BodyRepository
 import com.myhealth.domain.repository.CalendarRepository
+import com.myhealth.domain.repository.CycleRepository
 import com.myhealth.domain.repository.HealthRepository
 import com.myhealth.domain.repository.LoadRepository
 import com.myhealth.domain.repository.MealRepository
@@ -69,13 +71,17 @@ private data class TodayNutrition(val target: NutritionTarget?, val intake: Macr
  * summed TRIMP (`daily_load` has no rolling-weekly column of its own). */
 private data class TodayLoad(val latest: DailyLoad?, val weeklyTrimp: Double)
 
-/** The four non-load flows combined ahead of the final state, again to stay within `combine`'s
- * five-flow typed overload once [TodayLoad] joins as the fifth (PLAN §1.4). */
+/** Today's cycle card (P11.3): whether it should show at all, and today's status. */
+private data class TodayCycle(val trackingEnabled: Boolean, val status: CycleStatus?)
+
+/** The five non-load flows combined ahead of the final state, again to stay within `combine`'s
+ * five-flow typed overload once [TodayLoad] joins as the sixth (PLAN §1.4). */
 private data class CoreAndSync(
     val core: TodayCoreData,
     val sync: TodaySyncData,
     val links: List<LinkProposal>,
     val food: TodayNutrition,
+    val cycle: TodayCycle,
 )
 
 /** Today's plan card (P6.6/P6.7): what is planned, or the best proposal still awaiting review. */
@@ -111,6 +117,7 @@ class TodayViewModel(
     loadRepo: LoadRepository,
     private val planRepo: PlanRepository,
     private val suggestionRepo: SuggestionRepository,
+    private val cycleRepo: CycleRepository,
     clock: Clock,
 ) : ViewModel() {
 
@@ -155,6 +162,11 @@ class TodayViewModel(
         loadRepo.observeRange(today - WEEKLY_TRIMP_WINDOW_DAYS + 1, today),
     ) { latest, week -> TodayLoad(latest, week.sumOf { it.trimp }) }
 
+    private val cycle: Flow<TodayCycle> = combine(
+        cycleRepo.isTrackingEnabled(),
+        cycleRepo.observeStatus(today),
+    ) { trackingEnabled, status -> TodayCycle(trackingEnabled, status) }
+
     /** The best still-open suggestion for today, from the latest batch that is still `PROPOSED`. */
     @OptIn(ExperimentalCoroutinesApi::class)
     private val suggestedToday: Flow<SuggestedSession?> =
@@ -176,8 +188,8 @@ class TodayViewModel(
         suggestionRepo.observeStale(),
     ) { planned, suggested, stale -> TodayPlan(planned, suggested, stale) }
 
-    private val coreAndSync = combine(core, syncData, linkSuggestions, nutrition) { c, s, links, food ->
-        CoreAndSync(c, s, links, food)
+    private val coreAndSync = combine(core, syncData, linkSuggestions, nutrition, cycle) { c, s, links, food, cyc ->
+        CoreAndSync(c, s, links, food, cyc)
     }
 
     val state: StateFlow<TodayUiState> = combine(coreAndSync, load, plan) { cs, l, p ->
@@ -200,6 +212,8 @@ class TodayViewModel(
             plannedToday = p.planned,
             suggestedToday = p.suggested.takeIf { p.planned.isEmpty() },
             suggestionsStale = p.stale,
+            cycleTrackingEnabled = cs.cycle.trackingEnabled,
+            cycleStatus = cs.cycle.status,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TodayUiState())
 

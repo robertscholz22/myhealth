@@ -34,6 +34,7 @@ import com.myhealth.ui.calendar.EventEditScreen
 import com.myhealth.ui.camera.OcrReviewScreen
 import com.myhealth.ui.camera.ScanScreen
 import com.myhealth.ui.common.PlaceholderScreen
+import com.myhealth.ui.cycle.CycleScreen
 import com.myhealth.ui.goals.GoalEditScreen
 import com.myhealth.ui.goals.GoalsScreen
 import com.myhealth.ui.ingredients.IngredientEditScreen
@@ -118,6 +119,7 @@ fun MyHealthNavHost(
                             onOpenLoad = { navController.navigate(LoadRoute) },
                             onOpenTraining = { navController.navigate(TrainingRoute) },
                             onReviewSuggestions = { navController.navigate(SuggestionReviewRoute) },
+                            onOpenCycle = { navController.navigate(CycleRoute) },
                         )
                     }
                     composable<CalendarRoute> {
@@ -149,6 +151,7 @@ fun MyHealthNavHost(
                         )
                     }
                     composable<MoreRoute> { MoreScreen(onNavigate = { navController.navigate(it) }) }
+                    composable<CycleRoute> { CycleScreen(onBack = { navController.popBackStack() }) }
 
                     // ---- onboarding -------------------------------------------------------
                     composable<OnboardingRoute> {

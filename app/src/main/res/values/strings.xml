@@ -883,4 +883,49 @@
     <string name="scan_permission_denied_message_allow">Scanning a label or a barcode needs the camera. Allow it to continue.</string>
     <string name="scan_open_settings_action">Open settings</string>
     <string name="scan_allow_camera_action">Allow camera</string>
+
+    <!-- ===== Menstrual cycle tracker (P11.3) ===== -->
+    <!-- More screen entry (ui/more/MoreScreen.kt) — shown only while tracking is enabled -->
+    <string name="more_entry_cycle">Cycle</string>
+    <!-- ui/cycle/CycleScreen.kt -->
+    <string name="cycle_title">Cycle</string>
+    <string name="cycle_status_title">Status</string>
+    <string name="cycle_phase_menstrual">Menstrual</string>
+    <string name="cycle_phase_follicular">Follicular</string>
+    <string name="cycle_phase_ovulation">Ovulation</string>
+    <string name="cycle_phase_luteal">Luteal</string>
+    <string name="cycle_late_luteal_chip">Late luteal</string>
+    <string name="cycle_confidence_low">Based on a default 28-day cycle — log your period to improve this.</string>
+    <string name="cycle_confidence_based_on_one">Based on 1 logged cycle.</string>
+    <string name="cycle_confidence_based_on_many">Based on %1$d logged cycles.</string>
+    <string name="cycle_action_log_period_start">Log period start</string>
+    <string name="cycle_action_period_ended">Period ended</string>
+    <string name="cycle_dialog_log_period_start_title">Log period start</string>
+    <string name="cycle_dialog_period_ended_title">Period ended</string>
+    <string name="cycle_forecast_title">Forecast</string>
+    <string name="cycle_forecast_empty">Log a period to see the next six cycles.</string>
+    <string name="cycle_forecast_ovulation_format">Ovulation %1$s</string>
+    <string name="cycle_history_title">History</string>
+    <string name="cycle_history_empty">No periods logged yet.</string>
+    <string name="cycle_history_ongoing">Ongoing</string>
+    <string name="cycle_history_period_days_format">%1$d period days</string>
+    <string name="cycle_history_cycle_length_format">%1$d day cycle</string>
+    <string name="cycle_empty_title">No periods logged yet</string>
+    <string name="cycle_empty_message">Log your first period start to see phase predictions and a personalised forecast.</string>
+    <string name="cycle_delete_confirm_title">Delete this entry?</string>
+    <string name="cycle_delete_confirm_message">This cannot be undone.</string>
+    <string name="cycle_error_duplicate_start">A period already starts on this day.</string>
+    <string name="cycle_error_save_failed">Could not save. Please try again.</string>
+    <string name="cycle_error_no_period_to_end">Log a period start first.</string>
+    <string name="cycle_error_period_end_before_start">The end date can\'t be before the period started.</string>
+    <string name="cycle_msg_period_logged">Period start logged.</string>
+    <string name="cycle_msg_period_ended">Period end logged.</string>
+    <!-- ui/today/TodayCycleCard.kt -->
+    <string name="today_cycle_title">Cycle</string>
+    <string name="today_cycle_empty">Log your period to see cycle predictions.</string>
+    <!-- ui/calendar/DayDetailSections.kt -->
+    <string name="daydetail_section_cycle">Cycle</string>
+    <string name="daydetail_cycle_predicted_suffix"> (predicted)</string>
+    <!-- ui/settings/SettingsSections.kt, ui/onboarding/OnboardingScreen.kt -->
+    <string name="cycle_track_switch_label">Track menstrual cycle</string>
 </resources>

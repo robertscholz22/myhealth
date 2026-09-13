@@ -106,6 +106,7 @@ private fun TodayContentPreview() {
             onMarkPlannedDone = {},
             onOpenTraining = {},
             onReviewSuggestions = {},
+            onOpenCycle = {},
         )
     }
 }
@@ -126,6 +127,7 @@ private fun TodayContentEmptyPreview() {
             onMarkPlannedDone = {},
             onOpenTraining = {},
             onReviewSuggestions = {},
+            onOpenCycle = {},
         )
     }
 }

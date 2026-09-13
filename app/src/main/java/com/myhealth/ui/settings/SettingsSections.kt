@@ -56,6 +56,14 @@ internal fun AppPreferencesSection(settings: AppSettings, onSettingsChange: (App
             checked = settings.includeTreadmillInPrs,
             onCheckedChange = { onSettingsChange(settings.copy(includeTreadmillInPrs = it)) },
         )
+        // P11.3: on by default for FEMALE profiles (P11.1's onboarding/settings hooks set this),
+        // but anyone can opt in or out here regardless of `sex`.
+        SwitchRow(
+            label = stringResource(R.string.cycle_track_switch_label),
+            checked = settings.cycleTrackingEnabled,
+            onCheckedChange = { onSettingsChange(settings.copy(cycleTrackingEnabled = it)) },
+            switchTestTag = "settings_cycle_tracking_switch",
+        )
         OutlinedTextField(
             value = settings.offUserAgentContact,
             onValueChange = { onSettingsChange(settings.copy(offUserAgentContact = it)) },

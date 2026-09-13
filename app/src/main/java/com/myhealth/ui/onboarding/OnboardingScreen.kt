@@ -279,6 +279,20 @@ private fun PreferencesStep(
             suffix = stringResource(com.myhealth.R.string.common_unit_hours),
             decimals = 1,
         )
+        // P11.3: shown only for FEMALE, on by default — the same switch Settings has, so
+        // whichever value is chosen here is exactly what Settings shows afterwards.
+        if (draft.sex == Sex.FEMALE) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(stringResource(com.myhealth.R.string.cycle_track_switch_label))
+                Switch(
+                    checked = draft.cycleTrackingEnabled,
+                    onCheckedChange = { v -> onDraftChange { it.copy(cycleTrackingEnabled = v) } },
+                )
+            }
+        }
     }
 }
 

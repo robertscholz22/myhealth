@@ -21,6 +21,8 @@ data class OnboardingDraft(
     val sessionsPerWeek: Map<SportGroup, Int> = ONBOARDING_SPORT_GROUPS.associateWith { 0 },
     val mobilityOnRestDays: Boolean = true,
     val sleepTargetHours: Double? = 8.0,
+    /** P11.3: the switch shown in step 3 when [sex] is `FEMALE` — on by default (PLAN §5 P11). */
+    val cycleTrackingEnabled: Boolean = true,
 )
 
 /** Field identity for validation errors and per-step gating. */

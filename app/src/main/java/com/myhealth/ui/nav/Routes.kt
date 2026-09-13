@@ -37,3 +37,4 @@ import kotlinx.serialization.Serializable
 @Serializable data object OnboardingRoute
 @Serializable data object GarminDirectRoute
 @Serializable data object MoreRoute
+@Serializable data object CycleRoute

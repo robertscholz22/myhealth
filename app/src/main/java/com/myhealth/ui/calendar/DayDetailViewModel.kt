@@ -5,11 +5,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myhealth.R
 import com.myhealth.domain.engine.calendar.LinkProposal
+import com.myhealth.domain.engine.cycle.CycleEngine
 import com.myhealth.domain.model.CalendarDay
+import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.model.EventOccurrence
 import com.myhealth.domain.model.LinkMethod
 import com.myhealth.domain.model.PlannedStatus
 import com.myhealth.domain.repository.CalendarRepository
+import com.myhealth.domain.repository.CycleRepository
 import com.myhealth.domain.repository.PlanRepository
 import com.myhealth.domain.util.Outcome
 import com.myhealth.sync.SyncScheduler
@@ -39,6 +42,7 @@ class DayDetailViewModel(
     private val calendarRepo: CalendarRepository,
     private val planRepo: PlanRepository,
     private val syncScheduler: SyncScheduler,
+    cycleRepo: CycleRepository,
     private val savedState: SavedStateHandle,
 ) : ViewModel() {
 
@@ -51,13 +55,24 @@ class DayDetailViewModel(
     private val proposals: Flow<List<LinkProposal>> =
         dayFlow.flatMapLatest { day -> calendarRepo.observeLinkProposals(day, day) }
 
+    /** The "Cycle" line's source (P11.3): the day's status, computed straight from
+     * [com.myhealth.domain.engine.cycle.CycleEngine] — reactive to both the shown day and the
+     * logged entries, `null` while tracking is off or nothing is logged yet. */
+    private data class DayCycle(val trackingEnabled: Boolean, val status: CycleStatus?)
+
+    private val cycle: Flow<DayCycle> = dayFlow.flatMapLatest { day ->
+        combine(cycleRepo.isTrackingEnabled(), cycleRepo.observeAll()) { enabled, entries ->
+            DayCycle(enabled, if (enabled) CycleEngine.statusFor(day, entries) else null)
+        }
+    }
+
     private val extras: Flow<UiExtras> =
         combine(pendingDelete, linkSheetOccurrence, message) { pending, linkSheet, msg ->
             UiExtras(pending, linkSheet, msg)
         }
 
     val state: StateFlow<DayDetailUiState> =
-        combine(dayFlow, dayData, proposals, extras) { day, data, props, extra ->
+        combine(dayFlow, dayData, proposals, extras, cycle) { day, data, props, extra, cyc ->
             DayDetailUiState(
                 day = day,
                 isLoading = false,
@@ -66,6 +81,8 @@ class DayDetailViewModel(
                 linkSheetOccurrence = extra.linkSheetOccurrence,
                 linkProposals = props,
                 message = extra.message,
+                cycleTrackingEnabled = cyc.trackingEnabled,
+                cycleStatus = cyc.status,
             )
         }.stateIn(
             viewModelScope,

@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.myhealth.domain.model.CalendarDay
@@ -88,7 +89,12 @@ internal fun KcalDeltaLevel.color(): Color = when (this) {
     KcalDeltaLevel.OVER -> MaterialTheme.colorScheme.error
 }
 
-/** One cell of the month grid: day number, marker dots, kcal-delta bar. */
+/** Semantics test tag on whichever dot renders a [CycleDayMarker] (PLAN §5 P11.3 instrumented
+ * test): text alone cannot distinguish "today has a period logged" from any other cell. */
+const val CYCLE_MARKER_TEST_TAG: String = "cycle_marker"
+
+/** One cell of the month grid: day number, marker dots, kcal-delta bar, and — while the cycle
+ * tracker is on — the P11.3 cycle dot ([cycleMarker], `null` for a day with no cycle data). */
 @Composable
 fun DayCell(
     date: LocalDate,
@@ -98,6 +104,7 @@ fun DayCell(
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    cycleMarker: CycleDayMarker? = null,
 ) {
     val numberColor = when {
         isToday -> MaterialTheme.colorScheme.onPrimary
@@ -139,7 +146,29 @@ fun DayCell(
         }
         MarkerRow(dayMarkers(day))
         KcalDeltaStrip(kcalDeltaBar(day))
+        cycleMarker?.let { CycleMarkerDot(it) }
     }
+}
+
+/** Solid dot for a logged period day, a lighter one for a predicted period day, a ring for
+ * ovulation, a small dot for the fertile window (PLAN §5 P11.3). */
+@Composable
+internal fun CycleMarkerDot(marker: CycleDayMarker) {
+    val color = MaterialTheme.colorScheme.error
+    val tertiary = MaterialTheme.colorScheme.tertiary
+    Box(
+        modifier = Modifier
+            .testTag(CYCLE_MARKER_TEST_TAG)
+            .size(6.dp)
+            .then(
+                when (marker) {
+                    CycleDayMarker.LOGGED_PERIOD -> Modifier.background(color, CircleShape)
+                    CycleDayMarker.PREDICTED_PERIOD -> Modifier.background(color.copy(alpha = 0.35f), CircleShape)
+                    CycleDayMarker.OVULATION -> Modifier.border(1.dp, tertiary, CircleShape)
+                    CycleDayMarker.FERTILE -> Modifier.background(tertiary.copy(alpha = 0.5f), CircleShape)
+                },
+            ),
+    )
 }
 
 @Composable

@@ -3,8 +3,10 @@ package com.myhealth.ui.calendar
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.domain.engine.cycle.CycleEngine
 import com.myhealth.domain.model.CalendarDay
 import com.myhealth.domain.repository.CalendarRepository
+import com.myhealth.domain.repository.CycleRepository
 import com.myhealth.domain.util.toLocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import java.time.Clock
 import java.time.LocalDate
@@ -32,6 +35,7 @@ private const val KEY_SELECTED = "calendar.selectedDay"
 @OptIn(ExperimentalCoroutinesApi::class)
 class CalendarViewModel(
     calendarRepo: CalendarRepository,
+    cycleRepo: CycleRepository,
     private val savedState: SavedStateHandle,
     clock: Clock,
 ) : ViewModel() {
@@ -50,14 +54,33 @@ class CalendarViewModel(
         calendarRepo.observeRange(range.first, range.last)
     }
 
+    /** One [CycleDayMarker] per day of [window], computed straight from
+     * [com.myhealth.domain.engine.cycle.CycleEngine] (pure) over the logged entries — empty while
+     * tracking is off, so a day with no cycle data never even calls into the engine (P11.3). */
+    private val cycleMarkers: Flow<Map<Long, CycleDayMarker>> = window.flatMapLatest { range ->
+        combine(cycleRepo.isTrackingEnabled(), cycleRepo.observeAll()) { enabled, entries -> enabled to entries }
+            .flatMapLatest { (enabled, entries) ->
+                if (!enabled) {
+                    flowOf(emptyMap())
+                } else {
+                    flowOf(
+                        CycleEngine.statusesFor(range.first, range.last + 1, entries)
+                            .mapNotNull { (day, status) -> cycleDayMarker(status)?.let { day to it } }
+                            .toMap(),
+                    )
+                }
+            }
+    }
+
     val state: StateFlow<CalendarUiState> =
-        combine(anchorDay, modeName, selectedDay, days) { anchor, mode, selected, dayMap ->
+        combine(anchorDay, modeName, selectedDay, days, cycleMarkers) { anchor, mode, selected, dayMap, markers ->
             CalendarUiState(
                 mode = calendarModeOf(mode),
                 anchorDay = anchor,
                 selectedDay = selected,
                 today = today,
                 days = dayMap,
+                cycleMarkers = markers,
                 isLoading = false,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initialState())
