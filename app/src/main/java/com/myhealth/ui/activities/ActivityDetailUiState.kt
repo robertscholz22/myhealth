@@ -1,5 +1,6 @@
 package com.myhealth.ui.activities
 
+import com.myhealth.domain.engine.bike.FtpEstimate
 import com.myhealth.domain.model.ActivitySession
 import com.myhealth.domain.model.EventOccurrence
 
@@ -20,6 +21,9 @@ data class ActivityDetailUiState(
     /** This activity's day's other events — the "Link to event…" picker's candidate list. */
     val dayEvents: List<EventOccurrence> = emptyList(),
     val showEventPicker: Boolean = false,
+    /** The current FTP estimate (P12.2/P12.4), resolved the same way `GoalsViewModel` does — the
+     * power card's IF/TSS rows are `null` until this is available. */
+    val ftp: FtpEstimate? = null,
 ) {
     val minHr: Int? get() = activity?.streams?.hr?.filterNotNull()?.minOrNull()
     val avgHrFromStream: Int? get() = activity?.streams?.hr?.filterNotNull()

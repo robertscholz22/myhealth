@@ -6,6 +6,7 @@ import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.model.Goal
 import com.myhealth.domain.model.GoalStatus
+import com.myhealth.domain.model.GoalType
 import com.myhealth.domain.model.RideBest
 import com.myhealth.domain.model.RunningBest
 import com.myhealth.ui.common.UiMessage
@@ -25,9 +26,17 @@ data class GoalsUiState(
     val active: List<GoalRow> = emptyList(),
     val archived: List<GoalRow> = emptyList(),
     val message: UiMessage? = null,
+    /**
+     * True when an active `BIKE_*` goal exists but the `CYCLE` preferred-sports cap is 0 (P12.3's
+     * onboarding default) — C10 then blocks every ride, so the goal alone produces no suggestions.
+     */
+    val showCycleCapHint: Boolean = false,
 ) {
     val isEmpty: Boolean get() = !isLoading && active.isEmpty() && archived.isEmpty()
 }
+
+/** The three cycling goal types (§2.1 `GoalType`, P12) — used to gate [GoalsUiState.showCycleCapHint]. */
+val BIKE_GOAL_TYPES: Set<GoalType> = setOf(GoalType.BIKE_FTP, GoalType.BIKE_VOLUME, GoalType.BIKE_EVENT)
 
 /**
  * Pure projection of the repositories onto [GoalRow]s — kept out of the ViewModel so it can be

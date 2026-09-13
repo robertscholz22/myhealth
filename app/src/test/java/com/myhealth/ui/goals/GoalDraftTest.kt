@@ -124,6 +124,35 @@ class GoalDraftTest {
             .isEqualTo(original.copy(updatedAtMillis = 0L))
     }
 
+    /** P12.4: switching to a `BIKE_EVENT` goal defaults the distance to 40 km unless the draft
+     * already carries one of the four bike-event distances. */
+    @Test
+    fun goaldraft_bike_event_defaults_40km() {
+        val fromRace = GoalDraft(type = GoalType.RACE_TIME, targetDistanceMeters = 5000.0)
+        assertThat(fromRace.withType(GoalType.BIKE_EVENT).targetDistanceMeters).isEqualTo(40_000.0)
+
+        val fresh = GoalDraft(targetDistanceMeters = null).withType(GoalType.BIKE_EVENT)
+        assertThat(fresh.targetDistanceMeters).isEqualTo(40_000.0)
+
+        val alreadyValid = GoalDraft(targetDistanceMeters = 100_000.0).withType(GoalType.BIKE_EVENT)
+        assertThat(alreadyValid.targetDistanceMeters).isEqualTo(100_000.0)
+    }
+
+    /** P12.4: a `BIKE_EVENT` needs a distance but not a time — a date-only event is manual
+     * (`GoalProgress.bikeEvent`, P12.2) — while `BIKE_FTP` needs its watts. */
+    @Test
+    fun goaldraft_bike_ftp_requires_watts() {
+        val ftp = GoalDraft(type = GoalType.BIKE_FTP, title = "250 W FTP")
+        assertThat(validateGoal(ftp)).containsKey(GoalField.VALUE)
+        assertThat(validateGoal(ftp.copy(targetValue = 250.0))).isEmpty()
+
+        val event = GoalDraft(type = GoalType.BIKE_EVENT, title = "First century", targetDistanceMeters = null)
+        assertThat(validateGoal(event)).containsKey(GoalField.DISTANCE)
+        val validEvent = event.copy(targetDistanceMeters = 100_000.0)
+        assertThat(validateGoal(validEvent)).isEmpty()
+        assertThat(validEvent.toGoal(clock).targetTimeSec).isNull()
+    }
+
     @Test
     fun headlines_and_labels_describe_each_goal_type() {
         val race = GoalDraft(

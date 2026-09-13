@@ -1459,10 +1459,12 @@ Type-safe routes with `kotlinx.serialization` (`androidx.navigation:navigation-c
 @Serializable data object OnboardingRoute
 @Serializable data object GarminDirectRoute                  // P9 only
 @Serializable data object MoreRoute
+@Serializable data object BikeRoute                          // P12.4: FTP card + power/time PR tables
 ```
 
 **Bottom navigation (5 items):** `Today` · `Calendar` · `Nutrition` · `Training` · `More`.
-`More` is a simple list screen linking to Activities, Body & Health, Running PRs, Load & Recovery, Ingredients, Meal Templates, Goals, Import, Backup, Settings, Integrations.
+`More` is a simple list screen linking to Activities, Body & Health, Running PRs, **Bike & power**
+(P12.4), Load & Recovery, Ingredients, Meal Templates, Goals, Import, Backup, Settings, Integrations.
 
 Start destination: `OnboardingRoute` when `profile` row is missing, else `TodayRoute`.
 Back behaviour: bottom-nav destinations use `popUpTo(TodayRoute) { saveState = true }`, `launchSingleTop = true`, `restoreState = true`.
@@ -1489,7 +1491,7 @@ MoreRoute ──▶ everything else
 | **Suggestion review** | Shows the generated week: each `SuggestedSession` as a card with sport, type, duration, intensity, estimated load and the rationale bullets | `batch`, `sessions`, `perSessionAccepted: Map<Long,Boolean>` | accept all / accept one / edit before accept / regenerate |
 | **Planned session edit** | Manual session: sport, type, intensity, duration, distance, pace, description, lock | draft | save, delete |
 | **Activities** | Reverse-chronological list, filter by sport + date range; each row: sport icon, title, duration, distance, avg HR, TRIMP, source badge(s) | `filter`, `items: LazyPagingList` (simple `Flow<List<ActivitySummary>>`, no Paging lib) | open detail, manual add |
-| **Activity detail** | Header stats, HR chart (Canvas), pace/altitude chart, laps table, source badges, linked event, RPE input, notes; "best efforts" list from `running_best` | `activity`, `streams`, `laps`, `bests`, `linkedEvent` | set RPE, link to event, edit title, delete |
+| **Activity detail** | Header stats, HR chart (Canvas), pace/altitude chart, laps table, source badges, linked event, RPE input, notes; "best efforts" list from `running_best`; for a ride (P12.4): a power card (avg/NP/max, IF + TSS once an FTP estimate exists) and a power-over-time chart, cadence shown in rpm | `activity`, `streams`, `laps`, `bests`, `linkedEvent`, `ftp` | set RPE, link to event, edit title, delete |
 | **Nutrition diary** | One day: target header (kcal + macro bars + remaining), meals grouped by slot, water tracker, "why this target" expander showing `explanation` | `day`, `target`, `meals`, `totals`, `water` | add food to slot, copy yesterday, edit/delete item, log water |
 | **Add food** | Tabs: Recents · Favorites · Search · Templates · Scan. Quantity + unit entry with live macro preview | `query`, `results`, `selected`, `quantity`, `unit`, `preview` | add to diary, open Scan, create new ingredient |
 | **Ingredients** | Searchable list of ingredients with basis + kcal/100; archived filter | `query`, `items` | new, edit, archive, delete |
@@ -1501,11 +1503,12 @@ MoreRoute ──▶ everything else
 | **Body & Health** | Weight chart (30/90/365 d) with a 7-day moving average and the goal line; body-fat chart; resting HR chart; sleep duration bars; manual weight entry | `range`, `series` | log weight, log body fat |
 | **Load & recovery** | ATL/CTL/ACWR chart, TRIMP bars per day, monotony/strain, recovery score history, active flags with explanations | `range`, `series`, `flags` | change range |
 | **Running PRs** | Table of PRs per canonical distance (time, pace, date, link to activity, estimated badge) + Riegel predictions + VDOT | `bests`, `predictions`, `vdot` | tap → activity, add manual PR |
-| **Goals** | List of goals with progress (e.g. "5k 20:00 by 15 Nov — current best 21:14, on track/behind") | `goals`, `progress` | new, edit, mark achieved |
-| **Goal edit** | Type-dependent form (race time: distance + target time + date + link event; body weight: target + date) | draft | save, delete |
+| **Bike & power** (P12.4, More → "Bike & power") | FTP card (value, source in plain words, basis date + link to the basis ride, or a hint to set the override); power bests (5/20/60 min, max wins) and time bests (10/20/40/100 km, min wins) from `ride_best`, each with a date and a link to its ride, `isEstimated` marked | `ftp`, `powerBests`, `timeBests` | tap a row → activity |
+| **Goals** | List of goals with progress (e.g. "5k 20:00 by 15 Nov — current best 21:14, on track/behind"); a hint when a `BIKE_*` goal is active but the `CYCLE` cap is 0 (P12.4) | `goals`, `progress`, `showCycleCapHint` | new, edit, mark achieved |
+| **Goal edit** | Type-dependent form (race time: distance + target time + date + link event; body weight: target + date; P12.4: `BIKE_FTP` watts, `BIKE_VOLUME` h/week, `BIKE_EVENT` distance choice 10/20/40/100 km + optional time + optional date) | draft | save, delete |
 | **Import** | Pick a `.fit`, `.csv`, or `.zip` via `ActivityResultContracts.OpenDocument`; shows parse progress and a result summary (parsed / inserted / duplicates / errors); history of `import_record` | `state: Idle\|Running(progress)\|Done(summary)\|Error` | pick file, retry, view log |
 | **Integrations** | Health Connect status (available / needs update / not installed), granted permission list, "Grant permissions", "Sync now", last sync time + error, backfill control (request history permission, choose start date) | `sdkStatus`, `granted: Set<String>`, `lastSync`, `isSyncing` | request permissions, sync, backfill, open HC settings |
-| **Settings** | Units (metric fixed), week start (Mon fixed), sleep target, include treadmill in PRs, mobility on rest days, sync interval, theme, destructive-migration debug toggle | settings values | edit each |
+| **Settings** | Units (metric fixed), week start (Mon fixed), sleep target, include treadmill in PRs, mobility on rest days, sync interval, theme, destructive-migration debug toggle, per-sport weekly session caps incl. "Rides / week"; a Cycling section (P12.4): FTP override (hint shows the current estimate + source + basis date) and "Indoor trainer available" | settings values | edit each |
 | **Backup** | Export the whole DB to a JSON file via `CreateDocument`; import from JSON with a merge/replace choice; show counts | `state` | export, import |
 | **More** | Navigation hub list | — | — |
 | **Garmin direct (P9)** | Email/password + MFA prompt, connection status, which extra metrics were fetched, disconnect | `state` | connect, disconnect, sync now |

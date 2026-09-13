@@ -18,6 +18,7 @@ import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.ui.nav.ActivitiesRoute
 import com.myhealth.ui.nav.BackupRoute
+import com.myhealth.ui.nav.BikeRoute
 import com.myhealth.ui.nav.BodyRoute
 import com.myhealth.ui.nav.CycleRoute
 import com.myhealth.ui.nav.GoalsRoute
@@ -40,6 +41,7 @@ fun moreEntries(cycleTrackingEnabled: Boolean): List<MoreEntry> = buildList {
     add(MoreEntry(R.string.body_title, BodyRoute))
     if (cycleTrackingEnabled) add(MoreEntry(R.string.more_entry_cycle, CycleRoute))
     add(MoreEntry(R.string.more_entry_running_prs, RunningPrsRoute))
+    add(MoreEntry(R.string.more_entry_bike, BikeRoute))
     add(MoreEntry(R.string.more_entry_load_recovery, LoadRoute))
     add(MoreEntry(R.string.more_entry_ingredients, IngredientsRoute))
     add(MoreEntry(R.string.more_entry_meal_templates, MealTemplatesRoute))

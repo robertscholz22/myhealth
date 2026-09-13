@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myhealth.R
 import com.myhealth.di.rememberVm
+import com.myhealth.domain.engine.bike.FtpEstimate
+import com.myhealth.domain.engine.bike.FtpSource
 import com.myhealth.domain.model.AppSettings
 import com.myhealth.domain.model.NeatLevel
 import com.myhealth.domain.model.Profile
@@ -35,6 +37,7 @@ import com.myhealth.domain.model.SportGroup
 import com.myhealth.ui.common.DatePickerField
 import com.myhealth.ui.common.DropdownField
 import com.myhealth.ui.common.NumberField
+import com.myhealth.ui.common.ONBOARDING_SPORT_GROUPS
 import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.decodePreferredSports
@@ -42,11 +45,21 @@ import com.myhealth.ui.common.encodePreferredSports
 import com.myhealth.ui.common.resolve
 import com.myhealth.ui.theme.MyHealthTheme
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
     val vm = rememberVm { graph ->
-        SettingsViewModel(graph.profileRepo, graph.settings, graph.importRepo, graph.syncScheduler, graph.clock)
+        SettingsViewModel(
+            graph.profileRepo,
+            graph.settings,
+            graph.importRepo,
+            graph.rideBestRepo,
+            graph.activityRepo,
+            graph.syncScheduler,
+            graph.clock,
+        )
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val message by vm.message.collectAsStateWithLifecycle()
@@ -88,6 +101,9 @@ private fun SettingsContent(
         val profile = state.profile
         if (profile != null) {
             item { ProfileSection(profile = profile, onProfileChange = onProfileChange) }
+            item {
+                CyclingSection(profile = profile, ftpEstimate = state.ftpEstimate, onProfileChange = onProfileChange)
+            }
         } else if (!state.isLoading) {
             item { Text(stringResource(R.string.settings_no_profile)) }
         }
@@ -189,15 +205,24 @@ private fun ProfileSection(profile: Profile, onProfileChange: (Profile) -> Unit)
     }
 }
 
+/**
+ * The weekly session caps, one field per [ONBOARDING_SPORT_GROUPS] entry (P12.3 appended `CYCLE`
+ * here so the cap that gates the suggester's rides — `BikeRules.isBikeEnabled`, C10 — is reachable
+ * from Settings, not only from onboarding).
+ */
 @Composable
 private fun PreferredSportsFields(profile: Profile, onProfileChange: (Profile) -> Unit) {
     val sessions = decodePreferredSports(profile.preferredSportsJson)
-    listOf(SportGroup.RUN, SportGroup.STRENGTH, SportGroup.SOCCER).forEach { group ->
+    ONBOARDING_SPORT_GROUPS.forEach { group ->
         NumberField(
-            label = stringResource(
-                R.string.settings_profile_sport_sessions_cap_format,
-                group.name.lowercase().replaceFirstChar(Char::uppercase),
-            ),
+            label = if (group == SportGroup.CYCLE) {
+                stringResource(R.string.settings_profile_ride_sessions_label)
+            } else {
+                stringResource(
+                    R.string.settings_profile_sport_sessions_cap_format,
+                    group.name.lowercase().replaceFirstChar(Char::uppercase),
+                )
+            },
             value = (sessions[group] ?: 0).toDouble(),
             onValueChange = { v ->
                 val updated = sessions + (group to (v ?: 0.0).toInt().coerceIn(0, 14))
@@ -207,6 +232,47 @@ private fun PreferredSportsFields(profile: Profile, onProfileChange: (Profile) -
         )
     }
 }
+
+/** FTP override and indoor-trainer flag (PLAN "UI.", P12.4) — the cycling half of Settings. */
+@Composable
+private fun CyclingSection(profile: Profile, ftpEstimate: FtpEstimate?, onProfileChange: (Profile) -> Unit) {
+    SectionCard(title = stringResource(R.string.settings_section_cycling)) {
+        NumberField(
+            label = stringResource(R.string.settings_profile_ftp_override_label),
+            value = profile.ftpWattsManual?.toDouble(),
+            onValueChange = { onProfileChange(profile.copy(ftpWattsManual = it?.toInt())) },
+            suffix = stringResource(R.string.settings_unit_watts),
+            decimals = 0,
+            supportingText = ftpOverrideHint(ftpEstimate),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(stringResource(R.string.settings_profile_indoor_trainer_label))
+            Switch(
+                checked = profile.indoorTrainerAvailable,
+                onCheckedChange = { onProfileChange(profile.copy(indoorTrainerAvailable = it)) },
+            )
+        }
+    }
+}
+
+/** "Estimated 247 W from a ride on 2 Sep." — `null` shows no hint at all (PLAN "UI." example). */
+private fun ftpOverrideHint(ftp: FtpEstimate?): String? {
+    if (ftp == null) return null
+    val basis = ftp.basisDay?.let { " on ${formatFtpBasisDate(it)}" }.orEmpty()
+    val source = when (ftp.source) {
+        FtpSource.STREAM_20MIN -> "a 20-minute best"
+        FtpSource.SESSION_NP -> "a ride"
+        FtpSource.MANUAL -> return null // never produced: the hint always resolves with manual = null
+    }
+    return "Estimated ${ftp.watts} W from $source$basis."
+}
+
+private fun formatFtpBasisDate(epochDay: Long): String =
+    LocalDate.ofEpochDay(epochDay).format(DateTimeFormatter.ofPattern("d MMM", Locale.US))
 
 @Preview(showBackground = true)
 @Composable

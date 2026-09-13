@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myhealth.R
 import com.myhealth.di.rememberVm
+import com.myhealth.domain.engine.bike.FtpEstimate
 import com.myhealth.domain.model.ActivitySession
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ActivityStreams
@@ -67,6 +68,7 @@ fun ActivityDetailScreen(id: Long, onBack: () -> Unit, modifier: Modifier = Modi
             graph.activityRepo,
             graph.profileRepo,
             graph.calendarRepo,
+            graph.rideBestRepo,
             graph.syncScheduler,
             graph.clock,
         )
@@ -150,8 +152,14 @@ internal fun ActivityDetailBody(
         item { TitleEditCard(activity.title, onSaveTitle) }
         item { NoteEditCard(activity.note, onSaveNote) }
         item { LinkedEventCard(state.linkedEvent, onOpenEventPicker, onUnlinkEvent) }
+        if (hasPowerFields(activity)) {
+            item { PowerCard(activity, state.ftp) }
+        }
         item { HrChartCard(activity) }
         item { PaceOrSpeedChartCard(activity) }
+        if (activity.streams?.powerW != null) {
+            item { PowerChartCard(activity) }
+        }
         if (altitudePoints(activity.streams).any { it.y != null }) {
             item { AltitudeChartCard(activity) }
         }
@@ -183,7 +191,12 @@ private fun HeaderStatsCard(activity: ActivitySession) {
             activity.avgSpeedMps?.let { StatLine(avgLabel, "${fmtDecimal(it * 3.6, 1)} km/h") }
             activity.maxSpeedMps?.let { StatLine(maxLabel, "${fmtDecimal(it * 3.6, 1)} km/h") }
         }
-        activity.avgCadenceSpm?.let { StatLine(stringResource(R.string.activity_detail_cadence_label), "${fmtDecimal(it, 0)} spm") }
+        // `avgCadenceSpm` is already revolutions per minute for a CYCLE ride (P12) — only the unit
+        // label changes, the stored number does not.
+        val cadenceUnit = if (activity.sportGroup == SportGroup.CYCLE) "rpm" else "spm"
+        activity.avgCadenceSpm?.let {
+            StatLine(stringResource(R.string.activity_detail_cadence_label), "${fmtDecimal(it, 0)} $cadenceUnit")
+        }
         val elevationLabel = stringResource(R.string.activity_detail_elevation_gain_label)
         activity.elevationGainM?.let { StatLine(elevationLabel, "${fmtDecimal(it, 0)} m") }
         val activeCaloriesLabel = stringResource(R.string.activity_detail_active_calories_label)
@@ -195,6 +208,37 @@ private fun HeaderStatsCard(activity: ActivitySession) {
             StatLine(stringResource(R.string.activity_detail_trimp_label), "${fmtDecimal(trimp, 1)}$method")
         }
     }
+}
+
+private fun hasPowerFields(activity: ActivitySession): Boolean =
+    activity.avgPowerW != null || activity.maxPowerW != null || activity.normalizedPowerW != null
+
+/**
+ * Avg / NP / max power, plus intensity factor and TSS once an FTP estimate exists (PLAN "UI.",
+ * P12.4). `IF`/`TSS` mirror `TrimpCalculator.powerTss`'s formula (§3.8) but are shown here
+ * independently of whether the ride's own TRIMP actually used the `POWER_TSS` rung.
+ */
+@Composable
+private fun PowerCard(activity: ActivitySession, ftp: FtpEstimate?) {
+    SectionCard(title = stringResource(R.string.activity_detail_power_title)) {
+        activity.avgPowerW?.let { StatLine(stringResource(R.string.activity_detail_avg_power_label), "$it W") }
+        activity.normalizedPowerW?.let { StatLine(stringResource(R.string.activity_detail_np_label), "$it W") }
+        activity.maxPowerW?.let { StatLine(stringResource(R.string.activity_detail_max_power_label), "$it W") }
+        val np = activity.normalizedPowerW ?: activity.avgPowerW
+        if (np != null && ftp != null && ftp.watts > 0) {
+            val intensityFactor = np.toDouble() / ftp.watts
+            StatLine(stringResource(R.string.activity_detail_if_label), fmtDecimal(intensityFactor, 2))
+            val tss = trainingStressScore(activity.durationSec, np, ftp.watts)
+            tss?.let { StatLine(stringResource(R.string.activity_detail_tss_label), fmtDecimal(it, 0)) }
+        }
+    }
+}
+
+/** `durationSec * NP * IF / (ftpWatts * 3600) * 100` — same formula as `TrimpCalculator.powerTss`. */
+private fun trainingStressScore(durationSec: Int, np: Int, ftpWatts: Int): Double? {
+    if (ftpWatts <= 0 || durationSec <= 0 || np <= 0) return null
+    val intensityFactor = np.toDouble() / ftpWatts
+    return durationSec * np * intensityFactor / (ftpWatts * 3600.0) * 100.0
 }
 
 @Composable

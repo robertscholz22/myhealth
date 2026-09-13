@@ -3,14 +3,19 @@ package com.myhealth.ui.activities
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myhealth.domain.engine.activity.ActivityFields
+import com.myhealth.domain.engine.bike.BikeDefaults
+import com.myhealth.domain.engine.bike.FtpEstimate
+import com.myhealth.domain.engine.bike.FtpEstimator
 import com.myhealth.domain.engine.load.timeInZones
 import com.myhealth.domain.model.ActivitySession
 import com.myhealth.domain.model.CalendarDay
 import com.myhealth.domain.model.LinkMethod
 import com.myhealth.domain.model.Profile
+import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.repository.CalendarRepository
 import com.myhealth.domain.repository.ProfileRepository
+import com.myhealth.domain.repository.RideBestRepository
 import com.myhealth.sync.SyncScheduler
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -28,6 +33,9 @@ import java.time.LocalDate
 /** Fallback resting/max HR (§3.2.1) when the profile has neither a manual value nor an estimate. */
 private const val FALLBACK_HR_REST = 60
 private const val FALLBACK_HR_MAX = 190
+
+/** How many `POWER_20MIN` rows the FTP resolution considers (mirrors `GoalsViewModel`, P12.4). */
+private const val FTP_BEST_CANDIDATES = 50
 
 private data class ActivityCore(
     val activity: ActivitySession?,
@@ -55,6 +63,7 @@ class ActivityDetailViewModel(
     private val activityRepo: ActivityRepository,
     private val profileRepo: ProfileRepository,
     private val calendarRepo: CalendarRepository,
+    private val rideBestRepo: RideBestRepository,
     private val syncScheduler: SyncScheduler,
     private val clock: Clock,
 ) : ViewModel() {
@@ -78,7 +87,24 @@ class ActivityDetailViewModel(
 
     private val linking = combine(dayCalendar, showEventPicker) { day, picker -> ActivityLinking(day, picker) }
 
-    val state: StateFlow<ActivityDetailUiState> = combine(core, linking) { c, l ->
+    /** The power card's FTP (P12.4): resolved the same way `GoalsViewModel` does, off the same
+     * 90-day window `FtpEstimator`/`BikeDefaults.FTP_WINDOW_DAYS` reads. */
+    private val ftp: Flow<FtpEstimate?> = combine(
+        rideBestRepo.observeByKind(RideBestKind.POWER_20MIN, FTP_BEST_CANDIDATES),
+        activityRepo.observeRange(today().toEpochDay() - BikeDefaults.FTP_WINDOW_DAYS, today().toEpochDay()),
+        profileRepo.observeProfile(),
+    ) { twentyMinuteBests, rides, profile ->
+        FtpEstimator.estimateFromSummaries(
+            manualWatts = profile?.ftpWattsManual,
+            powerBests = twentyMinuteBests,
+            rides = rides,
+            todayDay = today().toEpochDay(),
+        )
+    }
+
+    private fun today(): LocalDate = LocalDate.now(clock)
+
+    val state: StateFlow<ActivityDetailUiState> = combine(core, linking, ftp) { c, l, ftpEstimate ->
         ActivityDetailUiState(
             isLoading = false,
             activity = c.activity,
@@ -88,6 +114,7 @@ class ActivityDetailViewModel(
             linkedEvent = l.day?.events?.firstOrNull { it.linkedActivityId == activityId },
             dayEvents = l.day?.events.orEmpty(),
             showEventPicker = l.showEventPicker,
+            ftp = ftpEstimate,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ActivityDetailUiState())
 

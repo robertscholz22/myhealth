@@ -14,6 +14,16 @@ import java.time.LocalDate
 enum class GoalField { TITLE, DISTANCE, TIME, DATE, WEIGHT, VALUE }
 
 /**
+ * The four distances the `BIKE_EVENT` editor offers (PLAN "UI.", P12.4) — the same set
+ * [com.myhealth.domain.model.RideBestKind]'s `TIME_10K/20K/40K/100K` kinds measure, so a
+ * `BIKE_EVENT` goal with a target time can always be matched against a `ride_best` row.
+ */
+val BIKE_EVENT_DISTANCES: List<Double> = listOf(10_000.0, 20_000.0, 40_000.0, 100_000.0)
+
+/** The distance a fresh (or mismatched) `BIKE_EVENT` draft defaults to. */
+const val BIKE_EVENT_DEFAULT_DISTANCE_METERS: Double = 40_000.0
+
+/**
  * The goal editor's form state (PLAN §4.2 "Goal edit", P6.1). Which fields matter depends on
  * [type]: a race goal needs a distance + time (+ optional date and linked `RACE` event), a weight
  * goal a target weight, a consistency goal a sessions/week number.
@@ -54,10 +64,11 @@ data class GoalDraft(
  */
 fun GoalDraft.withType(newType: GoalType): GoalDraft = copy(
     type = newType,
-    targetDistanceMeters = if (newType == GoalType.RACE_TIME) {
-        targetDistanceMeters ?: CanonicalDistances.FIVE_KM
-    } else {
-        targetDistanceMeters
+    targetDistanceMeters = when (newType) {
+        GoalType.RACE_TIME -> targetDistanceMeters ?: CanonicalDistances.FIVE_KM
+        GoalType.BIKE_EVENT ->
+            targetDistanceMeters?.takeIf { it in BIKE_EVENT_DISTANCES } ?: BIKE_EVENT_DEFAULT_DISTANCE_METERS
+        else -> targetDistanceMeters
     },
 )
 
@@ -80,10 +91,12 @@ fun validateGoal(draft: GoalDraft): Map<GoalField, UiMessage> {
             if ((draft.targetWeightKg ?: 0.0) <= 0.0) errors[GoalField.WEIGHT] = UiMessage.of(R.string.goal_error_weight_required)
         GoalType.CONSISTENCY ->
             if ((draft.targetValue ?: 0.0) <= 0.0) errors[GoalField.VALUE] = UiMessage.of(R.string.goal_error_sessions_required)
-        GoalType.STRENGTH_LIFT, GoalType.SOCCER_AVAILABILITY, GoalType.BIKE_FTP,
-        GoalType.BIKE_VOLUME, GoalType.BIKE_EVENT,
-        ->
+        GoalType.STRENGTH_LIFT, GoalType.SOCCER_AVAILABILITY, GoalType.BIKE_FTP, GoalType.BIKE_VOLUME ->
             if ((draft.targetValue ?: 0.0) <= 0.0) errors[GoalField.VALUE] = UiMessage.of(R.string.goal_error_value_required)
+        // A distance is required; the time is optional (a date-only event is tracked manually,
+        // GoalProgress.bikeEvent, P12.2), so it never blocks the save.
+        GoalType.BIKE_EVENT ->
+            if ((draft.targetDistanceMeters ?: 0.0) <= 0.0) errors[GoalField.DISTANCE] = UiMessage.of(R.string.goal_error_distance_required)
     }
     return errors
 }
@@ -92,15 +105,16 @@ fun validateGoal(draft: GoalDraft): Map<GoalField, UiMessage> {
 fun GoalDraft.toGoal(clock: Clock): Goal {
     val now = clock.millis()
     val isRace = type == GoalType.RACE_TIME
+    val isBikeEvent = type == GoalType.BIKE_EVENT
     return Goal(
         id = id,
         type = type,
         title = title.trim(),
         targetDay = targetDay?.toEpochDay(),
-        targetDistanceMeters = targetDistanceMeters.takeIf { isRace },
-        targetTimeSec = targetTimeSec.takeIf { isRace },
+        targetDistanceMeters = targetDistanceMeters.takeIf { isRace || isBikeEvent },
+        targetTimeSec = targetTimeSec.takeIf { isRace || isBikeEvent },
         targetWeightKg = targetWeightKg.takeIf { type == GoalType.BODY_WEIGHT },
-        targetValue = targetValue.takeIf { type != GoalType.RACE_TIME && type != GoalType.BODY_WEIGHT },
+        targetValue = targetValue.takeIf { type != GoalType.RACE_TIME && type != GoalType.BODY_WEIGHT && !isBikeEvent },
         priority = if (isPrimary) 1 else 2,
         status = status,
         linkedEventId = linkedEventId.takeIf { isRace },
@@ -163,7 +177,12 @@ fun goalHeadline(goal: Goal): String {
         GoalType.CONSISTENCY -> "${goal.targetValue ?: 0.0} sessions/week$by"
         GoalType.BIKE_FTP -> "${goal.targetValue ?: 0.0} W FTP$by"
         GoalType.BIKE_VOLUME -> "${goal.targetValue ?: 0.0} h/week riding$by"
-        GoalType.STRENGTH_LIFT, GoalType.SOCCER_AVAILABILITY, GoalType.BIKE_EVENT ->
+        GoalType.BIKE_EVENT -> {
+            val distance = goal.targetDistanceMeters?.let { GoalProgress.distanceLabel(it) } ?: "ride"
+            val time = goal.targetTimeSec?.let { " in ${GoalProgress.formatTime(it)}" } ?: ""
+            "$distance$time$by"
+        }
+        GoalType.STRENGTH_LIFT, GoalType.SOCCER_AVAILABILITY ->
             "${goalTypeLabel(goal.type)}: ${goal.targetValue ?: 0.0}$by"
     }
 }

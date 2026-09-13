@@ -56,6 +56,18 @@ internal fun PaceOrSpeedChartCard(activity: ActivitySession) {
     }
 }
 
+/** Power over elapsed minutes, when the ride carries a `powerW` stream (PLAN "UI.", P12.4). */
+@Composable
+internal fun PowerChartCard(activity: ActivitySession) {
+    LineChartCard(
+        title = stringResource(R.string.activity_chart_power_title),
+        series = listOf(ChartSeries(name = stringResource(R.string.activity_chart_power_series), points = powerPoints(activity.streams))),
+        xLabels = minuteAxisLabels(activity.streams),
+        yFormatter = { fmtDecimal(it, 0) },
+        emptyMessage = stringResource(R.string.activity_chart_power_empty),
+    )
+}
+
 @Composable
 internal fun AltitudeChartCard(activity: ActivitySession) {
     LineChartCard(

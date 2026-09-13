@@ -7,6 +7,7 @@ import com.myhealth.domain.engine.bike.FtpEstimator
 import com.myhealth.domain.model.GoalStatus
 import com.myhealth.domain.model.RideBest
 import com.myhealth.domain.model.RideBestKind
+import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.repository.BodyRepository
 import com.myhealth.domain.repository.GoalRepository
@@ -15,6 +16,7 @@ import com.myhealth.domain.repository.RideBestRepository
 import com.myhealth.domain.repository.RunningBestRepository
 import com.myhealth.domain.util.Outcome
 import com.myhealth.ui.common.UiMessage
+import com.myhealth.ui.common.decodePreferredSports
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -57,11 +59,15 @@ class GoalsViewModel(
 
     private fun today(): LocalDate = LocalDate.now(clock)
 
-    /** The cycling goals' inputs (P12.2): the ride PR table, the FTP candidates and the override. */
+    /**
+     * The cycling goals' inputs (P12.2): the ride PR table, the FTP candidates, the override, and
+     * (P12.4) the `CYCLE` preferred-sports cap that gates [GoalsUiState.showCycleCapHint].
+     */
     private data class BikeInputs(
         val prPerKind: List<RideBest>,
         val twentyMinuteBests: List<RideBest>,
         val manualFtpWatts: Int?,
+        val cycleCapPerWeek: Int,
     )
 
     private val bikeInputs = combine(
@@ -69,7 +75,12 @@ class GoalsViewModel(
         rideBestRepo.observeByKind(RideBestKind.POWER_20MIN, FTP_BEST_CANDIDATES),
         profileRepo.observeProfile(),
     ) { prPerKind, twentyMinute, profile ->
-        BikeInputs(prPerKind, twentyMinute, profile?.ftpWattsManual)
+        BikeInputs(
+            prPerKind = prPerKind,
+            twentyMinuteBests = twentyMinute,
+            manualFtpWatts = profile?.ftpWattsManual,
+            cycleCapPerWeek = decodePreferredSports(profile?.preferredSportsJson.orEmpty())[SportGroup.CYCLE] ?: 0,
+        )
     }
 
     val state: StateFlow<GoalsUiState> = combine(
@@ -86,11 +97,13 @@ class GoalsViewModel(
             todayDay = today().toEpochDay(),
         )
         val rows = goalRows(goals, bests, weights, activities, today(), bike.prPerKind, ftp)
+        val active = rows.activeOnly().sortedForDisplay()
         GoalsUiState(
             isLoading = false,
-            active = rows.activeOnly().sortedForDisplay(),
+            active = active,
             archived = rows.archivedOnly().sortedForDisplay(),
             message = msg,
+            showCycleCapHint = bike.cycleCapPerWeek <= 0 && active.any { it.goal.type in BIKE_GOAL_TYPES },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GoalsUiState())
 

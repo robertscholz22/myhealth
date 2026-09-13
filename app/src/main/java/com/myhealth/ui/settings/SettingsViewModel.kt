@@ -3,15 +3,22 @@ package com.myhealth.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myhealth.R
+import com.myhealth.domain.engine.bike.BikeDefaults
+import com.myhealth.domain.engine.bike.FtpEstimate
+import com.myhealth.domain.engine.bike.FtpEstimator
 import com.myhealth.domain.model.AppSettings
 import com.myhealth.domain.model.Profile
+import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.model.Sex
+import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.repository.ImportRepository
 import com.myhealth.domain.repository.ProfileRepository
+import com.myhealth.domain.repository.RideBestRepository
 import com.myhealth.domain.repository.SettingsRepository
 import com.myhealth.domain.util.Outcome
 import com.myhealth.sync.SyncScheduler
 import com.myhealth.ui.common.UiMessage
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,12 +27,18 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Clock
+import java.time.LocalDate
+
+/** How many `POWER_20MIN` rows the FTP hint considers (mirrors `GoalsViewModel`, P12.4). */
+private const val FTP_HINT_CANDIDATES = 50
 
 /** Every profile field plus every [AppSettings] key, edited in place (§4.2 Settings). */
 class SettingsViewModel(
     private val profileRepo: ProfileRepository,
     private val settingsRepo: SettingsRepository,
     private val importRepo: ImportRepository,
+    private val rideBestRepo: RideBestRepository,
+    private val activityRepo: ActivityRepository,
     private val syncScheduler: SyncScheduler,
     private val clock: Clock,
 ) : ViewModel() {
@@ -35,11 +48,27 @@ class SettingsViewModel(
     /** One-shot result of [removeOrphanedImportData], resolved and shown by the screen's snackbar. */
     val message: StateFlow<UiMessage?> = orphanCleanupMessage.asStateFlow()
 
+    private fun today(): LocalDate = LocalDate.now(clock)
+
+    /** The FTP estimate ignoring any manual override (P12.4 "UI." — the override field's hint). */
+    private val ftpEstimate: Flow<FtpEstimate?> = combine(
+        rideBestRepo.observeByKind(RideBestKind.POWER_20MIN, FTP_HINT_CANDIDATES),
+        activityRepo.observeRange(today().toEpochDay() - BikeDefaults.FTP_WINDOW_DAYS, today().toEpochDay()),
+    ) { twentyMinuteBests, rides ->
+        FtpEstimator.estimateFromSummaries(
+            manualWatts = null,
+            powerBests = twentyMinuteBests,
+            rides = rides,
+            todayDay = today().toEpochDay(),
+        )
+    }
+
     val state: StateFlow<SettingsUiState> = combine(
         profileRepo.observeProfile(),
         settingsRepo.settings,
-    ) { profile, settings ->
-        SettingsUiState(isLoading = false, profile = profile, settings = settings)
+        ftpEstimate,
+    ) { profile, settings, ftp ->
+        SettingsUiState(isLoading = false, profile = profile, settings = settings, ftpEstimate = ftp)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
     fun onProfileChange(profile: Profile) {

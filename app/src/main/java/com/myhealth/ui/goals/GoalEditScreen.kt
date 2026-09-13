@@ -273,26 +273,64 @@ private fun TypeFields(
             isError = state.errors.containsKey(GoalField.VALUE),
             supportingText = state.errors[GoalField.VALUE]?.resolve(),
         )
-        // P12.1 gives the three cycling goals the generic "target value" field; P12.4 replaces
-        // this arm with the watts / hours-per-week / distance+time editors of the plan.
-        GoalType.STRENGTH_LIFT, GoalType.SOCCER_AVAILABILITY, GoalType.BIKE_FTP,
-        GoalType.BIKE_VOLUME, GoalType.BIKE_EVENT,
-        -> NumberField(
-            label = stringResource(
-                when (draft.type) {
-                    GoalType.STRENGTH_LIFT -> R.string.goal_edit_target_lift_label
-                    GoalType.BIKE_FTP -> R.string.goal_edit_target_ftp_label
-                    GoalType.BIKE_VOLUME -> R.string.goal_edit_target_ride_hours_label
-                    GoalType.BIKE_EVENT -> R.string.goal_edit_target_event_km_label
-                    else -> R.string.goal_edit_target_matches_label
-                },
-            ),
-            value = draft.targetValue,
-            onValueChange = { v -> onChange { it.copy(targetValue = v) } },
-            decimals = 1,
-            isError = state.errors.containsKey(GoalField.VALUE),
-            supportingText = state.errors[GoalField.VALUE]?.resolve(),
-        )
+        // Watts / hours-per-week: a single number is the whole form (P12.4).
+        GoalType.STRENGTH_LIFT, GoalType.SOCCER_AVAILABILITY, GoalType.BIKE_FTP, GoalType.BIKE_VOLUME ->
+            NumberField(
+                label = stringResource(
+                    when (draft.type) {
+                        GoalType.STRENGTH_LIFT -> R.string.goal_edit_target_lift_label
+                        GoalType.BIKE_FTP -> R.string.goal_edit_target_ftp_label
+                        GoalType.BIKE_VOLUME -> R.string.goal_edit_target_ride_hours_label
+                        else -> R.string.goal_edit_target_matches_label
+                    },
+                ),
+                value = draft.targetValue,
+                onValueChange = { v -> onChange { it.copy(targetValue = v) } },
+                decimals = 1,
+                isError = state.errors.containsKey(GoalField.VALUE),
+                supportingText = state.errors[GoalField.VALUE]?.resolve(),
+            )
+        // Distance is required; the target time is optional (a date-only event is tracked
+        // manually by GoalProgress.bikeEvent, P12.2) — the shared target-date field below covers
+        // "optional date".
+        GoalType.BIKE_EVENT -> {
+            DropdownField(
+                label = stringResource(R.string.goal_edit_distance_label),
+                options = BIKE_EVENT_DISTANCES,
+                selected = draft.targetDistanceMeters?.takeIf { it in BIKE_EVENT_DISTANCES }
+                    ?: BIKE_EVENT_DEFAULT_DISTANCE_METERS,
+                optionLabel = { GoalProgress.distanceLabel(it) },
+                onSelect = { meters -> onChange { it.copy(targetDistanceMeters = meters) } },
+            )
+            state.errors[GoalField.DISTANCE]?.let { message ->
+                Text(
+                    text = message.resolve(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Text(stringResource(R.string.goal_edit_bike_event_time_hint), style = MaterialTheme.typography.bodySmall)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                NumberField(
+                    label = stringResource(R.string.goal_edit_target_min_label),
+                    value = draft.targetMinutes?.toDouble(),
+                    onValueChange = { v -> onChange { it.copy(targetMinutes = v?.toInt()) } },
+                    decimals = 0,
+                    modifier = Modifier.weight(1f),
+                )
+                NumberField(
+                    label = stringResource(R.string.goal_edit_target_sec_label),
+                    value = draft.targetSeconds?.toDouble(),
+                    onValueChange = { v -> onChange { it.copy(targetSeconds = v?.toInt()) } },
+                    decimals = 0,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
     }
 }
 

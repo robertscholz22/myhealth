@@ -71,6 +71,15 @@ fun speedPoints(streams: ActivityStreams?): List<ChartPoint> {
     return downsample(points)
 }
 
+/** Power in watts against elapsed minutes (P12.4); empty when the ride carries no power stream. */
+fun powerPoints(streams: ActivityStreams?): List<ChartPoint> {
+    val power = streams?.powerW ?: return emptyList()
+    val points = streams.sampleOffsetsSec.mapIndexed { index, offset ->
+        ChartPoint(offset / 60.0, power.getOrNull(index)?.toDouble())
+    }
+    return downsample(points)
+}
+
 /** Altitude in metres against elapsed minutes; empty when the activity carries no barometer data. */
 fun altitudePoints(streams: ActivityStreams?): List<ChartPoint> {
     val altitude = streams?.altitudeM ?: return emptyList()

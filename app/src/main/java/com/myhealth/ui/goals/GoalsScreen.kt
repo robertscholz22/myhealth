@@ -144,6 +144,15 @@ internal fun GoalsContent(
         contentPadding = PaddingValues(SCREEN_PADDING),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        if (state.showCycleCapHint) {
+            item {
+                Text(
+                    text = stringResource(R.string.goals_cycle_cap_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
         items(state.active, key = { it.goal.id }) { row -> GoalCard(row, actions) }
         if (state.archived.isNotEmpty()) {
             item { Text(stringResource(R.string.goals_archived_header), style = MaterialTheme.typography.titleMedium) }

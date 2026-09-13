@@ -248,10 +248,14 @@ private fun PreferencesStep(
     SectionCard(title = stringResource(com.myhealth.R.string.onboarding_weekly_sessions_title)) {
         SportGroup.entries.filter { it in draft.sessionsPerWeek }.forEach { group ->
             NumberField(
-                label = stringResource(
-                    com.myhealth.R.string.onboarding_sport_sessions_label,
-                    group.name.lowercase().replaceFirstChar { it.uppercase() },
-                ),
+                label = if (group == SportGroup.CYCLE) {
+                    stringResource(com.myhealth.R.string.onboarding_ride_sessions_label)
+                } else {
+                    stringResource(
+                        com.myhealth.R.string.onboarding_sport_sessions_label,
+                        group.name.lowercase().replaceFirstChar { it.uppercase() },
+                    )
+                },
                 value = draft.sessionsPerWeek[group]?.toDouble(),
                 onValueChange = { v ->
                     val count = (v ?: 0.0).toInt().coerceIn(0, 14)

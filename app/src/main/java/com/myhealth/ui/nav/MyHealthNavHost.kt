@@ -26,6 +26,7 @@ import com.myhealth.di.appGraph
 import com.myhealth.domain.model.MealSlot
 import com.myhealth.ui.activities.ActivitiesScreen
 import com.myhealth.ui.activities.ActivityDetailScreen
+import com.myhealth.ui.bike.BikeScreen
 import com.myhealth.ui.body.BodyScreen
 import com.myhealth.ui.calendar.CalendarScreen
 import com.myhealth.ui.calendar.DayDetailNavActions
@@ -284,6 +285,12 @@ fun MyHealthNavHost(
                     composable<LoadRoute> { LoadScreen() }
                     composable<RunningPrsRoute> {
                         RunningPrsScreen(onOpenActivity = { id -> navController.navigate(ActivityDetailRoute(id)) })
+                    }
+                    composable<BikeRoute> {
+                        BikeScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenActivity = { id -> navController.navigate(ActivityDetailRoute(id)) },
+                        )
                     }
                     composable<GoalsRoute> {
                         GoalsScreen(
