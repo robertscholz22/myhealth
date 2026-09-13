@@ -55,7 +55,7 @@ fun PlannedSessionEditScreen(
     modifier: Modifier = Modifier,
 ) {
     val vm = rememberVm { graph ->
-        PlannedSessionEditViewModel(id, epochDay, graph.planRepo, graph.clock)
+        PlannedSessionEditViewModel(id, epochDay, graph.planRepo, graph.profileRepo, graph.clock)
     }
     val state by vm.state.collectAsStateWithLifecycle()
 
@@ -270,6 +270,8 @@ private fun TargetsCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        TargetZoneChip(draft.sessionType, state.hrZoneModel)
+        WorkoutStructureSection(state.structureJson)
     }
 }
 

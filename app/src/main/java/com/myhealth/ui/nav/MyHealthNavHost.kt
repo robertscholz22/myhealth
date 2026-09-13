@@ -57,6 +57,7 @@ import com.myhealth.ui.training.PlannedSessionEditScreen
 import com.myhealth.ui.training.SuggestionReviewScreen
 import com.myhealth.ui.training.TrainingNavActions
 import com.myhealth.ui.training.TrainingScreen
+import com.myhealth.ui.zones.ZonesScreen
 import kotlinx.coroutines.flow.map
 
 /**
@@ -292,6 +293,7 @@ fun MyHealthNavHost(
                             onOpenActivity = { id -> navController.navigate(ActivityDetailRoute(id)) },
                         )
                     }
+                    composable<ZonesRoute> { ZonesScreen(onBack = { navController.popBackStack() }) }
                     composable<GoalsRoute> {
                         GoalsScreen(
                             onBack = { navController.popBackStack() },

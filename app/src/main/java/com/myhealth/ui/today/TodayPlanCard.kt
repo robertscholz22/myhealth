@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.myhealth.R
+import com.myhealth.domain.engine.load.HrZoneModel
 import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.PlannedStatus
@@ -28,6 +29,9 @@ import com.myhealth.ui.calendar.displayName
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.SportIcon
 import com.myhealth.ui.theme.MyHealthTheme
+import com.myhealth.ui.training.TargetZoneChip
+import com.myhealth.ui.training.WorkoutStructureSection
+import com.myhealth.ui.training.formatPaceSecPerKm
 import com.myhealth.ui.training.label
 import com.myhealth.ui.training.StaleSuggestionsHint
 import com.myhealth.ui.training.plannedSessionSubtitle
@@ -50,6 +54,7 @@ fun TodayPlanCard(
     planned: List<PlannedSession>,
     suggested: SuggestedSession?,
     isStale: Boolean = false,
+    hrZoneModel: HrZoneModel? = null,
     onMarkDone: (Long) -> Unit,
     onReviewSuggestions: () -> Unit,
     onOpenTraining: () -> Unit,
@@ -62,8 +67,8 @@ fun TodayPlanCard(
     ) {
         if (isStale) StaleSuggestionsHint(onRegenerate = onOpenTraining)
         when {
-            planned.isNotEmpty() -> planned.forEach { PlannedRow(it, onMarkDone) }
-            suggested != null -> SuggestedRow(suggested, onReviewSuggestions)
+            planned.isNotEmpty() -> planned.forEach { PlannedRow(it, hrZoneModel, onMarkDone) }
+            suggested != null -> SuggestedRow(suggested, hrZoneModel, onReviewSuggestions)
             else -> {
                 Text(
                     text = stringResource(R.string.today_plan_empty),
@@ -78,7 +83,7 @@ fun TodayPlanCard(
 }
 
 @Composable
-private fun PlannedRow(session: PlannedSession, onMarkDone: (Long) -> Unit) {
+private fun PlannedRow(session: PlannedSession, hrZoneModel: HrZoneModel?, onMarkDone: (Long) -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -103,6 +108,8 @@ private fun PlannedRow(session: PlannedSession, onMarkDone: (Long) -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            TargetZoneChip(session.sessionType, hrZoneModel)
+            WorkoutStructureSection(session.structureJson)
         }
         if (session.status == PlannedStatus.PLANNED) {
             TextButton(onClick = { onMarkDone(session.id) }) { Text(stringResource(R.string.today_mark_done)) }
@@ -111,7 +118,7 @@ private fun PlannedRow(session: PlannedSession, onMarkDone: (Long) -> Unit) {
 }
 
 @Composable
-private fun SuggestedRow(session: SuggestedSession, onReviewSuggestions: () -> Unit) {
+private fun SuggestedRow(session: SuggestedSession, hrZoneModel: HrZoneModel?, onReviewSuggestions: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -135,11 +142,14 @@ private fun SuggestedRow(session: SuggestedSession, onReviewSuggestions: () -> U
                 text = listOfNotNull(
                     stringResource(R.string.today_suggested_label),
                     session.targetDurationMin?.let { "$it min" },
+                    session.targetPaceSecPerKm?.let { formatPaceSecPerKm(it) },
                     "${Math.round(session.estimatedTrimp)} AU",
                 ).joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            TargetZoneChip(session.sessionType, hrZoneModel)
+            WorkoutStructureSection(session.structureJson)
             session.rationale.firstOrNull()?.let { entry ->
                 Text(
                     text = entry.text,

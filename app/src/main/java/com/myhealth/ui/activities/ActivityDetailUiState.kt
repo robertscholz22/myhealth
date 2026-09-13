@@ -1,18 +1,23 @@
 package com.myhealth.ui.activities
 
 import com.myhealth.domain.engine.bike.FtpEstimate
+import com.myhealth.domain.engine.load.HrZoneModel
 import com.myhealth.domain.model.ActivitySession
 import com.myhealth.domain.model.EventOccurrence
 
-/** The five HR-zone band labels `timeInZones` (domain/engine/load/HrZones.kt) reports, in order. */
-val HR_ZONE_LABELS: List<String> = listOf("<60% HRR", "60-70%", "70-80%", "80-90%", ">=90%")
-
-/** ViewModel state for [ActivityDetailScreen] (PLAN §4.2 Activity detail, P2.9/P3.7). */
+/** ViewModel state for [ActivityDetailScreen] (PLAN §4.2 Activity detail, P2.9/P3.7/P14.6). */
 data class ActivityDetailUiState(
     val isLoading: Boolean = true,
     val activity: ActivitySession? = null,
-    /** Minutes per [HR_ZONE_LABELS] band; empty when there is no HR stream. */
+    /** Minutes per named zone, Z1…Z5 in order (P14.6: [HrZoneModel]-driven, replacing the raw
+     * fixed-band table); empty when there is no HR stream. */
     val hrZoneMinutes: List<Double> = emptyList(),
+    /** The zone model minutes/bpm ranges are read against (P14.6, §3.9). */
+    val hrZoneModel: HrZoneModel? = null,
+    /** The target zone (`1..5`) of the planned session this activity is linked to, if any and if
+     * it has one (P14.6, §4.2: "when the activity is linked to a planned session with a target
+     * zone, mark that row"). */
+    val targetZoneIndex: Int? = null,
     val showDeleteConfirm: Boolean = false,
     /** Set once the delete completes, so the screen can navigate back. */
     val deleted: Boolean = false,

@@ -54,6 +54,8 @@ import com.myhealth.ui.common.SourceBadgeRow
 import com.myhealth.ui.common.displayName
 import com.myhealth.ui.common.fmtDecimal
 import com.myhealth.ui.theme.MyHealthTheme
+import com.myhealth.ui.zones.zoneNameRes
+import com.myhealth.ui.zones.zoneRowLabel
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -292,9 +294,23 @@ private fun HrSummaryCard(state: ActivityDetailUiState) {
         state.minHr?.let { StatLine(stringResource(R.string.activity_detail_hr_min_label), "$it bpm") }
         state.avgHrFromStream?.let { StatLine(stringResource(R.string.activity_detail_hr_avg_label), "$it bpm") }
         state.maxHrFromStream?.let { StatLine(stringResource(R.string.activity_detail_hr_max_label), "$it bpm") }
-        Text(stringResource(R.string.activity_detail_hr_time_in_zone_label), style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 8.dp))
-        HR_ZONE_LABELS.forEachIndexed { index, label ->
-            StatLine(label, "${fmtDecimal(state.hrZoneMinutes.getOrElse(index) { 0.0 }, 1)} min")
+        Text(
+            stringResource(R.string.activity_detail_hr_time_in_zone_label),
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        val model = state.hrZoneModel
+        model?.zones?.forEach { zone ->
+            val isTarget = zone.index == state.targetZoneIndex
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    text = zoneRowLabel(zone, stringResource(zoneNameRes(zone.index))) +
+                        if (isTarget) " " + stringResource(R.string.activity_detail_target_zone_marker) else "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isTarget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                )
+                Text("${fmtDecimal(state.hrZoneMinutes.getOrElse(zone.index - 1) { 0.0 }, 1)} min")
+            }
         }
     }
 }

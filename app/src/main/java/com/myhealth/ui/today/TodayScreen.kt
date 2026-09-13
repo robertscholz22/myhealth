@@ -172,6 +172,7 @@ private fun TodayList(
                 planned = state.plannedToday,
                 suggested = state.suggestedToday,
                 isStale = state.suggestionsStale,
+                hrZoneModel = state.hrZoneModel,
                 onMarkDone = onMarkPlannedDone,
                 onReviewSuggestions = onReviewSuggestions,
                 onOpenTraining = onOpenTraining,

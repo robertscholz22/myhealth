@@ -1,5 +1,6 @@
 package com.myhealth.ui.training
 
+import com.myhealth.domain.engine.load.HrZoneModel
 import com.myhealth.domain.model.SuggestedSession
 import com.myhealth.domain.model.SuggestionBatch
 import com.myhealth.domain.model.SuggestionStatus
@@ -28,6 +29,9 @@ data class SuggestionReviewUiState(
     val message: UiMessage? = null,
     /** One-shot: set once the batch has been accepted/rejected, so the screen can go back. */
     val done: Boolean = false,
+    /** A profile-only zone model (P14.6, §4.2): the chip only needs a zone's bpm range, not a
+     * measured pace band, so this is the lightweight resolution — see `lightweightHrZoneModel`. */
+    val hrZoneModel: HrZoneModel? = null,
 ) {
     val phase: TrainingPhase? get() = batch?.phase
 

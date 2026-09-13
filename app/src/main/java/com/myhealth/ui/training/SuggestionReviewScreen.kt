@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myhealth.R
 import com.myhealth.di.rememberVm
+import com.myhealth.domain.engine.load.HrZoneModel
 import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.RationaleEntry
 import com.myhealth.domain.model.SessionType
@@ -64,7 +65,9 @@ import com.myhealth.ui.theme.MyHealthTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SuggestionReviewScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
-    val vm = rememberVm { graph -> SuggestionReviewViewModel(graph.suggestionRepo, graph.settings) }
+    val vm = rememberVm { graph ->
+        SuggestionReviewViewModel(graph.suggestionRepo, graph.settings, graph.profileRepo, graph.clock)
+    }
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -148,6 +151,7 @@ internal fun SuggestionReviewContent(
                     session = session,
                     isAccepted = state.isAccepted(session.id),
                     onToggle = { onToggle(session.id) },
+                    hrZoneModel = state.hrZoneModel,
                 )
             }
         }
@@ -209,6 +213,7 @@ private fun SuggestionCard(
     session: SuggestedSession,
     isAccepted: Boolean,
     onToggle: () -> Unit,
+    hrZoneModel: HrZoneModel?,
 ) {
     SectionCard(
         title = dayHeaderLabel(day),
@@ -232,11 +237,14 @@ private fun SuggestionCard(
         Text(
             text = listOfNotNull(
                 session.targetDurationMin?.let { "$it min" },
+                session.targetPaceSecPerKm?.let { formatPaceSecPerKm(it) },
                 "${Math.round(session.estimatedTrimp)} AU",
             ).joinToString(" · "),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        TargetZoneChip(session.sessionType, hrZoneModel)
+        WorkoutStructureSection(session.structureJson)
         RationaleList(session.rationale)
     }
 }

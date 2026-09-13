@@ -980,4 +980,57 @@
     <string name="daydetail_cycle_predicted_suffix"> (predicted)</string>
     <!-- ui/settings/SettingsSections.kt, ui/onboarding/OnboardingScreen.kt -->
     <string name="cycle_track_switch_label">Track menstrual cycle</string>
+
+    <!-- ===== Zones & paces (ui/zones/*.kt, More entry, P14.6) ===== -->
+    <string name="more_entry_zones">Zones &amp; paces</string>
+    <string name="zones_title">Zones &amp; paces</string>
+    <string name="hr_zone_1_name">Recovery</string>
+    <string name="hr_zone_2_name">Endurance</string>
+    <string name="hr_zone_3_name">Tempo</string>
+    <string name="hr_zone_4_name">Threshold</string>
+    <string name="hr_zone_5_name">VO2max</string>
+    <string name="zones_scheme_karvonen">Heart-rate reserve (Karvonen)</string>
+    <string name="zones_scheme_lthr">From your lactate-threshold heart rate</string>
+    <string name="zones_scheme_manual">Manual zone bounds</string>
+    <string name="zones_section_zones_title">Heart-rate zones</string>
+    <string name="zones_section_paces_title">Pace per zone</string>
+    <string name="zones_section_daniels_title">Daniels training paces</string>
+    <string name="zones_section_polarisation_title">Last 28 days</string>
+    <string name="zones_section_sessions_title">Target by session type</string>
+    <string name="zones_confidence_measured">Measured from %1$d runs</string>
+    <string name="zones_confidence_partly_modelled">Partly modelled</string>
+    <string name="zones_confidence_modelled">Modelled from your VDOT</string>
+    <string name="zones_confidence_not_enough_data">Not enough data yet</string>
+    <string name="zones_pace_placeholder">—</string>
+    <string name="zones_polarisation_summary_format">Easy %1$d%% · Moderate %2$d%% · Hard %3$d%%</string>
+    <string name="zones_polarisation_hint">Less than 70%% easy over the last 28 days — most weeks should be mostly easy.</string>
+    <string name="zones_table_na">n/a</string>
+    <string name="zones_daniels_easy">Easy</string>
+    <string name="zones_daniels_marathon">Marathon</string>
+    <string name="zones_daniels_threshold">Threshold</string>
+    <string name="zones_daniels_interval">Interval</string>
+    <string name="zones_daniels_repetition">Repetition</string>
+    <string name="zones_empty_title">No zone or pace data yet</string>
+    <string name="zones_empty_message">Set a resting/max heart rate in Settings, or record a few runs, to see your zones and paces here.</string>
+
+    <!-- ===== Plan-UI structure display (ui/training/PlannedSessionCard.kt, P14.6) ===== -->
+    <string name="session_structure_warmup_prefix">Warm-up</string>
+    <string name="session_structure_recovery_prefix">Recovery</string>
+    <string name="session_structure_cooldown_prefix">Cool-down</string>
+    <string name="session_structure_expand">Show steps</string>
+    <string name="session_structure_collapse">Hide steps</string>
+
+    <!-- ===== Activity detail zone table marker (ui/activities/ActivityDetailScreen.kt, P14.6) ===== -->
+    <string name="activity_detail_target_zone_marker">(target)</string>
+
+    <!-- ===== Settings: Heart-rate zones section (ui/settings/SettingsSections.kt, P14.6) ===== -->
+    <string name="settings_section_hr_zones">Heart-rate zones</string>
+    <string name="settings_hr_scheme_format">Current scheme: %1$s</string>
+    <string name="settings_hr_lthr_label">Lactate-threshold heart rate</string>
+    <string name="settings_hr_bound_z2_label">Zone 2 starts at</string>
+    <string name="settings_hr_bound_z3_label">Zone 3 starts at</string>
+    <string name="settings_hr_bound_z4_label">Zone 4 starts at</string>
+    <string name="settings_hr_bound_z5_label">Zone 5 starts at</string>
+    <string name="settings_hr_bounds_preview_title">Preview</string>
+    <string name="settings_hr_bounds_ascending_error">Enter all four zone bounds, ascending, or leave all four blank.</string>
 </resources>

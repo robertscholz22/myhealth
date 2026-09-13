@@ -107,6 +107,7 @@ private fun SettingsContent(
             item {
                 CyclingSection(profile = profile, ftpEstimate = state.ftpEstimate, onProfileChange = onProfileChange)
             }
+            item { HeartRateZonesSection(profile = profile, onProfileChange = onProfileChange) }
         } else if (!state.isLoading) {
             item { Text(stringResource(R.string.settings_no_profile)) }
         }

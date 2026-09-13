@@ -6,10 +6,12 @@ import com.myhealth.R
 import com.myhealth.domain.model.SuggestedSession
 import com.myhealth.domain.model.SuggestionBatch
 import com.myhealth.domain.model.SuggestionStatus
+import com.myhealth.domain.repository.ProfileRepository
 import com.myhealth.domain.repository.SettingsRepository
 import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.util.Outcome
 import com.myhealth.ui.common.UiMessage
+import com.myhealth.ui.zones.lightweightHrZoneModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +25,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.Clock
+import java.time.LocalDate
 
 /** Transient state the review screen owns: per-card toggles plus the in-flight accept/regenerate. */
 private data class ReviewAction(
@@ -44,6 +48,8 @@ private data class ReviewAction(
 class SuggestionReviewViewModel(
     private val suggestionRepo: SuggestionRepository,
     private val settingsRepo: SettingsRepository,
+    private val profileRepo: ProfileRepository,
+    private val clock: Clock,
 ) : ViewModel() {
 
     private val action = MutableStateFlow(ReviewAction())
@@ -67,7 +73,7 @@ class SuggestionReviewViewModel(
     }
 
     val state: StateFlow<SuggestionReviewUiState> =
-        combine(batch, sessions, action, replaceable) { current, rows, act, count ->
+        combine(batch, sessions, action, replaceable, profileRepo.observeProfile()) { current, rows, act, count, profile ->
             SuggestionReviewUiState(
                 isLoading = false,
                 batch = current,
@@ -77,6 +83,7 @@ class SuggestionReviewViewModel(
                 isWorking = act.isWorking,
                 message = act.message,
                 done = act.done,
+                hrZoneModel = lightweightHrZoneModel(profile, LocalDate.now(clock)),
             )
         }.stateIn(
             viewModelScope,

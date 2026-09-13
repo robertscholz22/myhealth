@@ -6,9 +6,12 @@ import com.myhealth.domain.engine.activity.ActivityFields
 import com.myhealth.domain.engine.bike.BikeDefaults
 import com.myhealth.domain.engine.bike.FtpEstimate
 import com.myhealth.domain.engine.bike.FtpEstimator
-import com.myhealth.domain.engine.load.timeInZones
+import com.myhealth.domain.engine.load.HrBounds
+import com.myhealth.domain.engine.load.HrZoneModel
+import com.myhealth.domain.engine.load.TrimpDefaults
 import com.myhealth.domain.model.ActivitySession
 import com.myhealth.domain.model.CalendarDay
+import com.myhealth.domain.model.HrZoneScheme
 import com.myhealth.domain.model.LinkMethod
 import com.myhealth.domain.model.Profile
 import com.myhealth.domain.model.RideBestKind
@@ -17,6 +20,7 @@ import com.myhealth.domain.repository.CalendarRepository
 import com.myhealth.domain.repository.ProfileRepository
 import com.myhealth.domain.repository.RideBestRepository
 import com.myhealth.sync.SyncScheduler
+import com.myhealth.ui.zones.targetZoneIndexFor
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -105,10 +109,14 @@ class ActivityDetailViewModel(
     private fun today(): LocalDate = LocalDate.now(clock)
 
     val state: StateFlow<ActivityDetailUiState> = combine(core, linking, ftp) { c, l, ftpEstimate ->
+        val model = hrZoneModelFor(c.profile, LocalDate.now(clock))
+        val linkedSession = l.day?.planned?.firstOrNull { it.linkedActivityId == activityId }
         ActivityDetailUiState(
             isLoading = false,
             activity = c.activity,
-            hrZoneMinutes = hrZoneMinutesFor(c.activity, c.profile, LocalDate.now(clock)),
+            hrZoneMinutes = c.activity?.streams?.let(model::minutesPerZone).orEmpty(),
+            hrZoneModel = model,
+            targetZoneIndex = linkedSession?.sessionType?.let(::targetZoneIndexFor),
             showDeleteConfirm = c.showDeleteConfirm,
             deleted = c.deleted,
             linkedEvent = l.day?.events?.firstOrNull { it.linkedActivityId == activityId },
@@ -189,10 +197,19 @@ class ActivityDetailViewModel(
     }
 }
 
-/** hrRest/hrMax per PLAN P2.9: `restingHrManual ?: 60`, `maxHrManual ?: estimatedMaxHr(age)`. */
-private fun hrZoneMinutesFor(activity: ActivitySession?, profile: Profile?, today: LocalDate): List<Double> {
-    val streams = activity?.streams ?: return emptyList()
+/**
+ * The [HrZoneModel] the zone table reads against (P14.6, §3.9): `hrRest`/`hrMax` per PLAN P2.9
+ * (`restingHrManual ?: 60`, `maxHrManual ?: estimatedMaxHr(age)`), then the athlete's own scheme
+ * (manual bounds / LTHR / Karvonen) when a profile exists, else the Karvonen default.
+ */
+private fun hrZoneModelFor(profile: Profile?, today: LocalDate): HrZoneModel {
     val hrRest = profile?.restingHrManual ?: FALLBACK_HR_REST
     val hrMax = profile?.let { it.estimatedMaxHr(it.ageYears(today)) } ?: FALLBACK_HR_MAX
-    return timeInZones(streams.sampleOffsetsSec, streams.hr, hrRest, hrMax)
+    val bounds = HrBounds(hrMax = hrMax, hrRest = hrRest)
+    return if (profile != null) {
+        HrZoneModel.resolve(profile, bounds)
+    } else {
+        val boundaries = HrZoneModel.KARVONEN_FRACTIONS.map { bounds.hrRest + TrimpDefaults.roundHalfUp(bounds.reserve * it) }
+        HrZoneModel(HrZoneScheme.HRR_KARVONEN, HrZoneModel.zonesOf(boundaries, bounds), bounds)
+    }
 }

@@ -33,6 +33,7 @@ import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.repository.SyncStateRepository
 import com.myhealth.sync.SyncScheduler
 import com.myhealth.sync.SyncWorkState
+import com.myhealth.ui.zones.lightweightHrZoneModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -216,6 +217,7 @@ class TodayViewModel(
             suggestionsStale = p.stale,
             cycleTrackingEnabled = cs.cycle.trackingEnabled,
             cycleStatus = cs.cycle.status,
+            hrZoneModel = lightweightHrZoneModel(cs.core.profile, LocalDate.ofEpochDay(today)),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TodayUiState())
 

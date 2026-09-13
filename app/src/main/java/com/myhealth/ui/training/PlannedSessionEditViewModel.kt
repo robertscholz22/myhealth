@@ -3,15 +3,20 @@ package com.myhealth.ui.training
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myhealth.R
+import com.myhealth.domain.engine.load.HrZoneModel
 import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.SportType
 import com.myhealth.domain.repository.PlanRepository
+import com.myhealth.domain.repository.ProfileRepository
 import com.myhealth.domain.util.Outcome
 import com.myhealth.ui.common.UiMessage
+import com.myhealth.ui.zones.lightweightHrZoneModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
@@ -30,6 +35,11 @@ data class PlannedSessionEditUiState(
     /** One-shot: the screen pops back once either flips to `true`. */
     val saved: Boolean = false,
     val deleted: Boolean = false,
+    /** The loaded session's structure, kept only for display (P14.6, §4.2): the editor does not
+     * offer to change it, so it is not part of [draft] and is unaffected by [save]. */
+    val structureJson: String? = null,
+    /** A profile-only zone model (§4.2) for the target-zone chip — see `lightweightHrZoneModel`. */
+    val hrZoneModel: HrZoneModel? = null,
 ) {
     val sessionTypes: List<SessionType> get() = sessionTypesFor(draft.sportType)
 }
@@ -46,6 +56,7 @@ class PlannedSessionEditViewModel(
     private val id: Long,
     private val epochDay: Long,
     private val planRepo: PlanRepository,
+    private val profileRepo: ProfileRepository,
     private val clock: Clock,
 ) : ViewModel() {
 
@@ -56,6 +67,11 @@ class PlannedSessionEditViewModel(
 
     init {
         load()
+        profileRepo.observeProfile()
+            .onEach { profile ->
+                _state.update { it.copy(hrZoneModel = lightweightHrZoneModel(profile, LocalDate.now(clock))) }
+            }
+            .launchIn(viewModelScope)
     }
 
     private fun load() {
@@ -80,7 +96,9 @@ class PlannedSessionEditViewModel(
                     it.copy(isLoading = false, loadError = UiMessage.of(R.string.session_not_found))
                 }
             } else {
-                _state.update { it.copy(isLoading = false, draft = plannedSessionDraftOf(session)) }
+                _state.update {
+                    it.copy(isLoading = false, draft = plannedSessionDraftOf(session), structureJson = session.structureJson)
+                }
             }
         }
     }

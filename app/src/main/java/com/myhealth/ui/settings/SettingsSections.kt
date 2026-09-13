@@ -23,10 +23,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.myhealth.R
 import com.myhealth.domain.model.AppSettings
+import com.myhealth.domain.model.Profile
 import com.myhealth.domain.model.ThemeMode
 import com.myhealth.ui.common.DropdownField
 import com.myhealth.ui.common.NumberField
 import com.myhealth.ui.common.SectionCard
+import com.myhealth.ui.zones.ZoneTable
+import com.myhealth.ui.zones.lightweightHrZoneModel
+import com.myhealth.ui.zones.schemeLabel
+import java.time.LocalDate
 
 /** The non-profile [AppSettings] keys (§4.2 Settings / P1.8). */
 @Composable
@@ -153,6 +158,100 @@ private fun OrphanCleanupDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         },
     )
 }
+
+/**
+ * The four zone-boundary bpm fields, tolerating a blank slot (P14.6, §4.2 Settings "Heart-rate
+ * zones") — unlike [com.myhealth.domain.engine.load.HrZoneModel]'s own manual-bounds parser, which
+ * is intentionally all-or-nothing, this is what the four boxes are *sourced from*, so a partially
+ * filled set redisplays correctly instead of collapsing to nothing.
+ */
+fun parseHrZoneBoundsSlots(json: String?): List<Int?> {
+    val raw = json?.trim()?.removeSurrounding("[", "]")
+    val parts = raw?.split(',') ?: return List(4) { null }
+    if (parts.size != 4) return List(4) { null }
+    return parts.map { it.trim().toIntOrNull() }
+}
+
+/** `null` when every slot is blank (no override at all); otherwise the `[z2,z3,z4,z5]` blob a
+ * blank slot stays empty in — which [HrZoneModel]'s own parser then rejects as "not four ascending
+ * bpm" (§3.9's `hz08`), so a partial edit never accidentally becomes a manual scheme. */
+fun encodeHrZoneBoundsSlots(slots: List<Int?>): String? =
+    if (slots.all { it == null }) null else "[" + slots.joinToString(",") { it?.toString() ?: "" } + "]"
+
+/** Whether the four boxes are a usable manual override (PLAN §4.2's "ascending" validation
+ * message, `zui09`/`zui10`): [Empty] (no override, no message), [Valid] (all four, ascending, no
+ * message), or [Invalid] (some but not all four, or not ascending — the message shows). */
+enum class HrZoneBoundsStatus { EMPTY, VALID, INVALID }
+
+fun hrZoneBoundsStatus(slots: List<Int?>): HrZoneBoundsStatus {
+    if (slots.all { it == null }) return HrZoneBoundsStatus.EMPTY
+    if (slots.any { it == null }) return HrZoneBoundsStatus.INVALID
+    val values = slots.filterNotNull()
+    return if (values.zipWithNext().all { (a, b) -> a < b }) HrZoneBoundsStatus.VALID else HrZoneBoundsStatus.INVALID
+}
+
+/**
+ * Heart-rate zones (PLAN §4.2 Settings, P14.6): the resolved scheme in plain words, the
+ * lactate-threshold HR, the four zone-boundary bpm fields and a live preview of the resulting
+ * zones — reusing [ZoneTable], the same composable the Zones & paces screen shows.
+ */
+@Composable
+internal fun HeartRateZonesSection(profile: Profile, onProfileChange: (Profile) -> Unit) {
+    val slots = parseHrZoneBoundsSlots(profile.hrZoneBoundsJson)
+    val status = hrZoneBoundsStatus(slots)
+    val previewModel = lightweightHrZoneModel(profile, LocalDate.now())
+
+    SectionCard(title = stringResource(R.string.settings_section_hr_zones)) {
+        previewModel?.let {
+            Text(
+                text = stringResource(R.string.settings_hr_scheme_format, it.scheme.schemeLabel()),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        NumberField(
+            label = stringResource(R.string.settings_hr_lthr_label),
+            value = profile.lactateThresholdHrManual?.toDouble(),
+            onValueChange = { onProfileChange(profile.copy(lactateThresholdHrManual = it?.toInt())) },
+            suffix = stringResource(R.string.settings_unit_bpm),
+            decimals = 0,
+        )
+        HR_ZONE_BOUND_LABELS.forEachIndexed { index, labelRes ->
+            NumberField(
+                label = stringResource(labelRes),
+                value = slots[index]?.toDouble(),
+                onValueChange = { v ->
+                    val updated = slots.toMutableList().also { it[index] = v?.toInt() }
+                    onProfileChange(profile.copy(hrZoneBoundsJson = encodeHrZoneBoundsSlots(updated)))
+                },
+                suffix = stringResource(R.string.settings_unit_bpm),
+                decimals = 0,
+            )
+        }
+        if (status == HrZoneBoundsStatus.INVALID) {
+            Text(
+                text = stringResource(R.string.settings_hr_bounds_ascending_error),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        previewModel?.let {
+            Text(
+                text = stringResource(R.string.settings_hr_bounds_preview_title),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            ZoneTable(it)
+        }
+    }
+}
+
+private val HR_ZONE_BOUND_LABELS = listOf(
+    R.string.settings_hr_bound_z2_label,
+    R.string.settings_hr_bound_z3_label,
+    R.string.settings_hr_bound_z4_label,
+    R.string.settings_hr_bound_z5_label,
+)
 
 @Composable
 private fun SwitchRow(

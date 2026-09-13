@@ -39,3 +39,4 @@ import kotlinx.serialization.Serializable
 @Serializable data object MoreRoute
 @Serializable data object CycleRoute
 @Serializable data object BikeRoute
+@Serializable data object ZonesRoute

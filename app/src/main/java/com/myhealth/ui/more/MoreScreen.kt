@@ -29,6 +29,7 @@ import com.myhealth.ui.nav.LoadRoute
 import com.myhealth.ui.nav.MealTemplatesRoute
 import com.myhealth.ui.nav.RunningPrsRoute
 import com.myhealth.ui.nav.SettingsRoute
+import com.myhealth.ui.nav.ZonesRoute
 import com.myhealth.ui.theme.MyHealthTheme
 
 /** Navigation hub (§4.1): links to every destination that is not on the bottom bar. */
@@ -42,6 +43,7 @@ fun moreEntries(cycleTrackingEnabled: Boolean): List<MoreEntry> = buildList {
     if (cycleTrackingEnabled) add(MoreEntry(R.string.more_entry_cycle, CycleRoute))
     add(MoreEntry(R.string.more_entry_running_prs, RunningPrsRoute))
     add(MoreEntry(R.string.more_entry_bike, BikeRoute))
+    add(MoreEntry(R.string.more_entry_zones, ZonesRoute))
     add(MoreEntry(R.string.more_entry_load_recovery, LoadRoute))
     add(MoreEntry(R.string.more_entry_ingredients, IngredientsRoute))
     add(MoreEntry(R.string.more_entry_meal_templates, MealTemplatesRoute))
