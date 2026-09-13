@@ -17,8 +17,8 @@ android {
         applicationId = "com.myhealth"
         minSdk = 34
         targetSdk = 36
-        versionCode = 102
-        versionName = "1.0.2"
+        versionCode = 110
+        versionName = "1.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
