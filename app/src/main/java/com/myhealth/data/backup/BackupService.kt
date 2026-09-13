@@ -93,6 +93,7 @@ class BackupService(
         dailyLoad = dao.allDailyLoad(),
         runningBest = dao.allRunningBest(),
         importRecord = dao.allImportRecord(),
+        cycleEntry = dao.allCycleEntry(),
     )
 
     /** Child-first wipe, then parent-first insert with the backup's own ids. */
@@ -102,6 +103,7 @@ class BackupService(
     }
 
     private suspend fun deleteAllChildFirst() {
+        dao.deleteCycleEntry()
         dao.deleteImportRecord()
         dao.deleteRunningBest()
         dao.deleteDailyLoad()
@@ -158,6 +160,7 @@ class BackupService(
         written += dao.insertDailyLoad(file.dailyLoad).size
         written += dao.insertRunningBest(file.runningBest).size
         written += dao.insertImportRecord(file.importRecord).size
+        written += dao.insertCycleEntry(file.cycleEntry).size
         return written
     }
 }

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.model.Profile
+import com.myhealth.domain.model.Sex
 import com.myhealth.domain.repository.BodyRepository
 import com.myhealth.domain.repository.ProfileRepository
 import com.myhealth.domain.repository.SettingsRepository
@@ -133,6 +134,8 @@ class OnboardingViewModel(
             }
 
             settingsRepo.setHasCompletedOnboarding(true)
+            // P11.1: the cycle tracker is on by default for the users it was requested for.
+            if (draft.sex == Sex.FEMALE) settingsRepo.setCycleTrackingEnabled(true)
             // First profile + weight: compute the whole target window right away (P4.12).
             syncScheduler.requestTargetRecompute()
             _state.update { it.copy(isSaving = false) }

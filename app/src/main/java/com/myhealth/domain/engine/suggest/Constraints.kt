@@ -1,5 +1,6 @@
 package com.myhealth.domain.engine.suggest
 
+import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.model.EventType
 import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.RationaleEntry
@@ -15,7 +16,18 @@ import kotlin.math.abs
  * added after runtime finding POLISH-8 (two "Strength full" days in a row, two "Soccer training"
  * days in a row) showed that C11's per-type spacing leaves the rest of the catalog unguarded.
  */
-enum class ConstraintId { C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13 }
+enum class ConstraintId {
+    C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13,
+
+    /** P11.2: cycle days 1–2 take nothing above `MODERATE`. */
+    CYCLE_MENSTRUAL,
+
+    /** P11.2: the ovulation window caps `MAX` down to `HIGH`. */
+    CYCLE_OVULATION,
+
+    /** P11.2: at most one hard session across the whole late-luteal window. */
+    CYCLE_LATE_LUTEAL,
+}
 
 /** A session the engine is considering for one day (§3.5.6 step 4). */
 data class Candidate(
@@ -48,6 +60,8 @@ data class ConstraintContext(
     val weeklyCaps: Map<SportGroup, Int> = emptyMap(),
     /** `longRunWeekday` from the same blob; `null` ⇒ C12 allows Sat/Sun (C12). */
     val longRunWeekday: DayOfWeek? = null,
+    /** P11.2: the horizon's cycle statuses; empty when tracking is off. */
+    val cycleStatusByDay: Map<Long, CycleStatus> = emptyMap(),
 ) {
     companion object {
         /** Derives the context from the engine's inputs (§3.5.1). */
@@ -68,6 +82,7 @@ data class ConstraintContext(
                 acwr = latest?.acwr,
                 weeklyCaps = SportPreferences.capsOf(input.profile.preferredSportsJson),
                 longRunWeekday = SportPreferences.longRunWeekdayOf(input.profile.preferredSportsJson),
+                cycleStatusByDay = input.cycleStatusByDay,
             )
         }
     }
@@ -88,6 +103,8 @@ data class ConstraintContext(
  * - C5 and C10 are counted over every rolling 7-day window of the horizon that contains the
  *   candidate's day; a horizon shorter than a week counts as one window.
  * - A `BLOCKED` day still counts as the rest day C3 asks for — nothing is scheduled on it.
+ * - The three `CYCLE_*` rules of P11.2 are hard constraints for the same reason C8 is: capping an
+ *   intensity after scoring would let a capped candidate win its slot and then vanish.
  * - C13 (POLISH-8) reads "consecutive days" as adjacent grid days and "48 h between two strength
  *   sessions" as "at least one clear day between them", the same whole-day reading C11 uses.
  *   `MOBILITY` is exempt from the same-type half: it carries no stress (12 AU), post-pass 7c
@@ -156,7 +173,36 @@ object Constraints {
         if (c11Violated(candidate, day, grid)) broken += ConstraintId.C11
         if (c12Violated(candidate, day, ctx)) broken += ConstraintId.C12
         if (c13Violated(candidate, day, grid)) broken += ConstraintId.C13
+        if (CycleRules.violatesEarlyMenstrualCap(ctx.cycleStatusByDay[day], candidate.intensity)) {
+            broken += ConstraintId.CYCLE_MENSTRUAL
+        }
+        if (CycleRules.violatesOvulationCap(ctx.cycleStatusByDay[day], candidate.intensity)) {
+            broken += ConstraintId.CYCLE_OVULATION
+        }
+        if (lateLutealHardLimitReached(candidate, day, grid, ctx)) {
+            broken += ConstraintId.CYCLE_LATE_LUTEAL
+        }
         return broken
+    }
+
+    /**
+     * P11.2's `CYCLE_LATE_LUTEAL` — at most one hard session across the whole late-luteal window.
+     * Fixed items count towards the allowance, exactly as a match does for C5: the limit is about
+     * how much hard work the week actually contains, not about who scheduled it.
+     */
+    private fun lateLutealHardLimitReached(
+        candidate: Candidate,
+        day: Long,
+        grid: SuggestionGrid,
+        ctx: ConstraintContext,
+    ): Boolean {
+        if (!candidate.isHard) return false
+        val window = CycleRules.lateLutealDays(ctx.cycleStatusByDay)
+        if (day !in window) return false
+        val existing = grid.days
+            .filter { it.day in window }
+            .sumOf { plan -> plan.sessions.count { it.isHard } }
+        return existing + 1 > CycleRules.LATE_LUTEAL_MAX_HARD
     }
 
     /** C1 — no `HIGH`/`MAX` within 48 h before a match or race. */

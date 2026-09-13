@@ -1,5 +1,6 @@
 package com.myhealth.domain.engine.suggest
 
+import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.model.Goal
 import com.myhealth.domain.model.GoalType
 import com.myhealth.domain.model.Intensity
@@ -18,13 +19,19 @@ data class ScoreBreakdown(
     val recoveryFit: Double,
     val spacingFit: Double,
     val prefFit: Double,
+    /** P11.2's `+0.10` phase nudge; `0.0` without cycle data, so the weighted sum is unchanged. */
+    val cycleBonus: Double = 0.0,
 ) {
     val total: Double
-        get() = Scorer.W_GOAL * goalFit +
-            Scorer.W_LOAD * loadFit +
-            Scorer.W_RECOVERY * recoveryFit +
-            Scorer.W_SPACING * spacingFit +
-            Scorer.W_PREF * prefFit
+        get() = min(
+            1.0,
+            Scorer.W_GOAL * goalFit +
+                Scorer.W_LOAD * loadFit +
+                Scorer.W_RECOVERY * recoveryFit +
+                Scorer.W_SPACING * spacingFit +
+                Scorer.W_PREF * prefFit +
+                cycleBonus,
+        )
 }
 
 /** Everything [Scorer.score] needs besides the candidate and the grid. */
@@ -37,6 +44,8 @@ data class ScoringContext(
     val remainingBudget: Double,
     val recoveryBand: RecoveryBand? = null,
     val weeklyCaps: Map<SportGroup, Int> = emptyMap(),
+    /** P11.2: the horizon's cycle statuses; empty when tracking is off. */
+    val cycleStatusByDay: Map<Long, CycleStatus> = emptyMap(),
 )
 
 /**
@@ -54,6 +63,9 @@ data class ScoringContext(
  *   the grid (fixed events included), which is the only information a day-granular plan has.
  * - `OFF_SEASON` has no row in the §3.5.5 preference table; cross-training, full-body strength and
  *   mobility are used.
+ * - P11.2 adds a sixth, unweighted term: [ScoreBreakdown.cycleBonus] is added on top of the
+ *   weighted sum and the total is then capped at 1.0, so the score stays comparable to the 0.35
+ *   placement threshold and a run without cycle data scores exactly what it did before.
  */
 object Scorer {
 
@@ -165,14 +177,23 @@ object Scorer {
         ?: 0
 
     /** The weighted score of §3.5.5 for [candidate] on its own day. */
-    fun score(candidate: Candidate, grid: SuggestionGrid, ctx: ScoringContext): ScoreBreakdown =
-        ScoreBreakdown(
+    fun score(candidate: Candidate, grid: SuggestionGrid, ctx: ScoringContext): ScoreBreakdown {
+        val cycle = ctx.cycleStatusByDay[candidate.day]
+        return ScoreBreakdown(
             goalFit = goalFit(candidate, ctx),
             loadFit = loadFit(candidate.estTrimp, ctx.remainingBudget),
-            recoveryFit = recoveryFit(ctx.recoveryBand, candidate.intensity),
+            recoveryFit = recoveryFit(ctx.recoveryBand, candidate.intensity) *
+                CycleRules.recoveryFactor(cycle, candidate.intensity),
             spacingFit = spacingFit(candidate, candidate.day, grid),
             prefFit = prefFit(candidate, candidate.day, grid, ctx),
+            cycleBonus = CycleRules.scoreBonus(
+                status = cycle,
+                sessionType = candidate.sessionType,
+                sportGroup = candidate.sportGroup,
+                intensity = candidate.intensity,
+            ),
         )
+    }
 
     /** The scoring context for one run of the engine (§3.5.6 step 3). */
     fun contextOf(input: SuggestionInput, result: PeriodizationResult, remainingBudget: Double): ScoringContext {
@@ -185,6 +206,7 @@ object Scorer {
             remainingBudget = remainingBudget,
             recoveryBand = result.band,
             weeklyCaps = SportPreferences.capsOf(input.profile.preferredSportsJson),
+            cycleStatusByDay = input.cycleStatusByDay,
         )
     }
 

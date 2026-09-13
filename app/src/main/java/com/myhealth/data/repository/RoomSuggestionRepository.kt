@@ -18,6 +18,7 @@ import com.myhealth.domain.model.SuggestionStatus
 import com.myhealth.domain.model.TrainingPlan
 import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.repository.CalendarRepository
+import com.myhealth.domain.repository.CycleRepository
 import com.myhealth.domain.repository.GoalRepository
 import com.myhealth.domain.repository.LoadRepository
 import com.myhealth.domain.repository.PlanRepository
@@ -65,6 +66,12 @@ class RoomSuggestionRepository(
     private val settingsRepo: SettingsRepository,
     private val engine: SuggestionEngine,
     private val clock: Clock,
+    /**
+     * P11.2: `null` wherever cycle tracking is not wired (and in the tests that predate it). The
+     * horizon's cycle statuses are read only while `isTrackingEnabled()` is true, so the four
+     * `CYCLE_*` rules stay inert for everybody else.
+     */
+    private val cycleRepo: CycleRepository? = null,
     private val onPlanChanged: () -> Unit = {},
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : SuggestionRepository {
@@ -186,8 +193,15 @@ class RoomSuggestionRepository(
                 .observeRange(todayDay - ACTIVITY_WINDOW_DAYS, todayDay)
                 .first(),
             planStartDay = planRepo.observeActivePlan().first()?.startDay,
+            cycleStatusByDay = cycleStatuses(todayDay, horizonEnd),
         )
     }
+
+    /** The horizon's cycle statuses, or an empty map when tracking is off (P11.2). */
+    private suspend fun cycleStatuses(fromDay: Long, toDayExclusive: Long) = cycleRepo
+        ?.takeIf { it.isTrackingEnabled().first() }
+        ?.statusesFor(fromDay, toDayExclusive)
+        .orEmpty()
 
     /**
      * The recovery half of the newest `daily_load` row read back as a [RecoveryState]: §3.5.1 asks

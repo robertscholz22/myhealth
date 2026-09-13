@@ -216,6 +216,7 @@ class SuggestionEngine(private val clock: Clock) {
             sportUsed = if (cap == null) 0 else {
                 Scorer.sessionsThisWeekForSport(candidate.sportGroup, candidate.day, grid)
             },
+            cycleStatus = input.cycleStatusByDay[candidate.day],
         )
     }
 

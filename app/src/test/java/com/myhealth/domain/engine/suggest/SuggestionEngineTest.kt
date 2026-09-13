@@ -16,7 +16,8 @@ import kotlin.math.abs
 
 /**
  * [SuggestionEngine] against the named cases of PLAN §3.5.7 (`sug01`–`sug08`, `sug13`–`sug16`,
- * `sug18`–`sug20`; `sug09`–`sug12` and `sug17` are [PeriodizationTest]'s).
+ * `sug18`–`sug20`; `sug09`–`sug12` and `sug17` are [PeriodizationTest]'s, `sug21`–`sug25`
+ * [SuggestionEngineCycleTest]'s).
  *
  * Every assertion is about the **output** of a full `generate` run, not about internals: these are
  * the safety properties of risk R13 and they must hold no matter how the greedy loop gets there.

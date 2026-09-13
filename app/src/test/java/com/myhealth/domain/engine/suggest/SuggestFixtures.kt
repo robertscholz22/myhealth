@@ -1,7 +1,10 @@
 package com.myhealth.domain.engine.suggest
 
+import com.myhealth.domain.engine.cycle.CycleEngine
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ActivitySummary
+import com.myhealth.domain.model.CycleEntry
+import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.EventOccurrence
 import com.myhealth.domain.model.EventType
@@ -239,6 +242,7 @@ object SuggestFixtures {
         recentActivities: List<ActivitySummary> = emptyList(),
         profile: Profile = profile(),
         planStartDay: Long? = null,
+        cycleStatusByDay: Map<Long, CycleStatus> = emptyMap(),
     ): SuggestionInput = SuggestionInput(
         today = TODAY,
         horizonDays = horizonDays,
@@ -250,7 +254,29 @@ object SuggestFixtures {
         recovery = recovery,
         recentActivities = recentActivities,
         planStartDay = planStartDay,
+        cycleStatusByDay = cycleStatusByDay,
     )
+
+    /** One logged period start, [offset] days from [TODAY] (P11.2 fixtures). */
+    fun cycleEntry(offset: Long, periodDays: Int? = null): CycleEntry = CycleEntry(
+        id = 1L,
+        periodStartDay = day(offset),
+        periodEndDay = periodDays?.let { day(offset) + it - 1 },
+        createdAtMillis = 0L,
+        updatedAtMillis = 0L,
+    )
+
+    /**
+     * The horizon's [CycleStatus] map, built by the **real** [CycleEngine] from a single logged
+     * period start [offset] days from [TODAY] — so a fixture says "today is cycle day N" by
+     * setting `offset = -(N - 1)`, and every phase boundary is the engine's, not the test's.
+     *
+     * One entry means no interval, so the forecast runs on the 28/5 defaults at
+     * [com.myhealth.domain.model.CycleConfidence.LOW] — the case P11.2's "log your period to
+     * improve this" wording is for.
+     */
+    fun cycleStatuses(offset: Long, horizonDays: Int = 7): Map<Long, CycleStatus> =
+        CycleEngine.statusesFor(TODAY_DAY, TODAY_DAY + horizonDays, listOf(cycleEntry(offset)))
 
     /** A seeded grid for constraint tests — the engine's step 1 without the engine. */
     fun grid(input: SuggestionInput): SuggestionGrid = SuggestionGrid.seed(input)

@@ -1,6 +1,7 @@
 package com.myhealth.domain.engine.suggest
 
 import com.myhealth.domain.model.ActivitySummary
+import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.EventOccurrence
 import com.myhealth.domain.model.Goal
@@ -17,6 +18,7 @@ import java.time.LocalDate
  * - [planStartDay] — §3.5.2's `RECOVERY_WEEK` override counts weeks "since plan start", which
  *   §3.5.1 does not carry. `null` (no active plan) simply disables the override.
  * - [horizonDays] keeps its §3.5.1 default of 7; the settings key `suggestionHorizonDays` feeds it.
+ * - [cycleStatusByDay] — added by P11.2; empty unless the user tracks their cycle.
  */
 data class SuggestionInput(
     val today: LocalDate,
@@ -34,6 +36,11 @@ data class SuggestionInput(
     /** The last 14 days of activities — C4's "TRIMP ≥ 200 yesterday" rule and the sport caps. */
     val recentActivities: List<ActivitySummary> = emptyList(),
     val planStartDay: Long? = null,
+    /**
+     * P11.2: where each horizon day sits in the menstrual cycle. Empty whenever cycle tracking is
+     * off, which is exactly what makes the four `CYCLE_*` rules inert for everybody else.
+     */
+    val cycleStatusByDay: Map<Long, CycleStatus> = emptyMap(),
 ) {
     val todayDay: Long get() = today.toEpochDay()
 

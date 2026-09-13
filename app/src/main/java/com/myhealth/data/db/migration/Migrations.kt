@@ -63,8 +63,28 @@ object Migrations {
     }
 
     /**
+     * 2 → 3 (P11.1): the `cycle_entry` table of the menstrual-cycle tracker, with the unique index
+     * over `periodStartDay` that keeps one logged period per day (a duplicate start would corrupt
+     * every interval `CycleEngine` averages). The statements are Room's own, copied verbatim from
+     * `app/schemas/com.myhealth.data.db.MyHealthDatabase/3.json`, so `runMigrationsAndValidate`
+     * compares them character for character.
+     */
+    private val MIGRATION_2_3 = Migration(2, 3) { db ->
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `cycle_entry` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`periodStartDay` INTEGER NOT NULL, `periodEndDay` INTEGER, `note` TEXT, " +
+                "`createdAtMillis` INTEGER NOT NULL, `updatedAtMillis` INTEGER NOT NULL)",
+        )
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `uq_cycle_entry_start` " +
+                "ON `cycle_entry` (`periodStartDay`)",
+        )
+    }
+
+    /**
      * Every migration, oldest first. `.addMigrations(*ALL)` is the only call site, in
      * `MyHealthDatabase.build`, so adding a migration never changes it.
      */
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2)
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 }

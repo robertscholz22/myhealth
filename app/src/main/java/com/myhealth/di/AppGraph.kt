@@ -25,6 +25,7 @@ import com.myhealth.data.repository.AndroidImportContentSource
 import com.myhealth.data.repository.ImportService
 import com.myhealth.data.repository.RoomActivityRepository
 import com.myhealth.data.repository.RoomCalendarRepository
+import com.myhealth.data.repository.RoomCycleRepository
 import com.myhealth.data.repository.RoomBodyRepository
 import com.myhealth.data.repository.RoomGoalRepository
 import com.myhealth.data.repository.RoomHealthRepository
@@ -48,6 +49,7 @@ import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.repository.BackupRepository
 import com.myhealth.domain.repository.BodyRepository
 import com.myhealth.domain.repository.CalendarRepository
+import com.myhealth.domain.repository.CycleRepository
 import com.myhealth.domain.repository.GoalRepository
 import com.myhealth.domain.repository.HealthRepository
 import com.myhealth.domain.repository.ImportRepository
@@ -110,6 +112,20 @@ class AppGraph(private val app: Application) {
         RoomMealRepository(db.mealDao(), db.ingredientDao(), clock)
     }
 
+    /**
+     * `cycle_entry` + the P11.1 forecast engine. `isTrackingEnabled` ors the settings flag with
+     * `profile.sex == FEMALE`, and it is the only gate the suggestion and nutrition repositories
+     * consult before they read any cycle data.
+     */
+    val cycleRepo: CycleRepository by lazy {
+        RoomCycleRepository(
+            cycleDao = db.cycleDao(),
+            profileRepo = profileRepo,
+            settingsRepo = settings,
+            clock = clock,
+        )
+    }
+
     /** The nutrition target engine (§3.1, P4.11) — stateless; only the clock's zone is used. */
     val nutritionTargetEngine: NutritionTargetEngine by lazy { NutritionTargetEngine(clock) }
 
@@ -129,6 +145,7 @@ class AppGraph(private val app: Application) {
             calendarRepo = calendarRepo,
             engine = nutritionTargetEngine,
             clock = clock,
+            cycleRepo = cycleRepo,
         )
     }
 
@@ -214,6 +231,7 @@ class AppGraph(private val app: Application) {
             settingsRepo = settings,
             engine = suggestionEngine,
             clock = clock,
+            cycleRepo = cycleRepo,
             onPlanChanged = { syncScheduler.requestTargetRecompute() },
         )
     }

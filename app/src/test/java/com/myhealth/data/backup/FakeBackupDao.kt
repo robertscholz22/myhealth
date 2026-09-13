@@ -7,6 +7,7 @@ import com.myhealth.data.db.entity.ActivitySourceRecordEntity
 import com.myhealth.data.db.entity.ActivityStreamEntity
 import com.myhealth.data.db.entity.BodyMeasurementEntity
 import com.myhealth.data.db.entity.CalendarEventEntity
+import com.myhealth.data.db.entity.CycleEntryEntity
 import com.myhealth.data.db.entity.DailyHealthSummaryEntity
 import com.myhealth.data.db.entity.DailyLoadEntity
 import com.myhealth.data.db.entity.EventOverrideEntity
@@ -281,4 +282,13 @@ internal class FakeBackupDao : BackupDao {
         auto(importRecord, rows, { it.id }) { row, id -> row.copy(id = id) }
 
     override suspend fun deleteImportRecord() = importRecord.clear()
+
+    val cycleEntry: MutableList<CycleEntryEntity> = mutableListOf()
+
+    override suspend fun allCycleEntry(): List<CycleEntryEntity> = cycleEntry.toList()
+
+    override suspend fun insertCycleEntry(rows: List<CycleEntryEntity>) =
+        auto(cycleEntry, rows, { it.id }) { row, id -> row.copy(id = id) }
+
+    override suspend fun deleteCycleEntry() = cycleEntry.clear()
 }

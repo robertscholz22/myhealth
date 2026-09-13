@@ -22,6 +22,9 @@ import kotlin.math.min
  * - A race whose `targetDay` is in the past is ignored (it cannot be periodized towards), so the
  *   phase falls back to `IN_SEASON`/`BASE` exactly as if no race goal existed.
  * - `recentLoad.last()` is read as "the row with the largest `day`", so an unsorted list is safe.
+ * - P11.2's late-luteal `×0.90` is applied in [compute], after [weeklyTarget], so the §3.5.2
+ *   formula itself (and the tests that pin it) is untouched. Like every other multiplier here it
+ *   can only lower the budget.
  * - `lastWeekActual` sums the seven days **before** today (`[today-7, today-1]`); today itself is
  *   still being planned and must not shrink its own budget.
  */
@@ -153,9 +156,10 @@ object Periodization {
             matchWithin21Days = matchWithinWindow(input.events, todayDay),
             weeksSincePlanStart = weeksSincePlanStart(todayDay, input.planStartDay),
         )
+        val cycleFactor = CycleRules.weeklyTargetFactor(input.cycleStatusByDay, input.horizonDays)
         return PeriodizationResult(
             phase = phase,
-            weeklyTarget = weeklyTarget(phase, ctl, lastWeek, acwr, input.recovery.bandOf()),
+            weeklyTarget = weeklyTarget(phase, ctl, lastWeek, acwr, input.recovery.bandOf()) * cycleFactor,
             daysToRace = daysToRace,
             ctl = ctl,
             lastWeekActual = lastWeek,

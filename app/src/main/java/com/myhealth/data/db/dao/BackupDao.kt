@@ -10,6 +10,7 @@ import com.myhealth.data.db.entity.ActivitySourceRecordEntity
 import com.myhealth.data.db.entity.ActivityStreamEntity
 import com.myhealth.data.db.entity.BodyMeasurementEntity
 import com.myhealth.data.db.entity.CalendarEventEntity
+import com.myhealth.data.db.entity.CycleEntryEntity
 import com.myhealth.data.db.entity.DailyHealthSummaryEntity
 import com.myhealth.data.db.entity.DailyLoadEntity
 import com.myhealth.data.db.entity.EventOverrideEntity
@@ -278,4 +279,13 @@ interface BackupDao {
 
     @Query("DELETE FROM import_record")
     suspend fun deleteImportRecord()
+
+    @Query("SELECT * FROM cycle_entry")
+    suspend fun allCycleEntry(): List<CycleEntryEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCycleEntry(rows: List<CycleEntryEntity>): List<Long>
+
+    @Query("DELETE FROM cycle_entry")
+    suspend fun deleteCycleEntry()
 }

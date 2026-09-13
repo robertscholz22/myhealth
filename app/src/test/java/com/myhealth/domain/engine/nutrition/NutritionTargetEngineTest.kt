@@ -8,6 +8,7 @@ import com.myhealth.domain.engine.nutrition.NutritionFixtures.planned
 import com.myhealth.domain.engine.nutrition.NutritionFixtures.profile
 import com.myhealth.domain.engine.nutrition.NutritionFixtures.summary
 import com.myhealth.domain.engine.nutrition.NutritionFixtures.weight
+import com.myhealth.domain.model.CyclePhase
 import com.myhealth.domain.model.DayType
 import com.myhealth.domain.model.EngineWarningCode
 import com.myhealth.domain.model.NeatLevel
@@ -18,7 +19,7 @@ import org.junit.Test
 import kotlin.math.abs
 
 /**
- * The 20 named cases of PLAN §3.1.8. Every function name is the case ID from the plan; the
+ * The 20 named cases of PLAN §3.1.8, plus `nut21` from §5 P11.2. Every function name is the case ID from the plan; the
  * reference athlete is male / 30 y / 180 cm / 80 kg / `DESK` NEAT on a `REST` day with no Health
  * Connect data, which is `nut01`.
  */
@@ -322,5 +323,32 @@ class NutritionTargetEngineTest {
         val share = 9.0 * target.fatG / target.kcal
         assertThat(share).isAtLeast(0.30)
         assertThat(share).isAtMost(0.35)
+    }
+
+    /**
+     * P11.2: the luteal-phase note is appended to the §3.1.7 explanation and **nothing else moves**
+     * — not one kcal, not one gram. The owner asked to be told, not to be fed differently.
+     */
+    @Test
+    fun nut21_luteal_note_added_without_changing_target() {
+        val luteal = NutritionFixtures.cycleStatus(offset = 20)
+        assertThat(luteal.phase).isEqualTo(CyclePhase.LUTEAL)
+
+        val plain = engine.compute(input())
+        val withCycle = engine.compute(input(cycleStatus = luteal))
+
+        assertThat(withCycle.explanation).contains(
+            "Luteal phase: appetite and core temperature are typically higher; " +
+                "the target is unchanged, listen to hunger.",
+        )
+        assertThat(plain.explanation).doesNotContain("Luteal phase")
+        assertThat(withCycle.explanation.lineSequence().count())
+            .isEqualTo(plain.explanation.lineSequence().count() + 1)
+        assertThat(withCycle.copy(explanation = plain.explanation)).isEqualTo(plain)
+
+        // Every other phase leaves the explanation exactly as it was.
+        val follicular = NutritionFixtures.cycleStatus(offset = 7)
+        assertThat(follicular.phase).isEqualTo(CyclePhase.FOLLICULAR)
+        assertThat(engine.compute(input(cycleStatus = follicular))).isEqualTo(plain)
     }
 }

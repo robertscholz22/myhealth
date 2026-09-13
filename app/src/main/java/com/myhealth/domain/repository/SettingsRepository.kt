@@ -28,4 +28,5 @@ interface SettingsRepository {
     suspend fun setOffUserAgentContact(contact: String)
     suspend fun setGarminDirectEnabled(value: Boolean)
     suspend fun setHasCompletedOnboarding(value: Boolean)
+    suspend fun setCycleTrackingEnabled(value: Boolean)
 }

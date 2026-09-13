@@ -43,6 +43,7 @@ class DataStoreSettingsRepository(context: Context) : SettingsRepository {
         garminDirectEnabled = this[SettingsKeys.GARMIN_DIRECT_ENABLED] ?: defaults.garminDirectEnabled,
         hasCompletedOnboarding = this[SettingsKeys.HAS_COMPLETED_ONBOARDING] ?: defaults.hasCompletedOnboarding,
         suggestionsStale = this[SettingsKeys.SUGGESTIONS_STALE] ?: defaults.suggestionsStale,
+        cycleTrackingEnabled = this[SettingsKeys.CYCLE_TRACKING_ENABLED] ?: defaults.cycleTrackingEnabled,
     )
 
     override suspend fun update(transform: (AppSettings) -> AppSettings) {
@@ -60,6 +61,7 @@ class DataStoreSettingsRepository(context: Context) : SettingsRepository {
             prefs[SettingsKeys.GARMIN_DIRECT_ENABLED] = next.garminDirectEnabled
             prefs[SettingsKeys.HAS_COMPLETED_ONBOARDING] = next.hasCompletedOnboarding
             prefs[SettingsKeys.SUGGESTIONS_STALE] = next.suggestionsStale
+            prefs[SettingsKeys.CYCLE_TRACKING_ENABLED] = next.cycleTrackingEnabled
         }
     }
 
@@ -88,4 +90,7 @@ class DataStoreSettingsRepository(context: Context) : SettingsRepository {
 
     override suspend fun setHasCompletedOnboarding(value: Boolean) =
         update { it.copy(hasCompletedOnboarding = value) }
+
+    override suspend fun setCycleTrackingEnabled(value: Boolean) =
+        update { it.copy(cycleTrackingEnabled = value) }
 }

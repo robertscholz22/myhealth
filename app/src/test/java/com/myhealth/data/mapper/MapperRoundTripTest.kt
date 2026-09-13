@@ -8,6 +8,7 @@ import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ActivityStreams
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.model.CalendarEvent
+import com.myhealth.domain.model.CycleEntry
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.EventType
 import com.myhealth.domain.model.Ingredient
@@ -336,5 +337,24 @@ class MapperRoundTripTest {
         )
 
         assertThat(best.toEntity().toDomain()).isEqualTo(best)
+    }
+
+    @Test
+    fun cycleEntry_roundTrips() {
+        val entry = CycleEntry(
+            id = 9L,
+            periodStartDay = 20_800L,
+            periodEndDay = 20_804L,
+            note = "heavier than usual",
+            createdAtMillis = 4_000L,
+            updatedAtMillis = 5_000L,
+        )
+
+        assertThat(entry.toEntity().toDomain()).isEqualTo(entry)
+        // A period that has not ended yet keeps its open end through the round trip.
+        val running = entry.copy(periodEndDay = null, note = null)
+        assertThat(running.toEntity().toDomain()).isEqualTo(running)
+        assertThat(running.periodLengthDays).isNull()
+        assertThat(entry.periodLengthDays).isEqualTo(5)
     }
 }

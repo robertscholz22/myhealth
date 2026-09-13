@@ -10,6 +10,7 @@ import com.myhealth.data.db.converter.Converters
 import com.myhealth.data.db.dao.ActivityDao
 import com.myhealth.data.db.dao.BackupDao
 import com.myhealth.data.db.dao.BodyDao
+import com.myhealth.data.db.dao.CycleDao
 import com.myhealth.data.db.dao.EventDao
 import com.myhealth.data.db.dao.GoalDao
 import com.myhealth.data.db.dao.HealthDao
@@ -30,6 +31,7 @@ import com.myhealth.data.db.entity.ActivitySourceRecordEntity
 import com.myhealth.data.db.entity.ActivityStreamEntity
 import com.myhealth.data.db.entity.BodyMeasurementEntity
 import com.myhealth.data.db.entity.CalendarEventEntity
+import com.myhealth.data.db.entity.CycleEntryEntity
 import com.myhealth.data.db.entity.DailyHealthSummaryEntity
 import com.myhealth.data.db.entity.DailyLoadEntity
 import com.myhealth.data.db.entity.EventOverrideEntity
@@ -54,7 +56,8 @@ import com.myhealth.data.db.entity.WaterLogEntity
 import com.myhealth.data.db.migration.Migrations
 
 /**
- * The single Room database (PLAN §2.2): 26 tables plus the P8.5 `ingredient_fts` index,
+ * The single Room database (PLAN §2.2): 26 tables plus the P8.5 `ingredient_fts` index and the
+ * P11.1 `cycle_entry` table,
  * `exportSchema = true`, schemas in `app/schemas`.
  *
  * Every version bump ships an explicit `Migration` in [Migrations] plus a row in `docs/PLAN.md`
@@ -96,8 +99,10 @@ import com.myhealth.data.db.migration.Migrations
         DailyLoadEntity::class,
         RunningBestEntity::class,
         ImportRecordEntity::class,
+        // §5 P11.1 cycle
+        CycleEntryEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -134,6 +139,9 @@ abstract class MyHealthDatabase : RoomDatabase() {
     abstract fun runningBestDao(): RunningBestDao
 
     abstract fun importDao(): ImportDao
+
+    /** `cycle_entry` (P11.1). */
+    abstract fun cycleDao(): CycleDao
 
     /** Whole-table access for the JSON backup (P8.4). */
     abstract fun backupDao(): BackupDao

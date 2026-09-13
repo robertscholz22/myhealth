@@ -6,6 +6,7 @@ import com.myhealth.data.db.entity.ActivitySourceRecordEntity
 import com.myhealth.data.db.entity.ActivityStreamEntity
 import com.myhealth.data.db.entity.BodyMeasurementEntity
 import com.myhealth.data.db.entity.CalendarEventEntity
+import com.myhealth.data.db.entity.CycleEntryEntity
 import com.myhealth.data.db.entity.DailyHealthSummaryEntity
 import com.myhealth.data.db.entity.DailyLoadEntity
 import com.myhealth.data.db.entity.EventOverrideEntity
@@ -81,6 +82,8 @@ data class BackupFile(
     val dailyLoad: List<DailyLoadEntity> = emptyList(),
     val runningBest: List<RunningBestEntity> = emptyList(),
     val importRecord: List<ImportRecordEntity> = emptyList(),
+    // §5 P11.1 cycle
+    val cycleEntry: List<CycleEntryEntity> = emptyList(),
 ) {
 
     /** Rows per SQLite table name, empty tables omitted — what the screen reports after a run. */
@@ -111,12 +114,13 @@ data class BackupFile(
         "daily_load" to dailyLoad.size,
         "running_best" to runningBest.size,
         "import_record" to importRecord.size,
+        "cycle_entry" to cycleEntry.size,
     ).filterValues { it > 0 }
 
     val totalRows: Int get() = rowsPerTable().values.sum()
 
     companion object {
         /** Must track `@Database(version = …)` of `MyHealthDatabase`. */
-        const val CURRENT_SCHEMA_VERSION: Int = 2
+        const val CURRENT_SCHEMA_VERSION: Int = 3
     }
 }

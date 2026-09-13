@@ -131,6 +131,12 @@ internal class BackupMerge(private val dao: BackupDao) {
             file.importRecord, existing.importRecord, { it.id }, { it.fileHashSha256 },
             { it.copy(id = 0L) }, dao::insertImportRecord,
         ).inserted
+        // P11.1: `periodStartDay` is the natural key (and the table's unique index), so a merge
+        // never produces two cycles anchored on the same day.
+        written += mergeRoot(
+            file.cycleEntry, existing.cycleEntry, { it.id }, { "${it.periodStartDay}" },
+            { it.copy(id = 0L) }, dao::insertCycleEntry,
+        ).inserted
 
         written += mergeChildren(
             file.activityStream, { it.activityId }, activities,

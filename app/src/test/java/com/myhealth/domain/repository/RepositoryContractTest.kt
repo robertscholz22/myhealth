@@ -118,6 +118,7 @@ class RepositoryContractTest {
             "CalendarRepository", "PlanRepository", "GoalRepository", "NutritionRepository",
             "IngredientRepository", "MealRepository", "LoadRepository", "RunningBestRepository",
             "SettingsRepository", "SyncStateRepository", "ImportRepository", "SuggestionRepository",
+            "CycleRepository",
         )
 
         /** `app/src/main/java/com/myhealth/domain/repository`, from module dir or project root. */

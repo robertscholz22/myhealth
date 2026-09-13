@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myhealth.domain.model.AppSettings
 import com.myhealth.domain.model.Profile
+import com.myhealth.domain.model.Sex
 import com.myhealth.domain.repository.ProfileRepository
 import com.myhealth.domain.repository.SettingsRepository
 import com.myhealth.sync.SyncScheduler
@@ -31,7 +32,13 @@ class SettingsViewModel(
 
     fun onProfileChange(profile: Profile) {
         viewModelScope.launch {
+            val previous = state.value.profile
             profileRepo.upsert(profile.copy(updatedAtMillis = clock.millis()))
+            // P11.1: switching the profile to FEMALE turns the cycle tracker on once. It is not
+            // turned back off here — a user who switched it off in Settings keeps it off.
+            if (profile.sex == Sex.FEMALE && previous?.sex != Sex.FEMALE) {
+                settingsRepo.setCycleTrackingEnabled(true)
+            }
             // Sex, height, NEAT, goal weight and pace all feed the target engine (P4.12).
             syncScheduler.requestTargetRecompute()
         }

@@ -9,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.data.db.migration.Migrations
 import com.myhealth.data.db.entity.ActivitySessionEntity
+import com.myhealth.data.db.entity.CycleEntryEntity
 import com.myhealth.data.db.entity.IngredientEntity
 import com.myhealth.data.db.entity.MealLogEntity
 import com.myhealth.data.db.entity.MealLogItemEntity
@@ -219,6 +220,64 @@ class MyHealthDatabaseTest {
                 )
                 val inserted = migrated.ingredientDao().searchFts("soja*", limit = 10).first()
                 assertThat(inserted.map { it.name }).containsExactly("Sojamilch")
+            }
+        } finally {
+            migrated.close()
+        }
+    }
+
+    /**
+     * P11.1: an existing v2 database gains the `cycle_entry` table in place — the rows it already
+     * held survive, the new table's unique index over `periodStartDay` is really there, and the
+     * DAO reads and writes it afterwards.
+     */
+    @Test
+    fun migration_2_to_3_adds_cycle_entry_with_a_unique_period_start() {
+        migrations.createDatabase(MIGRATION_DB, 2).use { v2 ->
+            v2.execSQL(
+                "INSERT INTO ingredient (id, name, brand, basis, kcal, isFavorite, source, " +
+                    "useCount, archived, createdAtMillis, updatedAtMillis) VALUES " +
+                    "(1, 'Hafermilch', 'Oatly', 'PER_100ML', 46.0, 0, 'MANUAL', 0, 0, 1, 1)",
+            )
+        }
+
+        migrations.runMigrationsAndValidate(MIGRATION_DB, 3, true, *Migrations.ALL)
+
+        val migrated = Room.databaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            MyHealthDatabase::class.java,
+            MIGRATION_DB,
+        ).addMigrations(*Migrations.ALL).build()
+        try {
+            runTest {
+                // Nothing was lost on the way up.
+                assertThat(migrated.ingredientDao().searchFts("hafer*", limit = 10).first())
+                    .hasSize(1)
+
+                val dao = migrated.cycleDao()
+                val id = dao.upsert(
+                    CycleEntryEntity(
+                        periodStartDay = 20_800L,
+                        periodEndDay = 20_804L,
+                        createdAtMillis = 1L,
+                        updatedAtMillis = 1L,
+                    ),
+                )
+                assertThat(dao.getAll()).hasSize(1)
+                assertThat(dao.getByStartDay(20_800L)?.id).isEqualTo(id)
+
+                // The unique index is what keeps one cycle per start day.
+                val duplicate = runCatching {
+                    dao.upsert(
+                        CycleEntryEntity(
+                            periodStartDay = 20_800L,
+                            createdAtMillis = 2L,
+                            updatedAtMillis = 2L,
+                        ),
+                    )
+                }
+                assertThat(duplicate.isFailure).isTrue()
+                assertThat(dao.getAll()).hasSize(1)
             }
         } finally {
             migrated.close()

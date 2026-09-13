@@ -3,6 +3,8 @@ package com.myhealth.domain.engine.nutrition
 import com.myhealth.domain.engine.nutrition.NutritionDefaults as D
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.BodyMeasurement
+import com.myhealth.domain.model.CyclePhase
+import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.model.DailyHealthSummary
 import com.myhealth.domain.model.DayType
 import com.myhealth.domain.model.EngineWarningCode
@@ -34,6 +36,12 @@ data class NutritionTargetInput(
     val dayType: DayType,
     /** `date < today` — only then are the measured Health Connect rungs of the TDEE ladder usable. */
     val isDayComplete: Boolean,
+    /**
+     * P11.2: where [date] sits in the menstrual cycle, or `null` when cycle tracking is off. It
+     * only ever adds a **note** to the explanation — no macro and no calorie target moves, because
+     * the owner asked for the information, not for a different target.
+     */
+    val cycleStatus: CycleStatus? = null,
 )
 
 /** Which BMR formula was used (§3.1.1); the label appears in the explanation string. */
@@ -355,10 +363,23 @@ class NutritionTargetEngine(private val zone: ZoneId) {
                     "Carbs ${fmt0(split.carbsG)} g · Fat ${fmt0(split.fatG)} g " +
                     "(${fmt0(split.fatShare * 100.0)} %)",
             )
+            lutealNote(input.cycleStatus)?.let { appendLine(); append(it) }
         }
     }
 
+    /**
+     * P11.2's luteal-phase line, appended to the §3.1.7 template. It is the only thing cycle data
+     * changes about a nutrition target — the numbers above it are byte-identical either way.
+     */
+    private fun lutealNote(cycleStatus: CycleStatus?): String? =
+        if (cycleStatus?.phase == CyclePhase.LUTEAL) LUTEAL_NOTE else null
+
     private companion object {
+        /** The exact sentence P11.2 specifies. */
+        const val LUTEAL_NOTE: String =
+            "Luteal phase: appetite and core temperature are typically higher; " +
+                "the target is unchanged, listen to hunger."
+
         fun asInt(value: Double): Int = D.roundTo(value, 1.0).toInt()
 
         fun fmt0(value: Double): String = String.format(Locale.US, "%d", asInt(value))

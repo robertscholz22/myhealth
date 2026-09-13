@@ -14,6 +14,7 @@ import com.myhealth.domain.model.WaterLog
 import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.repository.BodyRepository
 import com.myhealth.domain.repository.CalendarRepository
+import com.myhealth.domain.repository.CycleRepository
 import com.myhealth.domain.repository.HealthRepository
 import com.myhealth.domain.repository.NutritionRepository
 import com.myhealth.domain.repository.PlanRepository
@@ -52,6 +53,12 @@ class RoomNutritionRepository(
     private val calendarRepo: CalendarRepository,
     private val engine: NutritionTargetEngine,
     private val clock: Clock,
+    /**
+     * P11.2: `null` wherever cycle tracking is not wired (and in the tests that predate it). The
+     * repository asks it for a day's [com.myhealth.domain.model.CycleStatus] only while
+     * `isTrackingEnabled()` is true; the target itself never changes, only its explanation.
+     */
+    private val cycleRepo: CycleRepository? = null,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : NutritionRepository {
 
@@ -122,8 +129,14 @@ class RoomNutritionRepository(
             plannedSessions = planned,
             dayType = dayType,
             isDayComplete = day < LocalDate.now(clock).toEpochDay(),
+            cycleStatus = cycleStatusFor(day),
         )
     }
+
+    /** The day's cycle status, or `null` when there is no tracker or it is switched off (P11.2). */
+    private suspend fun cycleStatusFor(day: Long) = cycleRepo
+        ?.takeIf { it.isTrackingEnabled().first() }
+        ?.statusFor(day)
 
     /** The `inputsHash` field set of P4.12. Keys are sorted by [TargetInputsHash]. */
     private fun hashFields(
@@ -142,6 +155,8 @@ class RoomNutritionRepository(
         "completedIds" to TargetInputsHash.ids(input.completedSessions.map { it.id }),
         "tdeeSource" to tdeeSource,
         "tdeeValue" to TargetInputsHash.num(tdeeValue),
+        // P11.2: the luteal note is part of the stored explanation, so the phase is part of the hash.
+        "cyclePhase" to input.cycleStatus?.phase?.name,
     )
 
     // ---- water (P4.13) -----------------------------------------------------------------------

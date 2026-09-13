@@ -85,6 +85,17 @@ object SuggestionInputsHash {
                 ).joinToString("|"),
             )
         }
+        input.cycleStatusByDay.entries.sortedBy { it.key }.forEach { (day, status) ->
+            line(
+                "cycle",
+                listOf(
+                    day.toString(), status.dayOfCycle.toString(), status.phase.name,
+                    status.isLateLuteal.toString(), status.isPredicted.toString(),
+                    status.cycleLengthDays.toString(), status.periodLengthDays.toString(),
+                    status.nextPeriodStart.toString(), status.confidence.name,
+                ).joinToString("|"),
+            )
+        }
         input.recentActivities.sortedWith(compareBy({ it.day }, { it.id })).forEach { a ->
             line(
                 "activity",

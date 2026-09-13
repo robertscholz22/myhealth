@@ -1,6 +1,9 @@
 package com.myhealth.domain.engine.suggest
 
 import com.myhealth.domain.engine.load.TrimpDefaults
+import com.myhealth.domain.model.CycleConfidence
+import com.myhealth.domain.model.CyclePhase
+import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.RationaleEntry
 import com.myhealth.domain.model.RecoveryBand
@@ -22,6 +25,8 @@ data class RationaleContext(
     val primaryGoalTitle: String? = null,
     val sportCap: Int? = null,
     val sportUsed: Int = 0,
+    /** P11.2: where the candidate's day sits in the cycle; `null` when tracking is off. */
+    val cycleStatus: CycleStatus? = null,
 )
 
 /**
@@ -52,8 +57,41 @@ object Rationale {
         keyEventEntry(candidate, ctx)?.let { entries += it }
         recoveryEntry(ctx)?.let { entries += it }
         capEntry(candidate.sportGroup, ctx)?.let { entries += it }
+        cycleEntry(ctx)?.let { entries += it }
         return entries
     }
+
+    /**
+     * The `CYCLE_*` line of P11.2 — one entry per phase, or none outside the four phases the rules
+     * act on. A [CycleConfidence.LOW] forecast keeps the rule but says so, because the advice then
+     * rests on a default 28-day cycle rather than on the user's own history.
+     */
+    fun cycleEntry(ctx: RationaleContext): RationaleEntry? {
+        val cycle = ctx.cycleStatus ?: return null
+        val (ruleId, text) = when {
+            cycle.isEarlyMenstrual -> CycleRules.RULE_MENSTRUAL_EARLY to
+                "Cycle day ${cycle.dayOfCycle}: keeping the intensity moderate for the first two days."
+            cycle.isMenstrual -> CycleRules.RULE_MENSTRUAL_EARLY to
+                "Cycle day ${cycle.dayOfCycle}: quality work is fine now, rated a little more cautiously."
+            cycle.isLateLuteal -> CycleRules.RULE_LATE_LUTEAL to
+                "Late luteal phase (day ${cycle.dayOfCycle} of ~${cycle.cycleLengthDays}): " +
+                "favouring recovery, and worth watching sleep and hydration this week."
+            cycle.phase == CyclePhase.OVULATION -> CycleRules.RULE_OVULATION to
+                "Ovulation window: take a thorough warm-up — ligaments are more lax around ovulation."
+            cycle.phase == CyclePhase.FOLLICULAR -> CycleRules.RULE_FOLLICULAR to
+                "Follicular phase: intervals and strength work are usually best tolerated now."
+            else -> return null
+        }
+        return RationaleEntry(ruleId = ruleId, text = text + lowConfidenceSuffix(cycle))
+    }
+
+    /** P11.2: LOW confidence keeps the rule and adds the "log your period" nudge. */
+    private fun lowConfidenceSuffix(cycle: CycleStatus): String =
+        if (cycle.confidence == CycleConfidence.LOW) {
+            " Based on a default 28-day cycle — log your period to improve this."
+        } else {
+            ""
+        }
 
     /** The rationale of a mobility session added by post-pass 7c. */
     fun forMobility(phase: TrainingPhase): List<RationaleEntry> = listOf(

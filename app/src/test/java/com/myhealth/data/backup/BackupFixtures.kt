@@ -3,6 +3,7 @@ package com.myhealth.data.backup
 import com.myhealth.data.db.entity.ActivitySessionEntity
 import com.myhealth.data.db.entity.ActivityStreamEntity
 import com.myhealth.data.db.entity.BodyMeasurementEntity
+import com.myhealth.data.db.entity.CycleEntryEntity
 import com.myhealth.data.db.entity.DailyLoadEntity
 import com.myhealth.data.db.entity.IngredientEntity
 import com.myhealth.data.db.entity.MealLogEntity
@@ -146,6 +147,15 @@ internal object BackupFixtures {
     )
 
     /** The whole dataset as one backup file. */
+    /** P11.1: one logged period; `periodStartDay` is the natural key a MERGE matches on. */
+    fun cycleEntry(id: Long = 1L, periodStartDay: Long = DAY) = CycleEntryEntity(
+        id = id,
+        periodStartDay = periodStartDay,
+        periodEndDay = periodStartDay + 4,
+        createdAtMillis = START,
+        updatedAtMillis = START,
+    )
+
     fun file(exportedAtMillis: Long = START, appVersion: String = "1.0") = BackupFile(
         exportedAtMillis = exportedAtMillis,
         appVersion = appVersion,
@@ -158,5 +168,6 @@ internal object BackupFixtures {
         mealLog = listOf(mealLog()),
         mealLogItem = listOf(mealLogItem()),
         runningBest = listOf(runningBest()),
+        cycleEntry = listOf(cycleEntry()),
     )
 }

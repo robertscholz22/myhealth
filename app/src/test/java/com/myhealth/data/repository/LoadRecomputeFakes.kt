@@ -101,4 +101,6 @@ internal class FakeLoadSettingsRepository(initial: AppSettings = AppSettings()) 
     override suspend fun setGarminDirectEnabled(value: Boolean) = update { it.copy(garminDirectEnabled = value) }
     override suspend fun setHasCompletedOnboarding(value: Boolean) =
         update { it.copy(hasCompletedOnboarding = value) }
+    override suspend fun setCycleTrackingEnabled(value: Boolean) =
+        update { it.copy(cycleTrackingEnabled = value) }
 }

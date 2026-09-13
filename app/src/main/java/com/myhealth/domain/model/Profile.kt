@@ -63,6 +63,13 @@ data class AppSettings(
     /** Drives the start destination (Onboarding vs Today) — see P1.9/P1.10. */
     val hasCompletedOnboarding: Boolean = false,
     /**
+     * The menstrual-cycle tracker (P11.1). `false` by default because `AppSettings` knows nothing
+     * about the profile: onboarding turns it on when `sex == FEMALE` is saved, and
+     * `CycleRepository.isTrackingEnabled` ors it with `profile.sex == FEMALE` anyway, so a FEMALE
+     * profile is tracked even if this flag was never written. `MALE`/`OTHER` opt in from Settings.
+     */
+    val cycleTrackingEnabled: Boolean = false,
+    /**
      * Set when the calendar changes underneath an open `PROPOSED` suggestion batch (POLISH-8).
      * Training and the Today card then show a "Calendar changed — regenerate" hint. It lives here
      * rather than in `suggestion_batch.status` so the fix needs no schema migration.

@@ -1,8 +1,11 @@
 package com.myhealth.domain.engine.nutrition
 
+import com.myhealth.domain.engine.cycle.CycleEngine
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.BodyMeasurement
+import com.myhealth.domain.model.CycleEntry
+import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.model.DailyHealthSummary
 import com.myhealth.domain.model.DayType
 import com.myhealth.domain.model.EventOccurrence
@@ -196,6 +199,7 @@ internal object NutritionFixtures {
         dayType: DayType = DayType.REST,
         isDayComplete: Boolean = false,
         date: LocalDate = TODAY,
+        cycleStatus: CycleStatus? = null,
     ): NutritionTargetInput = NutritionTargetInput(
         date = date,
         profile = profile,
@@ -206,6 +210,26 @@ internal object NutritionFixtures {
         plannedSessions = planned,
         dayType = dayType,
         isDayComplete = isDayComplete,
+        cycleStatus = cycleStatus,
+    )
+
+    /**
+     * The [CycleStatus] of [TODAY] for a cycle whose period started [offset] days ago, derived by
+     * the real [com.myhealth.domain.engine.cycle.CycleEngine] (P11.2). `offset = 20` puts the day
+     * in the luteal phase of a default 28-day cycle.
+     */
+    fun cycleStatus(offset: Long): CycleStatus = checkNotNull(
+        CycleEngine.statusFor(
+            day = TODAY.toEpochDay(),
+            entries = listOf(
+                CycleEntry(
+                    id = 1L,
+                    periodStartDay = TODAY.toEpochDay() - offset,
+                    createdAtMillis = NOW_MILLIS,
+                    updatedAtMillis = NOW_MILLIS,
+                ),
+            ),
+        ),
     )
 
     /** The engine under test, pinned to the UTC test zone. */
