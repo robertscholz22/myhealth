@@ -43,7 +43,7 @@ Each release is also published on GitHub with the APK attached. A `release/X.Y.x
 
 ```bash
 bash tools/verify.sh                     # assembleDebug + unit tests + lint (+ release)
-./gradlew :app:connectedDebugAndroidTest # instrumented tests on a device/emulator
+bash tools/connected.sh emulator-5554   # instrumented tests — ONLY on a named emulator (the raw Gradle task installs/uninstalls on every attached device, phone included)
 ```
 
 Emulator harness for runtime testing: `tools/emu.sh`, `tools/ui.sh`, and the Health Connect seeder app in `tools/hc-seeder/` (`seed.sh up && seed.sh seed 45`). Results are logged in `docs/VERIFICATION.md` with screenshots in `docs/screenshots/`.
