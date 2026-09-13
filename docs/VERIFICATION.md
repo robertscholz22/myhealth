@@ -426,3 +426,18 @@ Seeder extended (`tools/hc-seeder`, `SeederRides.kt`): every Tuesday a 60-min `B
 - NOTE-15: "Weekly load target 773 AU; 667 AU still unallocated." in a session's rationale is the running allocation *at that candidate*, not the week's final state — pre-existing wording, unchanged.
 
 - **INCIDENT-1 (2026-09-13 17:34):** the P12.5 instrumented run (`./gradlew :app:connectedDebugAndroidTest`, delegated to an agent without `ANDROID_SERIAL`) targeted every attached device. On the owner's Pixel the install failed (`INSTALL_FAILED_VERSION_DOWNGRADE`, debug 1.0.2 build vs installed 1.0.3) but the task's uninstall step still removed `com.myhealth` — logcat "ACTION_PACKAGE_FULLY_REMOVED pkg=com.myhealth" — and with it all app data (profile, the 600-activity CSV import, settings, goals; no JSON backup existed). Recovery: 1.1.0 installed from the release, onboarding to be redone by the owner, Health Connect grant + backfill + CSV re-import from `/sdcard/Download/Garmin_Activities_full.csv` afterwards. Guard: `tools/connected.sh` (rule R13) is now the only way to run instrumented tests.
+
+## Session 11 — 2026-09-13 (Pixel 7a, v1.1.0 from the GitHub release, after INCIDENT-1)
+Owner redid onboarding, re-imported the 600-row CSV and ran the Health Connect backfill; then:
+
+| Step | Result | Evidence |
+|---|---|---|
+| Activities → Cycle filter lists the re-imported rides (e.g. 8 Aug 1h 10m · 31,01 km · 143 bpm) | PASS | phone_50_activities_cycle.png |
+| Settings → Cycling: "Indoor trainer available" switched on; "Ride sessions / week cap" set to 2 next to the run/strength/soccer caps; FTP override field present, no estimate hint | PASS | phone_52_settings_cycling_set.png |
+| Bike & power: "No FTP estimate yet — ride with a power meter, or set the override in Settings." and "No ride bests yet" — correct: the owner's last ride with power (Zwift-style virtual ride) was 2026-02-05, outside the 90-day window; the outdoor rides carry HR only and none is within 1 % of a canonical distance (31.01 km) | PASS (expected) | phone_53_bike_screen.png |
+| Integrations: "Power" row listed (not granted — Garmin Connect writes no power to Health Connect) | PASS | phone_54_integrations.png |
+| Training → Generate suggestions: Base phase, target only 233 AU, week = 2 long runs + mobility, **no ride** — the target is far too low because most of the history has no TRIMP (below) | FAIL → BUG-14 | phone_55_suggestions.png |
+| Load & Recovery: CTL 32 / ATL 22 / ACWR 0.69, "Not enough training history yet"; Activities from 2025 and earlier show no TRIMP at all | FAIL → BUG-14 | phone_56_load.png |
+| Backup → Export backup → picker (Downloads, `myhealth-backup-2026-09-13.json`) → "Export finished · 1274 rows over 14 tables written"; copied to the workstation (`~/my_health_backups/`) | PASS | phone_57_backup_picker.png |
+
+- BUG-14 (load recompute cancelled): `SyncScheduler.requestLoadRecompute` enqueued with `ExistingWorkPolicy.REPLACE`, which cancels a run that is already executing. The 600-row import requested a recompute from 2023; the Health Connect backfill that followed requested one from its own (recent) `fromDay` and cancelled the historical run, so every activity before the backfill window kept `trimp = null` and the weekly target collapsed to a starter-level 233 AU. Fix (1.1.1): `APPEND_OR_REPLACE` (the new request chains behind the running one), plus Settings → Advanced → "Recompute training load" (`requestLoadRecompute(0)`, clamped to the first activity) as the manual repair.

@@ -81,6 +81,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             onProfileChange = vm::onProfileChange,
             onSettingsChange = vm::onSettingsChange,
             onRemoveOrphanedImportData = vm::removeOrphanedImportData,
+            onRecomputeTrainingLoad = vm::recomputeTrainingLoad,
             modifier = Modifier.fillMaxSize().padding(innerPadding),
         )
     }
@@ -92,6 +93,7 @@ private fun SettingsContent(
     onProfileChange: (Profile) -> Unit,
     onSettingsChange: (AppSettings) -> Unit,
     onRemoveOrphanedImportData: () -> Unit,
+    onRecomputeTrainingLoad: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -114,6 +116,7 @@ private fun SettingsContent(
                 settings = state.settings,
                 onSettingsChange = onSettingsChange,
                 onRemoveOrphanedImportData = onRemoveOrphanedImportData,
+                onRecomputeTrainingLoad = onRecomputeTrainingLoad,
             )
         }
     }
@@ -299,6 +302,7 @@ private fun SettingsContentPreview() {
             onProfileChange = {},
             onSettingsChange = {},
             onRemoveOrphanedImportData = {},
+            onRecomputeTrainingLoad = {},
         )
     }
 }

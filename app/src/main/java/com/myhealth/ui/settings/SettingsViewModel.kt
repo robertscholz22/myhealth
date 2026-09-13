@@ -107,6 +107,16 @@ class SettingsViewModel(
         }
     }
 
+    /**
+     * BUG-14: schedules a load/recovery recompute over the **whole** history (`fromDay = 0` is
+     * clamped to the first activity by `LoadRecomputeService`) — the repair for activities that
+     * lost their TRIMP when an earlier historical recompute was cancelled.
+     */
+    fun recomputeTrainingLoad() {
+        syncScheduler.requestLoadRecompute(0L)
+        orphanCleanupMessage.value = UiMessage.of(R.string.settings_recompute_load_scheduled)
+    }
+
     fun consumeMessage() {
         orphanCleanupMessage.value = null
     }

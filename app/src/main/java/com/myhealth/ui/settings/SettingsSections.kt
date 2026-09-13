@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -89,6 +90,7 @@ internal fun AdvancedSection(
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
     onRemoveOrphanedImportData: () -> Unit,
+    onRecomputeTrainingLoad: () -> Unit,
 ) {
     var confirmingCleanup by remember { mutableStateOf(false) }
 
@@ -109,6 +111,17 @@ internal fun AdvancedSection(
         ) {
             Text(stringResource(R.string.settings_orphan_cleanup_button))
         }
+        OutlinedButton(
+            onClick = onRecomputeTrainingLoad,
+            modifier = Modifier.padding(top = 8.dp),
+        ) {
+            Text(stringResource(R.string.settings_recompute_load_button))
+        }
+        Text(
+            text = stringResource(R.string.settings_recompute_load_description),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 
     if (confirmingCleanup) {

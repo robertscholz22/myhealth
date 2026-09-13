@@ -140,8 +140,16 @@ class SyncScheduler(
 
     /**
      * Requests a load/recovery recompute after a write that can change one: an activity ingest, an
-     * RPE edit, or a Health Connect sync. [ExistingWorkPolicy.REPLACE] plus the
-     * [LOAD_RECOMPUTE_DEBOUNCE_SECONDS] initial delay debounces a burst of requests into one run.
+     * RPE edit, or a Health Connect sync.
+     *
+     * [ExistingWorkPolicy.APPEND_OR_REPLACE], **not** `REPLACE` (BUG-14): `REPLACE` cancels a run
+     * that is already executing, and a recompute over years of freshly imported history takes
+     * minutes — the Health Connect backfill that followed the owner's 600-row import requested its
+     * own, much later `fromDay` and thereby cancelled the historical run, leaving every activity
+     * before the backfill window without TRIMP. Appending chains the new request behind the one in
+     * flight (or replaces it only when the previous chain failed or was cancelled), so the earliest
+     * `fromDay` is always completed. A burst still costs one short extra run per request instead of
+     * a single debounced run, which is cheap for the usual 28-day window.
      *
      * @param fromDay the earliest day known to be affected; the worker rebuilds
      *   `[fromDay − 28, today]` (the EWMA prefix `LoadSeriesEngine` needs).
@@ -152,7 +160,7 @@ class SyncScheduler(
             .setInitialDelay(LOAD_RECOMPUTE_DEBOUNCE_SECONDS, TimeUnit.SECONDS)
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, BACKOFF_MINUTES, TimeUnit.MINUTES)
             .build()
-        workManager.enqueueUniqueWork(LOAD_NOW_NAME, ExistingWorkPolicy.REPLACE, request)
+        workManager.enqueueUniqueWork(LOAD_NOW_NAME, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
     }
 
     /** State of the last/current load recompute request. */

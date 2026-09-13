@@ -13,6 +13,8 @@
 
 - `v1.1.0` (2026-09-13, versionCode 110): **cycling workouts** (PLAN P12) — power fields and streams from Health Connect (`READ_POWER`, optional; pedalling cadence), FIT and the Garmin CSV; DB v5 (`ride_best`, profile FTP override + indoor trainer); FTP estimate (20-minute power × 0.95, 90 days; session NP fallback) with manual override; ride bests (5/20/60-min power, 10/20/40/100 km time); training load from power (TSS × 1.5) when a ride has no HR; Bike & power screen; bike goals (FTP, weekly hours, event) with progress; ride sessions in the suggestion engine (endurance ride, bike intervals, trainer session, recovery spin; second phase table for cycling goals; indoor season Nov–Mar with a trainer; ride sessions / week cap); Integrations re-reads the last 90 days of sessions when a new per-session permission is granted (BUG-13). Includes the 1.0.3 hotfix. 8xx unit tests, instrumented tests green, emulator session 10 in VERIFICATION.md.
 
+- `v1.1.1` (2026-09-13, versionCode 111): BUG-14 — a load recompute requested while a historical one was running cancelled it (`REPLACE` → `APPEND_OR_REPLACE`), leaving imported history without TRIMP; new Settings → Advanced → "Recompute training load". Also `tools/connected.sh` (instrumented tests only on a named emulator, after INCIDENT-1).
+
 ## Install on the Pixel 7A
 1. Enable developer options + USB debugging, connect the phone, `adb devices`.
 2. `adb install -r app/build/outputs/apk/release/app-release.apk` (or the debug APK for logcat-friendly runs).
