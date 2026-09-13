@@ -5,23 +5,38 @@ inputsHash=5181c5e8b8e88e339b65edd728f8b8286291f244c47c3cc0dae889920baf71c0
   day+0 | RUN_OUTDOOR | EASY_RUN | LOW | 42min | 50.400000au | score=0.979505 | status=PROPOSED
     - PHASE_IN_SEASON: In season: easy running builds aerobic volume.
     - BUDGET: Weekly load target 280 AU; 51 AU still unallocated.
+  day+4 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: the day after a hard session, an easy 30-minute run keeps blood flowing without adding load.
+    - PHASE_IN_SEASON: In season: active recovery does not count towards the weekly load.
+  day+6 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_IN_SEASON: In season: active recovery does not count towards the weekly load.
 
 == sug03_match_today_mobility
 phase=IN_SEASON
 weeklyTarget=280.000000
 inputsHash=beb6750ccfcb2d82e6345a306ec47272b011d221967d9945b6c01357bb24716f
+  day+1 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: the day after a hard session, an easy 30-minute run keeps blood flowing without adding load.
+    - PHASE_IN_SEASON: In season: active recovery does not count towards the weekly load.
   day+1 | MOBILITY | MOBILITY | RECOVERY | 20min | 12.000000au | score=0.000000 | status=PROPOSED
     - MOBILITY_REST_DAY: Rest day: 20 minutes of mobility keeps the day easy and still useful.
     - PHASE_IN_SEASON: In season: no training load on rest days.
   day+2 | RUN_OUTDOOR | EASY_RUN | LOW | 42min | 50.400000au | score=0.979505 | status=PROPOSED
     - PHASE_IN_SEASON: In season: easy running builds aerobic volume.
     - BUDGET: Weekly load target 280 AU; 51 AU still unallocated.
+  day+3 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_IN_SEASON: In season: active recovery does not count towards the weekly load.
   day+3 | MOBILITY | MOBILITY | RECOVERY | 20min | 12.000000au | score=0.000000 | status=PROPOSED
     - MOBILITY_REST_DAY: Rest day: 20 minutes of mobility keeps the day easy and still useful.
     - PHASE_IN_SEASON: In season: no training load on rest days.
   day+4 | MOBILITY | MOBILITY | RECOVERY | 20min | 12.000000au | score=0.000000 | status=PROPOSED
     - MOBILITY_REST_DAY: Rest day: 20 minutes of mobility keeps the day easy and still useful.
     - PHASE_IN_SEASON: In season: no training load on rest days.
+  day+5 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_IN_SEASON: In season: active recovery does not count towards the weekly load.
   day+5 | MOBILITY | MOBILITY | RECOVERY | 20min | 12.000000au | score=0.000000 | status=PROPOSED
     - MOBILITY_REST_DAY: Rest day: 20 minutes of mobility keeps the day easy and still useful.
     - PHASE_IN_SEASON: In season: no training load on rest days.
@@ -36,9 +51,15 @@ inputsHash=c1e0d45b9ee56ac3293577e3e69e1191bdf0d0eac106e7518d98717932d36bcb
   day+0 | STRENGTH | STRENGTH_FULL | MODERATE | 55min | 99.000000au | score=0.855954 | status=PROPOSED
     - PHASE_BASE: Base phase: full-body strength supports every sport.
     - BUDGET: Weekly load target 294 AU; 197 AU still unallocated.
+  day+1 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
   day+2 | STRENGTH | STRENGTH_FULL | MODERATE | 54min | 97.200000au | score=0.979231 | status=PROPOSED
     - PHASE_BASE: Base phase: full-body strength supports every sport.
     - BUDGET: Weekly load target 294 AU; 98 AU still unallocated.
+  day+3 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
   day+5 | RUN_OUTDOOR | LONG_RUN | MODERATE | 65min | 97.500000au | score=0.812908 | status=PROPOSED
     - PHASE_BASE: Base phase: the long run builds endurance.
     - BUDGET: Weekly load target 294 AU; 294 AU still unallocated.
@@ -74,6 +95,12 @@ inputsHash=4057c70b1400d995f8c550e72cfdea84ee70f1929bc4cef1052c72e951dcfb58
     - PHASE_BASE: Base phase: full-body strength supports every sport.
     - BUDGET: Weekly load target 176 AU; 88 AU still unallocated.
     - RECOVERY_STRAINED: Recovery 28/100, recovery only.
+  day+2 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
+  day+4 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
   day+5 | RUN_OUTDOOR | LONG_RUN | MODERATE | 59min | 88.500000au | score=0.675425 | status=PROPOSED
     - PHASE_BASE: Base phase: the long run builds endurance.
     - BUDGET: Weekly load target 176 AU; 176 AU still unallocated.
@@ -89,6 +116,12 @@ inputsHash=9e410b4659d1526f7e3a8d883ce7dde405393fa60dcc3d019111952a7a22f622
   day+1 | RUN_OUTDOOR | EASY_RUN | LOW | 33min | 39.600000au | score=0.978092 | status=PROPOSED
     - PHASE_BASE: Base phase: easy running builds aerobic volume.
     - BUDGET: Weekly load target 221 AU; 39 AU still unallocated.
+  day+2 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
+  day+4 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
   day+5 | RUN_OUTDOOR | LONG_RUN | MODERATE | 74min | 111.000000au | score=0.855850 | status=PROPOSED
     - PHASE_BASE: Base phase: the long run builds endurance.
     - BUDGET: Weekly load target 221 AU; 221 AU still unallocated.
@@ -100,12 +133,18 @@ inputsHash=891f3030a78adcf775b96f7d4edf44f09ffd5a360d78cc85317f23f68babc303
   day+0 | STRENGTH | STRENGTH_FULL | MODERATE | 55min | 99.000000au | score=0.855954 | status=PROPOSED
     - PHASE_BASE: Base phase: full-body strength supports every sport.
     - BUDGET: Weekly load target 294 AU; 197 AU still unallocated.
+  day+1 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
   day+1 | MOBILITY | MOBILITY | RECOVERY | 20min | 12.000000au | score=0.000000 | status=PROPOSED
     - MOBILITY_REST_DAY: Rest day: 20 minutes of mobility keeps the day easy and still useful.
     - PHASE_BASE: Base phase: no training load on rest days.
   day+3 | STRENGTH | STRENGTH_FULL | MODERATE | 54min | 97.200000au | score=0.979231 | status=PROPOSED
     - PHASE_BASE: Base phase: full-body strength supports every sport.
     - BUDGET: Weekly load target 294 AU; 98 AU still unallocated.
+  day+4 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
   day+4 | MOBILITY | MOBILITY | RECOVERY | 20min | 12.000000au | score=0.000000 | status=PROPOSED
     - MOBILITY_REST_DAY: Rest day: 20 minutes of mobility keeps the day easy and still useful.
     - PHASE_BASE: Base phase: no training load on rest days.
@@ -123,9 +162,15 @@ inputsHash=47af93b3bbebb4cc5a4b11eb54faa05e7b420cc494dd3e800bb6cd087012496e
   day+0 | STRENGTH | STRENGTH_FULL | MODERATE | 55min | 99.000000au | score=0.855954 | status=PROPOSED
     - PHASE_BASE: Base phase: full-body strength supports every sport.
     - BUDGET: Weekly load target 294 AU; 197 AU still unallocated.
+  day+1 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
   day+2 | STRENGTH | STRENGTH_FULL | MODERATE | 54min | 97.200000au | score=0.979231 | status=PROPOSED
     - PHASE_BASE: Base phase: full-body strength supports every sport.
     - BUDGET: Weekly load target 294 AU; 98 AU still unallocated.
+  day+3 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
   day+5 | RUN_OUTDOOR | LONG_RUN | MODERATE | 65min | 97.500000au | score=0.812908 | status=PROPOSED
     - PHASE_BASE: Base phase: the long run builds endurance.
     - BUDGET: Weekly load target 294 AU; 294 AU still unallocated.
@@ -140,6 +185,12 @@ inputsHash=177ad4002bd3fa96d582f98464f046a4bb51e9c7c61d695663750d712eccf94b
     - BUDGET: Weekly load target 308 AU; 49 AU still unallocated.
     - RECOVERY_GOOD: Recovery 70/100, you can absorb a quality session.
     - SPORT_CAP: Running: 2 of 4 sessions this week.
+  day+1 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BUILD: Build phase: active recovery does not count towards the weekly load.
+  day+3 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BUILD: Build phase: active recovery does not count towards the weekly load.
   day+5 | RUN_OUTDOOR | LONG_RUN | MODERATE | 56min | 84.000000au | score=0.908491 | status=PROPOSED
     - PHASE_BUILD: Build phase: the long run builds endurance for 5k in 20:00.
     - BUDGET: Weekly load target 308 AU; 133 AU still unallocated.
@@ -154,6 +205,9 @@ inputsHash=a4f291e95a911435221950ef71c97f7cc782d7509cdca8e112e39388035fad24
     - PHASE_PEAK: Peak phase: tempo work develops threshold for 5k in 20:00.
     - BUDGET: Weekly load target 294 AU; 197 AU still unallocated.
     - RECOVERY_GOOD: Recovery 72/100, you can absorb a quality session.
+  day+1 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: the day after a hard session, an easy 30-minute run keeps blood flowing without adding load.
+    - PHASE_PEAK: Peak phase: active recovery does not count towards the weekly load.
   day+1 | MOBILITY | MOBILITY | RECOVERY | 20min | 12.000000au | score=0.000000 | status=PROPOSED
     - MOBILITY_REST_DAY: Rest day: 20 minutes of mobility keeps the day easy and still useful.
     - PHASE_PEAK: Peak phase: no training load on rest days.
@@ -164,6 +218,9 @@ inputsHash=a4f291e95a911435221950ef71c97f7cc782d7509cdca8e112e39388035fad24
     - PHASE_PEAK: Peak phase: intervals sharpen top-end speed for 5k in 20:00.
     - BUDGET: Weekly load target 294 AU; 98 AU still unallocated.
     - RECOVERY_GOOD: Recovery 72/100, you can absorb a quality session.
+  day+4 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: the day after a hard session, an easy 30-minute run keeps blood flowing without adding load.
+    - PHASE_PEAK: Peak phase: active recovery does not count towards the weekly load.
   day+4 | MOBILITY | MOBILITY | RECOVERY | 20min | 12.000000au | score=0.000000 | status=PROPOSED
     - MOBILITY_REST_DAY: Rest day: 20 minutes of mobility keeps the day easy and still useful.
     - PHASE_PEAK: Peak phase: no training load on rest days.
@@ -182,12 +239,18 @@ inputsHash=2183033b28c59a05e0434a2e52690fe980a326a1aab3df3083e19372d6ed1d69
   day+0 | STRENGTH | STRENGTH_FULL | MODERATE | 55min | 99.000000au | score=0.855954 | status=PROPOSED
     - PHASE_BASE: Base phase: full-body strength supports every sport.
     - BUDGET: Weekly load target 294 AU; 197 AU still unallocated.
+  day+1 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
   day+1 | MOBILITY | MOBILITY | RECOVERY | 20min | 12.000000au | score=0.000000 | status=PROPOSED
     - MOBILITY_REST_DAY: Rest day: 20 minutes of mobility keeps the day easy and still useful.
     - PHASE_BASE: Base phase: no training load on rest days.
   day+2 | STRENGTH | STRENGTH_FULL | MODERATE | 54min | 97.200000au | score=0.979231 | status=PROPOSED
     - PHASE_BASE: Base phase: full-body strength supports every sport.
     - BUDGET: Weekly load target 294 AU; 98 AU still unallocated.
+  day+3 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
   day+3 | MOBILITY | MOBILITY | RECOVERY | 20min | 12.000000au | score=0.000000 | status=PROPOSED
     - MOBILITY_REST_DAY: Rest day: 20 minutes of mobility keeps the day easy and still useful.
     - PHASE_BASE: Base phase: no training load on rest days.
@@ -208,9 +271,15 @@ inputsHash=54cb502462197510b277a40015698f78cdc6cceb93146e21d6789286c58e26f0
   day+0 | STRENGTH | STRENGTH_FULL | MODERATE | 43min | 77.400000au | score=0.792927 | status=PROPOSED
     - PHASE_BASE: Base phase: full-body strength supports every sport.
     - BUDGET: Weekly load target 515 AU; 308 AU still unallocated.
+  day+1 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
   day+2 | STRENGTH | STRENGTH_FULL | MODERATE | 43min | 77.400000au | score=0.814094 | status=PROPOSED
     - PHASE_BASE: Base phase: full-body strength supports every sport.
     - BUDGET: Weekly load target 515 AU; 230 AU still unallocated.
+  day+3 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
   day+4 | STRENGTH | STRENGTH_FULL | MODERATE | 42min | 75.600000au | score=0.853772 | status=PROPOSED
     - PHASE_BASE: Base phase: full-body strength supports every sport.
     - BUDGET: Weekly load target 515 AU; 153 AU still unallocated.
@@ -220,6 +289,15 @@ inputsHash=54cb502462197510b277a40015698f78cdc6cceb93146e21d6789286c58e26f0
   day+6 | STRENGTH | STRENGTH_FULL | MODERATE | 43min | 77.400000au | score=0.979027 | status=PROPOSED
     - PHASE_BASE: Base phase: full-body strength supports every sport.
     - BUDGET: Weekly load target 515 AU; 77 AU still unallocated.
+  day+7 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
+  day+9 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
+  day+11 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
   day+12 | RUN_OUTDOOR | LONG_RUN | MODERATE | 69min | 103.500000au | score=0.792956 | status=PROPOSED
     - PHASE_BASE: Base phase: the long run builds endurance.
     - BUDGET: Weekly load target 515 AU; 411 AU still unallocated.
@@ -232,6 +310,10 @@ inputsHash=67c3f82f07e43ec447d0a5db92aa11b2e6690ee8918d876e65431b3ac1af5491
     - PHASE_BASE: Base phase: full-body strength supports every sport.
     - BUDGET: Weekly load target 150 AU; 66 AU still unallocated.
     - STARTER_WEEK: Starter week: no training history yet, so this is a gentle first week.
+  day+1 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
+    - STARTER_WEEK: Starter week: no training history yet, so this is a gentle first week.
   day+1 | MOBILITY | MOBILITY | RECOVERY | 20min | 12.000000au | score=0.000000 | status=PROPOSED
     - MOBILITY_REST_DAY: Rest day: 20 minutes of mobility keeps the day easy and still useful.
     - PHASE_BASE: Base phase: no training load on rest days.
@@ -239,6 +321,10 @@ inputsHash=67c3f82f07e43ec447d0a5db92aa11b2e6690ee8918d876e65431b3ac1af5491
   day+2 | MOBILITY | MOBILITY | RECOVERY | 20min | 12.000000au | score=0.000000 | status=PROPOSED
     - MOBILITY_REST_DAY: Rest day: 20 minutes of mobility keeps the day easy and still useful.
     - PHASE_BASE: Base phase: no training load on rest days.
+    - STARTER_WEEK: Starter week: no training history yet, so this is a gentle first week.
+  day+3 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: an easy 30-minute run keeps the legs moving without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
     - STARTER_WEEK: Starter week: no training history yet, so this is a gentle first week.
   day+3 | MOBILITY | MOBILITY | RECOVERY | 20min | 12.000000au | score=0.000000 | status=PROPOSED
     - MOBILITY_REST_DAY: Rest day: 20 minutes of mobility keeps the day easy and still useful.
@@ -267,6 +353,9 @@ inputsHash=f98dd27cbf846fdbdf04b400b6be9365ba847835b91db17fba86a2eab0d023e2
   day+1 | RUN_OUTDOOR | EASY_RUN | LOW | 42min | 50.400000au | score=0.976988 | status=PROPOSED
     - PHASE_BASE: Base phase: easy running builds aerobic volume.
     - BUDGET: Weekly load target 294 AU; 50 AU still unallocated.
+  day+3 | RUN_OUTDOOR | RECOVERY_RUN | RECOVERY | 30min | 27.000000au | score=0.000000 | status=PROPOSED
+    - ACTIVE_RECOVERY: Active recovery: the day after a hard session, an easy 30-minute run keeps blood flowing without adding load.
+    - PHASE_BASE: Base phase: active recovery does not count towards the weekly load.
   day+5 | RUN_OUTDOOR | LONG_RUN | MODERATE | 80min | 120.000000au | score=0.855000 | status=PROPOSED
     - PHASE_BASE: Base phase: the long run builds endurance.
     - BUDGET: Weekly load target 294 AU; 240 AU still unallocated.

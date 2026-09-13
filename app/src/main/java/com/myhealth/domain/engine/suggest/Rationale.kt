@@ -53,6 +53,7 @@ object Rationale {
     const val RULE_C4_RESPECTED: String = "C4_RESPECTED"
     const val RULE_SPORT_CAP: String = "SPORT_CAP"
     const val RULE_MOBILITY_REST_DAY: String = "MOBILITY_REST_DAY"
+    const val RULE_ACTIVE_RECOVERY: String = "ACTIVE_RECOVERY"
     const val RULE_DOWNGRADED: String = "DOWNGRADED_BEFORE_EVENT"
     const val RULE_STARTER_WEEK: String = "STARTER_WEEK"
 
@@ -154,6 +155,43 @@ object Rationale {
         }
 
     /** The rationale of a mobility session added by post-pass 7c. */
+    /**
+     * 0.3.0: the lines of an active-recovery filler (§3.5.6 step 7c). [cycleDriven] marks a spin
+     * that was chosen over a run because of the menstrual/late-luteal rule.
+     */
+    fun forActiveRecovery(
+        sessionType: SessionType,
+        phase: TrainingPhase,
+        afterHardDay: Boolean,
+        cycleDriven: Boolean,
+        isStarterWeek: Boolean = false,
+    ): List<RationaleEntry> {
+        val what = when (sessionType) {
+            SessionType.RECOVERY_SPIN -> "an easy 30-minute spin"
+            else -> "an easy 30-minute run"
+        }
+        val why = if (afterHardDay) {
+            "the day after a hard session, $what keeps blood flowing without adding load."
+        } else {
+            "$what keeps the legs moving without adding load."
+        }
+        val entries = mutableListOf(
+            RationaleEntry(ruleId = RULE_ACTIVE_RECOVERY, text = "Active recovery: $why"),
+            RationaleEntry(
+                ruleId = phaseRuleId(phase),
+                text = "${phaseLabel(phase)}: active recovery does not count towards the weekly load.",
+            ),
+        )
+        if (cycleDriven) {
+            entries += RationaleEntry(
+                ruleId = CycleRules.RULE_LATE_LUTEAL,
+                text = "Cycle: an easy spin is gentler than a run on these days.",
+            )
+        }
+        if (isStarterWeek) entries += starterWeekEntry()
+        return entries
+    }
+
     fun forMobility(phase: TrainingPhase, isStarterWeek: Boolean = false): List<RationaleEntry> {
         val entries = mutableListOf(
             RationaleEntry(

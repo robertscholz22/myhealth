@@ -28,7 +28,8 @@ data class SuggestionResult(
  * The nine steps of §3.5.6 map onto this class as: [SuggestionGrid.seed] (1), [fixedLoad]/
  * `remainingBudget` (2), [Periodization.compute] (3), [candidatesFor] + [Constraints.violations]
  * (4), [Scorer.score] + `candidateOrder` (5), the `while` loop in [generate] (6), [enforceRestDay]
- * / [downgradeBeforeKeyEvent] / [addMobilityToRestDays] (7a–c), [Rationale.forSession] (8) and
+ * / [downgradeBeforeKeyEvent] / [ActiveRecovery.apply] / [addMobilityToRestDays] (7a–d),
+ * [Rationale.forSession] (8) and
  * [SuggestionInputsHash] (9).
  *
  * Determinism: no randomness, no clock reads except [SuggestionBatch.generatedAtMillis], every
@@ -76,6 +77,9 @@ class SuggestionEngine(private val clock: Clock) {
 
         grid = enforceRestDay(grid)
         grid = downgradeBeforeKeyEvent(grid, ctx)
+        grid = ActiveRecovery.apply(
+            grid, ctx, bike, periodization.phase, input.cycleStatusByDay, periodization.isStarterWeek,
+        )
         if (input.profile.mobilityOnRestDays) {
             grid = addMobilityToRestDays(grid, periodization.phase, periodization.isStarterWeek)
         }
@@ -149,7 +153,7 @@ class SuggestionEngine(private val clock: Clock) {
                 .firstOrNull { window -> current.days.none { it.day in window && it.isRestDay } }
                 ?: return current
             val victim = current.suggested()
-                .filter { it.first in offending && !it.second.isMobility }
+                .filter { it.first in offending && !it.second.isRestDayFiller }
                 .minByOrNull { it.second.score }
                 ?: return current
             current = current.remove(victim.first, victim.second)
@@ -185,7 +189,7 @@ class SuggestionEngine(private val clock: Clock) {
         return current
     }
 
-    /** 7c — `profile.mobilityOnRestDays`: every rest day gets mobility; a rest day stays a rest day. */
+    /** 7d — `profile.mobilityOnRestDays`: every rest day gets mobility; a rest day stays a rest day. */
     internal fun addMobilityToRestDays(
         grid: SuggestionGrid,
         phase: TrainingPhase,
@@ -292,7 +296,7 @@ class SuggestionEngine(private val clock: Clock) {
 
         const val MAX_ITERATIONS: Int = 20
 
-        /** Post-pass 7c sessions are not scored candidates; they carry this nominal score. */
+        /** Post-pass 7c/7d fillers are not scored candidates; they carry this nominal score. */
         const val MOBILITY_SCORE: Double = 0.0
 
         const val MIN_SESSION_MINUTES: Int = 10

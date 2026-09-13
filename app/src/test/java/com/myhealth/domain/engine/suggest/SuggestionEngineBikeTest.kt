@@ -32,8 +32,9 @@ class SuggestionEngineBikeTest {
 
     private val busyHistory = SuggestFixtures.loadHistory(ctl = 80.0, dailyTrimp = 80.0)
 
+    /** Real rides only — the 0.3.0 active-recovery spin is a rest-day filler, not a planned ride. */
     private fun List<SuggestedSession>.rides(): List<SuggestedSession> =
-        filter { it.sportType.group == SportGroup.CYCLE }
+        filter { it.sportType.group == SportGroup.CYCLE && it.rationale.none { r -> r.ruleId == Rationale.RULE_ACTIVE_RECOVERY } }
 
     private fun List<SuggestedSession>.ruleIds(): List<String> = flatMap { it.rationale }.map { it.ruleId }
 

@@ -30,10 +30,19 @@ data class GridItem(
     val eventType: EventType? = null,
     val score: Double = 0.0,
     val rationale: List<RationaleEntry> = emptyList(),
+    /**
+     * Placed by post-pass 7c ([ActiveRecovery]): an easy run or spin that fills a rest day the way
+     * mobility does — it keeps the day a rest day for C3 and never counts against a cap or the
+     * budget. A `RECOVERY_RUN` the greedy loop placed as a real session has this `false`.
+     */
+    val isActiveRecovery: Boolean = false,
 ) {
     val isFixed: Boolean get() = origin != ItemOrigin.SUGGESTED
     val isBlocked: Boolean get() = origin == ItemOrigin.BLOCKED
     val isMobility: Boolean get() = sessionType == SessionType.MOBILITY
+
+    /** Mobility or an active-recovery filler: a day holding only these is still a rest day. */
+    val isRestDayFiller: Boolean get() = isMobility || isActiveRecovery
     val isHard: Boolean get() = intensity == Intensity.HIGH || intensity == Intensity.MAX
     val sportGroup: SportGroup get() = sportType.group
 
@@ -50,13 +59,18 @@ data class DayPlan(val day: Long, val items: List<GridItem> = emptyList()) {
     /** Everything that actually costs the athlete something — a `BLOCKED` marker does not. */
     val sessions: List<GridItem> get() = items.filterNot { it.isBlocked }
 
-    val nonMobilitySessions: List<GridItem> get() = sessions.filterNot { it.isMobility }
+    /** Sessions that carry real training stress: everything but mobility and active recovery. */
+    val nonMobilitySessions: List<GridItem> get() = sessions.filterNot { it.isRestDayFiller }
 
     /**
-     * §3.5.3 C3 / §3.5.6 step 7c: a rest day is a day with no session above mobility — "a day with
-     * only `MOBILITY` still counts as a rest day".
+     * §3.5.3 C3 / §3.5.6 steps 7c–7d: a rest day is a day with no session above mobility — "a day
+     * with only `MOBILITY` still counts as a rest day" — and, since 0.3.0, a day holding only an
+     * active-recovery filler (an easy run or spin placed by [ActiveRecovery]) counts the same way.
      */
     val isRestDay: Boolean get() = nonMobilitySessions.isEmpty()
+
+    /** A rest day that holds nothing but mobility (or nothing at all): the week's true rest day. */
+    val isTrueRestDay: Boolean get() = isRestDay && sessions.none { it.isActiveRecovery }
 
     /** A day that can still take a suggestion: nothing on it at all. */
     val isCompletelyFree: Boolean get() = items.isEmpty()

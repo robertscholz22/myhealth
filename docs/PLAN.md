@@ -1211,7 +1211,8 @@ P12.3 adds a **second** table, used by `Scorer.preferredTypesFor(phase, primaryG
 7. Post-passes, in order:
    a. If `C3` (rest day) is violated, remove the lowest-scoring placed session in the offending window.
    b. If the day before a match/race carries anything above `LOW`, downgrade it to `EASY_RUN` (or remove it).
-   c. If `profile.mobilityOnRestDays`, add a `MOBILITY` session to each fully free day (does not consume budget accounting for `C3`; a day with only `MOBILITY` still counts as a rest day).
+   c. **Active recovery (0.3.0, `ActiveRecovery.apply`)**: every rest day except one *true rest day* per horizon gets an easy 30-minute filler — `RECOVERY_RUN` when the run cap allows running (no cap = allowed), `RECOVERY_SPIN` when the `CYCLE` cap is above zero or `profile.indoorTrainerAvailable`; neither → nothing. The true rest day is the rest day farthest after the most recent hard day (a `HIGH`/`MAX` or key-event item, a completed ≥ 200 AU day; ties → the later day). Consecutive fillers alternate sport; a filler is skipped when the same session type sits on an adjacent day (C13's spirit); early-menstrual and late-luteal days prefer the spin (P11.2); the eve of a match/race and a `STRAINED` today (C8) stay filler-free. Fillers carry `isActiveRecovery = true`, the mobility score, rationale id `ACTIVE_RECOVERY`, keep the day a rest day for C3 and count against neither the budget nor a sport cap. Tests `ar01…ar08` (`SuggestionEngineActiveRecoveryTest`); the `sug28` baseline was regenerated.
+   d. If `profile.mobilityOnRestDays`, add a `MOBILITY` session to each rest day, including active-recovery days (does not consume budget accounting for `C3`; a day with only `MOBILITY` and/or an active-recovery filler still counts as a rest day).
 8. Build `rationale` per session: ordered list of `{ruleId, text}` from the rules that fired, e.g.
    `PHASE_BUILD` "Build phase: tempo work develops threshold for your 5k goal",
    `BUDGET` "Weekly load target 620 AU; 180 AU still unallocated",
@@ -2022,7 +2023,7 @@ Total: **83 tasks** across 10 phases.
 - **Model**: `opus` — the greedy placement loop with re-evaluation.
 - **Size**: M · **Deps**: P6.3
 - **Files**: `domain/engine/suggest/{Scorer,SuggestionEngine,Rationale}.kt`, `app/src/test/java/com/myhealth/domain/engine/suggest/{ScorerTest,SuggestionEngineTest}.kt`
-- **Do**: §3.5.5–§3.5.6 exactly — the five scoring terms, the recovery×intensity matrix, the phase-preference table, the 9-step algorithm, deterministic tie-breaks, the 20-iteration cap, the three post-passes, and rationale assembly.
+- **Do**: §3.5.5–§3.5.6 exactly — the five scoring terms, the recovery×intensity matrix, the phase-preference table, the 9-step algorithm, deterministic tie-breaks, the 20-iteration cap, the four post-passes (7a–7d), and rationale assembly.
 - **Accept**: `TEST` with all 20 named cases `sug01…sug20` (§3.5.7). `sug14` must assert byte-equal output over two runs.
 
 #### P6.5 — Plan repository and suggestion persistence
