@@ -73,6 +73,19 @@ class SyncScheduler(
     }
 
     /**
+     * Re-reads the last [days] days of exercise sessions with their detail streams (P12): run
+     * when a per-session permission such as `READ_POWER` is granted after the sessions were
+     * already synced. [ExistingWorkPolicy.REPLACE] — a second grant supersedes a queued run.
+     */
+    fun rereadExerciseDetail(days: Long) {
+        val request = OneTimeWorkRequestBuilder<HealthSyncWorker>()
+            .setInputData(workDataOf(HealthSyncWorker.KEY_REREAD_DAYS to days))
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, BACKOFF_MINUTES, TimeUnit.MINUTES)
+            .build()
+        workManager.enqueueUniqueWork(REREAD_NAME, ExistingWorkPolicy.REPLACE, request)
+    }
+
+    /**
      * Nutrition targets are recomputed once a day (PLAN P4.12): `[today - 1, today + 7]`, first run
      * at the next 03:00 local so a new day's targets exist before the user wakes up.
      */
@@ -205,6 +218,10 @@ class SyncScheduler(
         const val PERIODIC_NAME: String = "hc_sync"
         const val NOW_NAME: String = "hc_sync_now"
         const val BACKFILL_NAME: String = "hc_backfill"
+        const val REREAD_NAME: String = "hc_reread_detail"
+
+        /** How far back a newly granted per-session permission re-reads sessions (P12). */
+        const val REREAD_DETAIL_DAYS: Long = 90L
         const val TARGETS_DAILY_NAME: String = "targets_daily"
         const val TARGETS_NOW_NAME: String = "targets_now"
         const val IMPORT_NAME: String = "file_import"

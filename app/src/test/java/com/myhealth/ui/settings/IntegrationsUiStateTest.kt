@@ -30,4 +30,24 @@ class IntegrationsUiStateTest {
 
         assertThat(label).isEqualTo("Something New")
     }
+
+    @Test
+    fun a_newly_granted_power_permission_is_reported_as_new_detail() {
+        val power = HcPermissions.OPTIONAL_DETAIL.first { it.endsWith("READ_POWER") }
+        val before = HcPermissions.REQUIRED_CORE
+        val after = HcPermissions.REQUIRED_CORE + power
+        assertThat(newlyGrantedDetailPermissions(before, after, HcPermissions.OPTIONAL_DETAIL))
+            .containsExactly(power)
+    }
+
+    @Test
+    fun no_re_read_when_the_granted_set_was_not_loaded_yet_or_nothing_detail_changed() {
+        val power = HcPermissions.OPTIONAL_DETAIL.first { it.endsWith("READ_POWER") }
+        val detail = HcPermissions.OPTIONAL_DETAIL
+        assertThat(newlyGrantedDetailPermissions(emptySet(), HcPermissions.ALL, detail)).isEmpty()
+        assertThat(newlyGrantedDetailPermissions(HcPermissions.ALL, HcPermissions.ALL, detail)).isEmpty()
+        assertThat(
+            newlyGrantedDetailPermissions(setOf(power), setOf(power, HcPermissions.HISTORY), detail),
+        ).isEmpty()
+    }
 }

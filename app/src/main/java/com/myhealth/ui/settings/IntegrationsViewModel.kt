@@ -70,9 +70,17 @@ class IntegrationsViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), IntegrationsUiState())
 
-    /** Called after the permission-request activity result comes back. */
+    /**
+     * Called after the permission-request activity result comes back. A per-session permission
+     * granted for the first time (P12: power) triggers a re-read of the recent sessions, because
+     * neither the changes token nor a backfill would ever revisit them.
+     */
     fun onPermissionsResult(result: Set<String>) {
+        val before = granted.value
         granted.value = result
+        if (newlyGrantedDetailPermissions(before, result, hc.optionalDetailPermissions).isNotEmpty()) {
+            syncScheduler.rereadExerciseDetail(SyncScheduler.REREAD_DETAIL_DAYS)
+        }
     }
 
     /** Re-reads what Health Connect currently reports as granted (e.g. on first composition). */

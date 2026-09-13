@@ -194,6 +194,27 @@ class HcSyncService(
         return summary.map { it + SyncSummary(fullReads = 1) }
     }
 
+    /**
+     * Re-reads every exercise session of the last [days] days with its detail streams and merges
+     * it into the existing rows. Needed after a *new* per-session permission is granted (P12:
+     * `READ_POWER`): the changes token reports nothing for sessions that did not change, and a
+     * backfill never revisits windows below its watermark, so without this the power of already
+     * synced rides would never arrive. Bounded to [days] so it stays a single foreground run.
+     */
+    suspend fun rereadExerciseDetail(days: Long): Outcome<SyncSummary> {
+        val today = LocalDate.now(clock).toEpochDay()
+        val outcome = readExercise(today - days.coerceAtLeast(0L), today)
+        when (outcome) {
+            is Outcome.Ok -> syncStateRepo.recordSuccess(SyncKeys.HC_EXERCISE, clock.millis())
+            is Outcome.Err -> syncStateRepo.recordError(
+                SyncKeys.HC_EXERCISE,
+                clock.millis(),
+                outcome.error.describe(),
+            )
+        }
+        return outcome
+    }
+
     internal suspend fun readExercise(fromDay: Long, toDay: Long): Outcome<SyncSummary> {
         val sessions = reader.readExerciseSessions(startOf(fromDay), endOf(toDay))
         if (sessions is Outcome.Err) return sessions

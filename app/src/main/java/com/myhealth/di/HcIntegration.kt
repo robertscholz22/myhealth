@@ -20,6 +20,9 @@ interface HcIntegration {
     fun status(): HcStatus
     suspend fun granted(): Set<String>
     val allPermissions: Set<String>
+
+    /** The per-session detail permissions (P12: power) that are optional for sync. */
+    val optionalDetailPermissions: Set<String>
     fun permissionContract(): ActivityResultContract<Set<String>, Set<String>>
 }
 
@@ -35,6 +38,8 @@ class HealthConnectIntegration(private val provider: HealthConnectProvider) : Hc
     override suspend fun granted(): Set<String> = provider.granted()
 
     override val allPermissions: Set<String> = HcPermissions.ALL
+
+    override val optionalDetailPermissions: Set<String> = HcPermissions.OPTIONAL_DETAIL
 
     override fun permissionContract(): ActivityResultContract<Set<String>, Set<String>> =
         provider.permissionContract()

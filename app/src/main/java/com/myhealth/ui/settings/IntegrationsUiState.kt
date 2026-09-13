@@ -1,5 +1,6 @@
 package com.myhealth.ui.settings
 
+
 import com.myhealth.di.HcStatus
 import com.myhealth.domain.repository.SyncKeys
 
@@ -77,4 +78,18 @@ fun syncChannelLabel(key: String): String = when (key) {
     SyncKeys.HC_SLEEP -> "Sleep"
     SyncKeys.HC_BODY -> "Body measurements"
     else -> key
+}
+
+/**
+ * The per-session [detail] permissions (P12: power) that [after] holds and [before] did not.
+ * Empty when [before] is empty — the granted set has not been loaded yet, so nothing can be
+ * called "new" (an ordinary first load must not start a re-read).
+ */
+fun newlyGrantedDetailPermissions(
+    before: Set<String>,
+    after: Set<String>,
+    detail: Set<String>,
+): Set<String> {
+    if (before.isEmpty()) return emptySet()
+    return (after - before).intersect(detail)
 }

@@ -63,7 +63,8 @@ internal fun loadRecomputeDay(
  *
  * With [KEY_BACKFILL_FROM_DAY] present in the input data, [com.myhealth.data.healthconnect.HcBackfill]
  * runs for that start day instead of the incremental sync — this is how "Sync now" and "Start
- * backfill" share one worker.
+ * backfill" share one worker. With [KEY_REREAD_DAYS] the last N days of exercise sessions are
+ * re-read with their detail streams (a newly granted per-session permission, P12).
  */
 class HealthSyncWorker(
     context: Context,
@@ -74,10 +75,15 @@ class HealthSyncWorker(
         val graph = (applicationContext as MyHealthApp).graph
         val backfillFromDay = inputData.getLong(KEY_BACKFILL_FROM_DAY, NO_BACKFILL).takeIf { it >= 0 }
 
+        val rereadDays = inputData.getLong(KEY_REREAD_DAYS, NO_BACKFILL).takeIf { it >= 0 }
+
         val outcome: Outcome<*> = if (backfillFromDay != null) {
             val backfill = graph.hcBackfill
                 ?: return Result.failure(failureData("Health Connect unavailable"))
             backfill.run(backfillFromDay)
+        } else if (rereadDays != null) {
+            val sync = graph.hcSync ?: return Result.failure(failureData("Health Connect unavailable"))
+            sync.rereadExerciseDetail(rereadDays)
         } else {
             val sync = graph.hcSync ?: return Result.failure(failureData("Health Connect unavailable"))
             sync.syncIncremental()
@@ -91,7 +97,7 @@ class HealthSyncWorker(
                 // New or changed activities/HR/sleep also change TRIMP, ACWR and recovery (P5.5).
                 val today = LocalDate.now(graph.clock).toEpochDay()
                 graph.syncScheduler.requestLoadRecompute(
-                    loadRecomputeDay(outcome, backfillFromDay, today),
+                    loadRecomputeDay(outcome, backfillFromDay ?: rereadDays?.let { today - it }, today),
                 )
                 Result.success()
             }
@@ -106,6 +112,12 @@ class HealthSyncWorker(
     companion object {
         /** Input key: epoch day to backfill from. Absent for the ordinary incremental sync. */
         const val KEY_BACKFILL_FROM_DAY: String = "backfillFromDay"
+
+        /**
+         * Input key: number of days of exercise sessions to re-read with their detail streams
+         * (P12, after a new per-session permission such as `READ_POWER` was granted).
+         */
+        const val KEY_REREAD_DAYS: String = "rereadDays"
 
         /** Output key: a human-readable reason, set whenever the worker returns `Result.failure()`. */
         const val KEY_FAILURE_REASON: String = "reason"
