@@ -44,6 +44,7 @@ executing any task; they are the contract every task must respect.
 | R11 | Never write `/*` inside a KDoc or comment (e.g. `mapper/*Mappers.kt`) — Kotlin nests block comments and the rest of the file is swallowed. Write `mapper/…Mappers.kt` instead. |
 | R12 | Gradle runs unit tests with `user.dir` = `app/`; tests that read source or fixture files must resolve paths from both `app/` and the project root. |
 | R13 | **Instrumented tests only via `bash tools/connected.sh [emulator-serial]`** — never `./gradlew :app:connectedDebugAndroidTest` directly. The Gradle task installs and then *uninstalls* the app on every attached device; with the owner's Pixel plugged in next to the emulator it removed the production app and all its data (2026-09-13, VERIFICATION.md INCIDENT-1). The script forces `ANDROID_SERIAL` to one emulator and refuses anything else. |
+| R14 | **Owner's rule (2026-09-13): while a physical device is attached over adb, only the lead's main session works.** No subagent, workflow or background Gradle/adb job may run. Every agent must run `adb devices` before its first Gradle or adb command and abort with a report if any non-emulator serial is listed. The lead stops running agents before connecting the phone. |
 
 ### 0.2 Standard command set
 
