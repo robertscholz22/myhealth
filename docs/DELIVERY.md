@@ -7,6 +7,7 @@
 
 ## Releases
 - `v1.0.0` (2026-09-13, versionCode 100): first stable release, verified on the Pixel 7a; installed on the phone. Install only from tags from now on (see README → Releases).
+- `v1.0.1` (2026-09-13, versionCode 101): accepting a suggested week replaces unlocked planned sessions in its horizon; locale-aware number formatting and comma/dot decimal input; training-load rows start at the first activity; stale sync-error banner cleared on success.
 
 ## Install on the Pixel 7A
 1. Enable developer options + USB debugging, connect the phone, `adb devices`.
