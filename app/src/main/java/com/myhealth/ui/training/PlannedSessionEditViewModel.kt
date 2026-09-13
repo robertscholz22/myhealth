@@ -6,8 +6,10 @@ import com.myhealth.R
 import com.myhealth.domain.engine.load.HrZoneModel
 import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.SportType
+import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.repository.PlanRepository
 import com.myhealth.domain.repository.ProfileRepository
+import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.util.Outcome
 import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.zones.lightweightHrZoneModel
@@ -40,6 +42,8 @@ data class PlannedSessionEditUiState(
     val structureJson: String? = null,
     /** A profile-only zone model (§4.2) for the target-zone chip — see `lightweightHrZoneModel`. */
     val hrZoneModel: HrZoneModel? = null,
+    /** Existing strength workouts, for the picker a `STRENGTH_*` session type offers (P14.7). */
+    val workouts: List<StrengthWorkout> = emptyList(),
 ) {
     val sessionTypes: List<SessionType> get() = sessionTypesFor(draft.sportType)
 }
@@ -57,6 +61,7 @@ class PlannedSessionEditViewModel(
     private val epochDay: Long,
     private val planRepo: PlanRepository,
     private val profileRepo: ProfileRepository,
+    private val strengthRepo: StrengthRepository,
     private val clock: Clock,
 ) : ViewModel() {
 
@@ -71,6 +76,9 @@ class PlannedSessionEditViewModel(
             .onEach { profile ->
                 _state.update { it.copy(hrZoneModel = lightweightHrZoneModel(profile, LocalDate.now(clock))) }
             }
+            .launchIn(viewModelScope)
+        strengthRepo.observeAll()
+            .onEach { workouts -> _state.update { it.copy(workouts = workouts) } }
             .launchIn(viewModelScope)
     }
 
@@ -128,8 +136,12 @@ class PlannedSessionEditViewModel(
             sessionType = sessionType,
             sportType = sportTypeFor(sessionType, draft.sportType),
             intensity = intensityFor(sessionType, draft.intensity),
+            workoutId = draft.workoutId.takeIf { sessionType.isStrength() },
         )
     }
+
+    /** The workout picker offered for a `STRENGTH_*` session (§4.2 "Planned session edit"). */
+    fun setWorkout(workoutId: Long?) = update { it.copy(workoutId = workoutId) }
 
     fun save() {
         val draft = _state.value.draft

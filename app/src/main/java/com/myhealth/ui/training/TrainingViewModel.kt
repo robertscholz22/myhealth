@@ -7,6 +7,7 @@ import com.myhealth.domain.engine.suggest.Periodization
 import com.myhealth.domain.model.CalendarDay
 import com.myhealth.domain.model.Goal
 import com.myhealth.domain.model.GoalStatus
+import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.PlannedStatus
 import com.myhealth.domain.model.SuggestionBatch
 import com.myhealth.domain.model.SuggestionStatus
@@ -16,8 +17,11 @@ import com.myhealth.domain.repository.CalendarRepository
 import com.myhealth.domain.repository.GoalRepository
 import com.myhealth.domain.repository.PlanRepository
 import com.myhealth.domain.repository.SettingsRepository
+import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.ui.strength.SetLogRow
+import com.myhealth.ui.strength.toStrengthSetLog
 import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -72,6 +76,7 @@ class TrainingViewModel(
     private val calendarRepo: CalendarRepository,
     private val goalRepo: GoalRepository,
     private val settingsRepo: SettingsRepository,
+    private val strengthRepo: StrengthRepository,
     private val clock: Clock,
 ) : ViewModel() {
 
@@ -109,7 +114,12 @@ class TrainingViewModel(
         )
     }
 
-    val state: StateFlow<TrainingUiState> = combine(week, context, action) { weekAndLoads, ctx, act ->
+    val state: StateFlow<TrainingUiState> = combine(
+        week,
+        context,
+        action,
+        strengthRepo.observeAll(),
+    ) { weekAndLoads, ctx, act, workouts ->
         val (currentWeek, loads) = weekAndLoads
         val planned = currentWeek.days.flatMap { it.planned }
         TrainingUiState(
@@ -124,6 +134,7 @@ class TrainingViewModel(
             suggestionsStale = ctx.suggestionsStale,
             message = act.message,
             reviewReady = act.reviewReady,
+            workoutsById = workouts.associateBy { it.id },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TrainingUiState())
 
@@ -171,6 +182,22 @@ class TrainingViewModel(
 
     fun markDone(sessionId: Long) = run(UiMessage.of(R.string.training_session_marked_done)) {
         planRepo.setSessionStatus(sessionId, PlannedStatus.COMPLETED)
+    }
+
+    /**
+     * "Mark done" on a `STRENGTH_*` session with a workout, once the [SetLogSheet] rows are
+     * confirmed (P14.7): writes the set logs — [rows] already excludes anything skipped — then
+     * marks the session done exactly like [markDone].
+     */
+    fun completeStrengthSession(session: PlannedSession, rows: List<SetLogRow>) {
+        viewModelScope.launch {
+            if (rows.isNotEmpty()) {
+                val now = clock.millis()
+                strengthRepo.insertSetLogs(rows.map { it.toStrengthSetLog(session.day, session.id, now) })
+            }
+            planRepo.setSessionStatus(session.id, PlannedStatus.COMPLETED)
+            action.update { it.copy(message = UiMessage.of(R.string.training_session_marked_done)) }
+        }
     }
 
     fun skip(sessionId: Long) = run(UiMessage.of(R.string.training_session_skipped)) {

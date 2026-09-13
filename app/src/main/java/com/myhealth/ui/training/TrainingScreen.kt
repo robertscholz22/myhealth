@@ -34,7 +34,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -44,10 +46,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myhealth.R
 import com.myhealth.di.rememberVm
+import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.TrainingPhase
 import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.CARD_CORNER_RADIUS
 import com.myhealth.ui.common.SCREEN_PADDING
+import com.myhealth.ui.strength.SetLogSheet
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.theme.MyHealthTheme
 
@@ -74,12 +78,14 @@ fun TrainingScreen(nav: TrainingNavActions, modifier: Modifier = Modifier) {
             calendarRepo = graph.calendarRepo,
             goalRepo = graph.goalRepo,
             settingsRepo = graph.settings,
+            strengthRepo = graph.strengthRepo,
             clock = graph.clock,
         )
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
+    var setLogSession by remember { mutableStateOf<PlannedSession?>(null) }
 
     LaunchedEffect(state.message) {
         state.message?.let {
@@ -113,7 +119,7 @@ fun TrainingScreen(nav: TrainingNavActions, modifier: Modifier = Modifier) {
             actions = PlannedSessionActions(
                 onToggleLock = { session -> vm.setLocked(session.id, !session.locked) },
                 onEdit = nav.onEditSession,
-                onMarkDone = vm::markDone,
+                onMarkDone = { id -> onMarkDoneRequested(state, id, vm::markDone) { session -> setLogSession = session } },
                 onSkip = vm::skip,
                 onReopen = vm::reopen,
                 onDelete = vm::delete,
@@ -126,6 +132,33 @@ fun TrainingScreen(nav: TrainingNavActions, modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxSize().padding(innerPadding),
         )
     }
+
+    setLogSession?.let { session ->
+        val workout = session.workoutId?.let { state.workoutsById[it] }
+        if (workout == null) {
+            setLogSession = null
+        } else {
+            SetLogSheet(
+                workout = workout,
+                onSave = { rows -> vm.completeStrengthSession(session, rows); setLogSession = null },
+                onSkip = { vm.markDone(session.id); setLogSession = null },
+                onDismiss = { setLogSession = null },
+            )
+        }
+    }
+}
+
+/** "Mark done" opens the optional [SetLogSheet] only when the session carries a workout that has
+ * actually loaded yet (P14.7); otherwise it behaves exactly as before. */
+private fun onMarkDoneRequested(
+    state: TrainingUiState,
+    sessionId: Long,
+    markDone: (Long) -> Unit,
+    openSetLog: (PlannedSession) -> Unit,
+) {
+    val session = state.week.days.flatMap { it.planned }.firstOrNull { it.id == sessionId }
+    val hasWorkout = session?.workoutId?.let { state.workoutsById.containsKey(it) } ?: false
+    if (session != null && hasWorkout) openSetLog(session) else markDone(sessionId)
 }
 
 @Composable
@@ -170,6 +203,7 @@ internal fun TrainingContent(
                 onSelectDay = onSelectDay,
                 onAddSession = nav.onAddSession,
                 onOpenActivity = nav.onOpenActivity,
+                workoutNames = state.workoutsById.mapValues { it.value.name },
             )
         }
     }

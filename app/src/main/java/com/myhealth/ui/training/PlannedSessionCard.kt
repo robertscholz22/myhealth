@@ -71,6 +71,9 @@ fun PlannedSessionCard(
     actions: PlannedSessionActions,
     modifier: Modifier = Modifier,
     hrZoneModel: HrZoneModel? = null,
+    /** The linked `strength_workout`'s name (P14.7, §4.1/§4.2) — `null` until the caller's workout
+     * list has loaded, or when [PlannedSession.workoutId] is itself `null`. */
+    workoutName: String? = null,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -101,6 +104,13 @@ fun PlannedSessionCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             TargetZoneChip(session.sessionType, hrZoneModel)
+            workoutName?.let {
+                Text(
+                    text = stringResource(R.string.session_workout_format, it),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             WorkoutStructureSection(session.structureJson)
         }
         IconButton(onClick = { actions.onToggleLock(session) }) {

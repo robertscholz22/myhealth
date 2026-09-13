@@ -1033,4 +1033,86 @@
     <string name="settings_hr_bound_z5_label">Zone 5 starts at</string>
     <string name="settings_hr_bounds_preview_title">Preview</string>
     <string name="settings_hr_bounds_ascending_error">Enter all four zone bounds, ascending, or leave all four blank.</string>
+
+    <!-- ===== Body figure (ui/common/body/*.kt, P14.7) ===== -->
+    <string name="body_figure_legend_primary">Primary</string>
+    <string name="body_figure_legend_secondary">Secondary</string>
+    <string name="body_figure_legend_fresh">Fresh</string>
+    <string name="body_figure_legend_loaded">Loaded</string>
+    <string name="body_figure_legend_fatigued">Fatigued</string>
+
+    <!-- ===== Exercises (ui/strength/ExercisesScreen.kt, More entry, P14.7) ===== -->
+    <string name="more_entry_exercises">Exercises</string>
+    <string name="exercises_title">Exercises</string>
+    <string name="exercises_search_label">Search exercises or muscles</string>
+    <string name="exercises_clear_filters">Clear filters</string>
+    <string name="exercises_empty_title">No exercises match</string>
+    <string name="exercises_empty_message">Try a different search term or clear the filters.</string>
+
+    <!-- ===== Exercise detail (ui/strength/ExerciseDetailScreen.kt, P14.7) ===== -->
+    <string name="exercise_detail_title">Exercise</string>
+    <string name="exercise_detail_add_to_workout">Add to workout…</string>
+    <string name="exercise_detail_added_to_format">Added to %1$s</string>
+    <string name="exercise_detail_not_found_title">Exercise not found</string>
+    <string name="exercise_detail_not_found_message">This exercise is no longer in the catalog.</string>
+    <string name="exercise_detail_section_details">Details</string>
+    <string name="exercise_detail_equipment_label">Equipment</string>
+    <string name="exercise_detail_pattern_label">Movement pattern</string>
+    <string name="exercise_detail_unilateral_flag">One side at a time</string>
+    <string name="exercise_detail_timed_flag">Timed hold</string>
+    <string name="exercise_detail_section_cue">Cue</string>
+    <string name="exercise_detail_pick_workout_title">Add to which workout?</string>
+    <string name="exercise_detail_pick_workout_empty">No workouts yet — create one from Strength workouts first.</string>
+    <string name="exercise_picker_title">Add an exercise</string>
+
+    <!-- ===== Strength workouts (ui/strength/WorkoutsScreen.kt, More entry, P14.7) ===== -->
+    <string name="more_entry_workouts">Strength workouts</string>
+    <string name="workouts_title">Strength workouts</string>
+    <string name="workouts_new_content_description">New workout</string>
+    <string name="workouts_empty_title">No workouts yet</string>
+    <string name="workouts_empty_message">Create a workout, or open Exercises and add one to get started.</string>
+    <string name="workouts_row_subtitle_format">%1$d exercises · about %2$d min</string>
+    <string name="workouts_overflow_desc">More actions</string>
+    <string name="workouts_action_duplicate">Duplicate</string>
+    <string name="workouts_action_plan_for_day">Plan for a day…</string>
+    <string name="workouts_delete_confirm_title">Delete this workout?</string>
+    <string name="workouts_delete_confirm_message">This cannot be undone. Sessions already planned with it keep their record.</string>
+    <string name="workouts_planned_message">Workout planned.</string>
+    <string name="workouts_plan_error">Could not plan the workout. Please try again.</string>
+
+    <!-- ===== Workout edit (ui/strength/WorkoutEditScreen.kt, P14.7) ===== -->
+    <string name="workout_edit_new_title">New workout</string>
+    <string name="workout_edit_title">Edit workout</string>
+    <string name="workout_edit_section_details">Details</string>
+    <string name="workout_edit_name_label">Name</string>
+    <string name="workout_edit_error_name_required">A workout needs a name.</string>
+    <string name="workout_edit_kind_label">Kind</string>
+    <string name="workout_edit_section_figure">Muscles worked</string>
+    <string name="workout_edit_estimated_minutes_format">About %1$d min</string>
+    <string name="workout_edit_section_exercises">Exercises</string>
+    <string name="workout_edit_add_exercise">Add exercise…</string>
+    <string name="workout_edit_move_up">Move up</string>
+    <string name="workout_edit_move_down">Move down</string>
+    <string name="workout_edit_remove_exercise">Remove exercise</string>
+    <string name="workout_edit_sets_label">Sets</string>
+    <string name="workout_edit_reps_label">Reps</string>
+    <string name="workout_edit_seconds_label">Seconds</string>
+    <string name="workout_edit_load_label">Load</string>
+    <string name="workout_edit_rest_label">Rest (s)</string>
+    <string name="workout_edit_bodyweight_label">Bodyweight</string>
+    <string name="workout_edit_note_label">Note</string>
+    <string name="workout_edit_error_sets">Needs at least one set.</string>
+    <string name="workout_edit_error_reps_xor_seconds">Needs either a rep count or a hold in seconds, not both.</string>
+    <string name="workout_edit_load_error">Could not load this workout.</string>
+    <string name="workout_edit_save_error">Could not save. Please try again.</string>
+
+    <!-- ===== Set log sheet (ui/strength/SetLogSheet.kt, P14.7) ===== -->
+    <string name="set_log_title_format">%1$s — log your sets</string>
+    <string name="set_log_row_format">%1$s · set %2$d</string>
+    <string name="set_log_skip">Skip logging</string>
+
+    <!-- ===== Planned session ↔ workout (ui/training/{PlannedSessionCard,PlannedSessionEditScreen}.kt, P14.7) ===== -->
+    <string name="session_workout_label">Workout</string>
+    <string name="session_workout_none">None</string>
+    <string name="session_workout_format">Workout: %1$s</string>
 </resources>

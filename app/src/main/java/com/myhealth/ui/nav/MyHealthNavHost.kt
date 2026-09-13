@@ -52,6 +52,10 @@ import com.myhealth.ui.running.RunningPrsScreen
 import com.myhealth.ui.settings.BackupScreen
 import com.myhealth.ui.settings.IntegrationsScreen
 import com.myhealth.ui.settings.SettingsScreen
+import com.myhealth.ui.strength.ExerciseDetailScreen
+import com.myhealth.ui.strength.ExercisesScreen
+import com.myhealth.ui.strength.WorkoutEditScreen
+import com.myhealth.ui.strength.WorkoutsScreen
 import com.myhealth.ui.today.TodayScreen
 import com.myhealth.ui.training.PlannedSessionEditScreen
 import com.myhealth.ui.training.SuggestionReviewScreen
@@ -294,6 +298,27 @@ fun MyHealthNavHost(
                         )
                     }
                     composable<ZonesRoute> { ZonesScreen(onBack = { navController.popBackStack() }) }
+                    composable<WorkoutsRoute> {
+                        WorkoutsScreen(
+                            onBack = { navController.popBackStack() },
+                            onNewWorkout = { navController.navigate(WorkoutEditRoute()) },
+                            onEditWorkout = { id -> navController.navigate(WorkoutEditRoute(id = id)) },
+                        )
+                    }
+                    composable<WorkoutEditRoute> { entry ->
+                        val route = entry.toRoute<WorkoutEditRoute>()
+                        WorkoutEditScreen(id = route.id, onBack = { navController.popBackStack() })
+                    }
+                    composable<ExercisesRoute> {
+                        ExercisesScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpenExercise = { id -> navController.navigate(ExerciseDetailRoute(exerciseId = id)) },
+                        )
+                    }
+                    composable<ExerciseDetailRoute> { entry ->
+                        val route = entry.toRoute<ExerciseDetailRoute>()
+                        ExerciseDetailScreen(exerciseId = route.exerciseId, onBack = { navController.popBackStack() })
+                    }
                     composable<GoalsRoute> {
                         GoalsScreen(
                             onBack = { navController.popBackStack() },

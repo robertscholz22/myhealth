@@ -6,6 +6,7 @@ import com.myhealth.domain.model.EventOccurrence
 import com.myhealth.domain.model.EventType
 import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.PlannedSession
+import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.model.TrainingPhase
 import com.myhealth.ui.common.UiMessage
 import java.time.DayOfWeek
@@ -57,6 +58,9 @@ data class TrainingUiState(
     val message: UiMessage? = null,
     /** One-shot: set after a successful generate so the screen can open the review. */
     val reviewReady: Boolean = false,
+    /** `workoutId -> StrengthWorkout` (P14.7): the card's workout-name line and the "Mark done"
+     * set-log sheet both read a session's workout off here. */
+    val workoutsById: Map<Long, StrengthWorkout> = emptyMap(),
 ) {
     val isCurrentWeek: Boolean get() = week.offset == 0
 

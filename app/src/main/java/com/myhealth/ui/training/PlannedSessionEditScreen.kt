@@ -36,6 +36,7 @@ import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.SportType
+import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.ui.common.DatePickerField
 import com.myhealth.ui.common.DropdownField
 import com.myhealth.ui.common.DurationField
@@ -55,7 +56,7 @@ fun PlannedSessionEditScreen(
     modifier: Modifier = Modifier,
 ) {
     val vm = rememberVm { graph ->
-        PlannedSessionEditViewModel(id, epochDay, graph.planRepo, graph.profileRepo, graph.clock)
+        PlannedSessionEditViewModel(id, epochDay, graph.planRepo, graph.profileRepo, graph.strengthRepo, graph.clock)
     }
     val state by vm.state.collectAsStateWithLifecycle()
 
@@ -102,6 +103,7 @@ fun PlannedSessionEditScreen(
             onChange = vm::update,
             onSport = vm::setSport,
             onSessionType = vm::setSessionType,
+            onWorkout = vm::setWorkout,
             onSave = vm::save,
             modifier = Modifier.fillMaxSize().padding(innerPadding),
         )
@@ -128,6 +130,7 @@ internal fun PlannedSessionEditContent(
     onChange: ((PlannedSessionDraft) -> PlannedSessionDraft) -> Unit,
     onSport: (SportType) -> Unit,
     onSessionType: (SessionType) -> Unit,
+    onWorkout: (Long?) -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -160,6 +163,9 @@ internal fun PlannedSessionEditContent(
                     optionLabel = { it.label() },
                     onSelect = { intensity -> onChange { it.copy(intensity = intensity) } },
                 )
+                if (draft.sessionType.isStrength()) {
+                    WorkoutPickerField(workouts = state.workouts, selectedId = draft.workoutId, onSelect = onWorkout)
+                }
             }
         }
         item {
@@ -215,6 +221,25 @@ internal fun PlannedSessionEditContent(
             }
         }
     }
+}
+
+/** The workout picker a `STRENGTH_*` session type offers (§4.2 "Planned session edit", P14.7):
+ * "None" plus every existing [com.myhealth.domain.model.StrengthWorkout], by name. */
+@Composable
+private fun WorkoutPickerField(
+    workouts: List<StrengthWorkout>,
+    selectedId: Long?,
+    onSelect: (Long?) -> Unit,
+) {
+    val noneLabel = stringResource(R.string.session_workout_none)
+    val options: List<Long?> = listOf(null) + workouts.map { it.id }
+    DropdownField(
+        label = stringResource(R.string.session_workout_label),
+        options = options,
+        selected = selectedId,
+        optionLabel = { id -> workouts.firstOrNull { it.id == id }?.name ?: noneLabel },
+        onSelect = onSelect,
+    )
 }
 
 @Composable
@@ -296,6 +321,7 @@ private fun PlannedSessionEditContentPreview() {
             onChange = {},
             onSport = {},
             onSessionType = {},
+            onWorkout = {},
             onSave = {},
         )
     }

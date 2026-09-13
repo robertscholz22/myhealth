@@ -51,6 +51,8 @@ fun WeekDayRow(
     onAddSession: (Long) -> Unit,
     onOpenActivity: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    /** `workoutId -> name` (P14.7) — see `PlannedSessionCard`'s `workoutName`. */
+    workoutNames: Map<Long, String> = emptyMap(),
 ) {
     SectionCard(
         title = dayHeaderLabel(row.day),
@@ -72,7 +74,11 @@ fun WeekDayRow(
     ) {
         row.events.forEach { FixedEventRow(it) }
         row.planned.forEach { session ->
-            PlannedSessionCard(session = session, actions = actions)
+            PlannedSessionCard(
+                session = session,
+                actions = actions,
+                workoutName = session.workoutId?.let { workoutNames[it] },
+            )
         }
         row.activities.forEach { CompletedActivityRow(it, onOpenActivity) }
         if (row.isEmpty) {

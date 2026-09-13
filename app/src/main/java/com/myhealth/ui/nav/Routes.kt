@@ -40,3 +40,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object CycleRoute
 @Serializable data object BikeRoute
 @Serializable data object ZonesRoute
+@Serializable data object WorkoutsRoute
+@Serializable data class WorkoutEditRoute(val id: Long = -1)
+@Serializable data object ExercisesRoute
+@Serializable data class ExerciseDetailRoute(val exerciseId: String)

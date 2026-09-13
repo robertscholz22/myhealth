@@ -39,6 +39,9 @@ data class PlannedSessionDraft(
     val linkedActivityId: Long? = null,
     val sourceSuggestionId: Long? = null,
     val createdAtMillis: Long = 0L,
+    /** The strength workout this session runs (P14.7, §4.2 "Planned session edit") — offered only
+     * for a `STRENGTH_*` session type. */
+    val workoutId: Long? = null,
 ) {
     /** The two pace fields as seconds per kilometre; `null` when neither was entered. */
     val paceSecPerKm: Int?
@@ -163,8 +166,13 @@ fun PlannedSessionDraft.toPlannedSession(clock: Clock): PlannedSession {
         sourceSuggestionId = sourceSuggestionId,
         createdAtMillis = if (id == 0L) now else createdAtMillis,
         updatedAtMillis = now,
+        workoutId = workoutId,
     )
 }
+
+/** Whether [SessionType] is one of the three `STRENGTH_*` rows (§2.1) — the editor only offers the
+ * workout picker, and the card only shows the workout name, for these. */
+fun SessionType.isStrength(): Boolean = name.startsWith("STRENGTH_")
 
 /** Loads an existing session into a draft. */
 fun plannedSessionDraftOf(session: PlannedSession): PlannedSessionDraft = PlannedSessionDraft(
@@ -185,6 +193,7 @@ fun plannedSessionDraftOf(session: PlannedSession): PlannedSessionDraft = Planne
     linkedActivityId = session.linkedActivityId,
     sourceSuggestionId = session.sourceSuggestionId,
     createdAtMillis = session.createdAtMillis,
+    workoutId = session.workoutId,
 )
 
 private const val METERS_PER_KM = 1000.0
