@@ -6,6 +6,7 @@ import com.myhealth.data.mapper.toEntity
 import com.myhealth.domain.model.StrengthSetLog
 import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.repository.StrengthRepository
+import com.myhealth.domain.util.AppError
 import com.myhealth.domain.util.Outcome
 import com.myhealth.domain.util.runCatchingApp
 import kotlinx.coroutines.CoroutineDispatcher
@@ -21,7 +22,12 @@ import kotlinx.coroutines.withContext
  * over the full ordered list, so deleting and re-inserting is what keeps `uq_swe_order` satisfied
  * at every instant (a diff would have to move rows through positions that are still taken). The
  * `orderIndex` of each row is taken from its position in the list, not from the row itself, so a
- * reorder in the UI cannot leave a hole — the compaction P14.4 asks for falls out of that.
+ * reorder in the UI cannot leave a hole — the compaction P14.4 asks for falls out of that, on a
+ * delete as much as on a move.
+ *
+ * [upsertWorkout] is also where §2.2.7's one rule SQLite cannot express is enforced: a row
+ * prescribes **exactly one** of `reps` / `seconds`, and at least one set. A violation is a
+ * [AppError.Validation], not an exception — the editor shows it on the offending field.
  */
 class RoomStrengthRepository(
     private val dao: StrengthDao,
@@ -42,6 +48,7 @@ class RoomStrengthRepository(
 
     override suspend fun upsertWorkout(workout: StrengthWorkout): Outcome<Long> =
         withContext(ioDispatcher) {
+            workout.validationError()?.let { return@withContext Outcome.Err(it) }
             runCatchingApp {
                 val id = dao.upsertWorkout(workout.toEntity())
                     .let { if (it > 0L) it else workout.id }
@@ -79,5 +86,25 @@ class RoomStrengthRepository(
 
     override suspend fun deleteSetLog(id: Long): Outcome<Unit> = withContext(ioDispatcher) {
         runCatchingApp { dao.deleteSetLog(id) }
+    }
+
+    /** The first broken row's error, or `null` when the whole workout is well formed. */
+    private fun StrengthWorkout.validationError(): AppError.Validation? {
+        if (name.isBlank()) return AppError.Validation("name", "A workout needs a name.")
+        exercises.forEachIndexed { index, row ->
+            val position = index + 1
+            if (row.sets < 1) {
+                return AppError.Validation("sets", "Exercise $position needs at least one set.")
+            }
+            val counted = row.reps != null
+            val held = row.seconds != null
+            if (counted == held) {
+                return AppError.Validation(
+                    "reps",
+                    "Exercise $position needs either a rep count or a hold in seconds, not both.",
+                )
+            }
+        }
+        return null
     }
 }

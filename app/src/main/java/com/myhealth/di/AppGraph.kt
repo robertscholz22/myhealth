@@ -41,6 +41,7 @@ import com.myhealth.data.repository.RoomRideBestRepository
 import com.myhealth.data.repository.RoomRunningBestRepository
 import com.myhealth.data.repository.RoomStrengthRepository
 import com.myhealth.data.repository.RoomSuggestionRepository
+import com.myhealth.data.repository.StrengthWorkoutSeeder
 import com.myhealth.data.repository.RoomSyncStateRepository
 import com.myhealth.data.repository.RoomTransactionRunner
 import com.myhealth.domain.engine.calendar.EventActivityLinker
@@ -169,6 +170,14 @@ class AppGraph(private val app: Application) {
 
     /** The three strength tables (§2.2.7, P14): workouts, their rows and the per-set log. */
     val strengthRepo: StrengthRepository by lazy { RoomStrengthRepository(db.strengthDao()) }
+
+    /**
+     * Materialises the six built-in workouts of `StrengthTemplates` (§3.12.3, P14.4). Idempotent
+     * on `templateId`, so every caller may simply seed before it reads.
+     */
+    val strengthWorkoutSeeder: StrengthWorkoutSeeder by lazy {
+        StrengthWorkoutSeeder(strengthRepo, clock)
+    }
 
     /**
      * `daily_load` (§2.2.6, P5.5). [RoomLoadRepository.recomputeFrom] is wired to
