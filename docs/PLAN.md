@@ -1586,6 +1586,8 @@ Anchor per zone and modelled half-width `w`: **Z1 → E × 1.08, w 5 % · Z2 →
 | `pz11_treadmill_excluded_by_default` | treadmill-only history → `NONE`/`MODELLED` |
 | `pz12_csv_only_activity_caps_at_medium` | 10 km / 50:00, avgHr 150 → Z3 centre 300 s/km, confidence ≤ `MEDIUM` |
 
+**P14.2 notes (2026-09-13, corrections found while implementing).** `vd05`: the exact repetition pace at VDOT 50 is **219.47 s/km** (219 when rounded half-up), inside the quoted ±1 of 220. `pz01`: its two halves cannot hold at once — a single activity caps the confidence at `LOW`, and `LOW` blends 50/50 with the anchor — so the test asserts the measured centres 333/250 **without** a VDOT and the `MODELLED` Z1/Z3/Z5 **with** VDOT 50 (which moves Z2/Z4 to 334/253). Two rules §3.10.2 leaves open: a zone with less than `120 s` of samples is treated as unmeasured (`MODELLED`/`NONE`, no sixth rung below `LOW`), and a modelled or blended band is derived from the **rounded** centre, which is what makes `pz10`'s `255 → 247…263` come out as quoted.
+
 ### 3.11 Structured workouts and interval suggestions (P14.3)
 
 **Location** `domain/model/Workout.kt` (model + `WorkoutStructureCodec`), `domain/engine/suggest/IntervalCatalog.kt`, `IntervalBuilder.kt`.
