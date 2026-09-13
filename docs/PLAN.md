@@ -2120,6 +2120,32 @@ Total: **83 tasks** across 10 phases.
 
 ---
 
+### P11 — Menstrual cycle tracker + cycle-aware training (owner request, 2026-09-13)
+
+> "For female users, add an ovulation cycle tracker (let the user enter when their ovulation starts, use average cycle duration and average period duration to forecast future cycles) and make the training plan adapt to the female cycle." Anchored on the **first day of the period** (observable); ovulation is forecast from it. Enabled when `profile.sex == FEMALE` or `settings.cycleTrackingEnabled` (default = sex == FEMALE; OTHER/MALE can opt in).
+
+#### P11.1 — Cycle model, engine, storage
+- **Model**: `domain/model/Cycle.kt`: `CycleEntry(id, periodStartDay: Long, periodEndDay: Long?, note?, createdAtMillis, updatedAtMillis)`; `CyclePhase { MENSTRUAL, FOLLICULAR, OVULATION, LUTEAL }` with `isLateLuteal: Boolean` flag; `CycleStatus(dayOfCycle, phase, isLateLuteal, isPredicted, cycleLengthDays, periodLengthDays, nextPeriodStart, ovulationDay, fertileWindow: ClosedRange<Long>, confidence: CycleConfidence {LOW, MEDIUM, HIGH})`; `CycleForecast(cycles: List<PredictedCycle(periodStart, periodEnd, ovulationDay, fertileWindow)>)`.
+- **Engine** `domain/engine/cycle/CycleEngine.kt` (pure): averages from the last ≤ 6 logged cycles — cycle length = mean of intervals between consecutive period starts clamped 21–45 (default 28 with no interval), period length = mean of (end − start + 1) over logged ends clamped 2–10 (default 5). Ovulation day = predicted next period start − 14 (fixed luteal); fertile window = ovulation − 5 … ovulation + 1. `statusFor(date, entries)`: from the latest start ≤ date, `dayOfCycle = date − start + 1`; if `dayOfCycle > cycleLength` the cycle is `isPredicted` and rolls forward (`((date − start) mod cycleLength) + 1`). Phases: MENSTRUAL = days 1..periodLength; FOLLICULAR = periodLength+1 .. ovulationDayIndex − 2; OVULATION = ovulationDayIndex − 1 .. +1 (where `ovulationDayIndex = cycleLength − 14`); LUTEAL = rest; `isLateLuteal` = last 5 days before the predicted next start. Confidence: HIGH ≥ 3 intervals with population SD ≤ 3 days, MEDIUM ≥ 1 interval, LOW = defaults. `forecast(entries, today, cycles = 6)`. No entries → `null` status.
+- **Storage**: table `cycle_entry` (unique `periodStartDay`), DB version 3 + `MIGRATION_2_3`, `CycleDao`, `CycleRepository` (observeAll, upsert, delete, observeStatus(today), observeForecast) wired into `AppGraph`; include in backup; `settings.cycleTrackingEnabled`.
+- **Tests** (`CycleEngineTest`, exact names): `cyc01_defaults_without_history_28_5`, `cyc02_average_cycle_from_intervals`, `cyc03_clamps_outliers_21_45`, `cyc04_period_length_from_ends`, `cyc05_phase_boundaries_28_day_cycle` (day 1 MENSTRUAL, 5 MENSTRUAL, 6 FOLLICULAR, 13–15 OVULATION, 16 LUTEAL, 24–28 late luteal), `cyc06_predicted_cycle_rolls_forward`, `cyc07_ovulation_is_14_days_before_next_start`, `cyc08_fertile_window_minus5_plus1`, `cyc09_confidence_levels`, `cyc10_forecast_six_cycles`, `cyc11_no_entries_null_status`.
+
+#### P11.2 — Cycle-aware suggestions and nutrition note
+- `SuggestionInput.cycleStatusByDay: Map<Long, CycleStatus>` (empty when tracking is off). Rules (rationale ids in brackets), applied to **suggested** sessions only — fixed calendar matches/races are untouched:
+  - `[CYCLE_MENSTRUAL_EARLY]` cycle days 1–2: intensity cap MODERATE (no HIGH/MAX candidates); days 3..period end: HIGH allowed, `recoveryFit ×0.85` for HIGH/MAX.
+  - `[CYCLE_FOLLICULAR]` follicular: `+0.10` score for HIGH/MAX runs and any STRENGTH_* (strength/interval work is best tolerated here).
+  - `[CYCLE_OVULATION]` ovulation window: MAX → capped to HIGH; rationale asks for a thorough warm-up (ligament laxity).
+  - `[CYCLE_LATE_LUTEAL]` last 5 days: at most 1 HIGH session in the window, `+0.10` for RECOVERY/LOW and MOBILITY, weekly target ×0.90 for the days in the window; rationale mentions recovery, sleep and hydration.
+  - Confidence LOW → rules still apply but the rationale says "based on a default 28-day cycle — log your period to improve this".
+- Tests (`SuggestionEngineTest`): `sug21_menstrual_first_two_days_cap_moderate`, `sug22_follicular_prefers_strength_and_intervals`, `sug23_ovulation_caps_max_to_high`, `sug24_late_luteal_limits_high_and_reduces_target`, `sug25_no_cycle_data_unchanged`. Existing `sug01…sug20` unchanged (empty map).
+- Nutrition: add a `NutritionTarget.note` line in the explanation for the luteal phase ("luteal phase: appetite and core temperature are typically higher; the target is unchanged, listen to hunger") — no target change (not requested).
+
+#### P11.3 — Screens
+- **Cycle screen** (More → "Cycle", visible when tracking is enabled): current status card (phase badge, day N of ~C, next period in X days, ovulation date, confidence), "Log period start" (date, default today) and "Period ended" actions, history list (start, length, period days, delete), forecast list (next 6 cycles). **Today** card: phase + day of cycle + next period; **Calendar**: period days (logged and predicted, distinct tint), ovulation day marker, fertile window dots; **Day detail**: cycle line; **Settings**: "Track menstrual cycle" switch; **Onboarding** step 3: the switch appears for FEMALE (on by default). Suggestion review/Today show the cycle rationale lines like any other rule.
+- Tests: pure `CycleUiStateTest` (labels: "Day 12 of ~28", countdown), instrumented `CycleScreenTest` (log a period start → status card shows MENSTRUAL day 1; Calendar shows the marker).
+
+---
+
 ## 6. Verification strategy
 
 ### 6.1 After every task (the lead runs this)
@@ -2269,6 +2295,7 @@ $ANDROID_HOME/platform-tools/adb logcat -c && $ANDROID_HOME/platform-tools/adb l
 | P8 Polish | P8.1–P8.8 (8) | 3 | 5 |
 | P9 Garmin direct (optional) | P9.1–P9.6 (6) | 4 | 2 |
 | P10 Runtime verification | P10.1–P10.3 (3) | 2 | 1 |
+| P11 Cycle tracker + cycle-aware training | P11.1–P11.3 (3) | 2 | 1 |
 | **Total** | **86** | **42** | **44** |
 
 Critical path: `P0 → P1.5 → P1.7 → P2.4 → P2.5 → P2.6 → P4.11 → P5.1 → P5.2 → P6.4`.
