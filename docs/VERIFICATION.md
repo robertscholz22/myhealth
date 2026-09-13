@@ -456,3 +456,19 @@ Fresh profile (onboarding: run 2 / strength 1 / ride 2 sessions per week, mobili
 - NOTE-17: with both sports available the first filler's sport is decided by the epoch-day parity (deterministic, but arbitrary); a "preferred recovery sport" setting could replace it.
 - 0.3.0 was published (https://github.com/robertscholz22/myhealth/releases/tag/v0.3.0) but **not yet installed on the Pixel** — the phone was unplugged when the build finished.
 | 0.3.0 installed on the Pixel over 0.2.1 (data kept); owner generated a week and confirmed the active-recovery fillers ("Works on the phone") | PASS (owner) | — |
+
+## Session 13 — 2026-09-13 (emulator, 0.4.0 debug build: zones, paces, intervals, strength)
+Upgrade path: the emulator carried the 0.3.0 build with a fresh profile, an accepted week and the 45-day Health Connect seed; the 0.4.0 debug build was installed over it (`install -r`, DB 5 → 6 in place).
+
+| Step | Result | Evidence |
+|---|---|---|
+| Launch after the in-place upgrade: no crash, Today shows the previously planned long run; Health Connect permissions granted and "Sync now" delivers 6 activities and daily data (recovery 98/100) | PASS | — |
+| More → **Zones & paces**: Z1 · Recovery · 54–132 bpm … Z5 open-ended; "Heart-rate reserve (Karvonen)"; pace per zone with "Measured from 13 runs" / "Measured from 4 runs" / "Modelled from your VDOT"; Daniels paces; polarisation "Easy 39 % · Moderate 28 % · Hard 33 %" with the < 70 % hint; session-type table with n/a for strength | PASS after fix | emu_p14_05_zones.png, emu_p14_06_zones_bottom.png |
+| More → **Strength workouts**: the six seeded templates with kind chip, exercise count and minutes ("Upper A · 6 exercises · about 44 min") | PASS | emu_p14_07_workouts.png |
+| More → **Exercises**: list with equipment chips and primary muscles; "Barbell bench press" detail: body figure, equipment, movement pattern, cue, "Add to workout…" | PASS | emu_p14_08_exercises.png, emu_p14_09_exercise_detail.png |
+| **Load & Recovery** → Muscle load card: heat-map figure, legend, "Legs are loaded — an upper-body day fits today" | PASS | emu_p14_10_load_muscle.png |
+| Settings → **Heart-rate zones**: live preview "Z1 · Recovery · 60–133 bpm … Z5 · VO2max · 171+ bpm" | PASS | emu_p14_11_settings_zones.png |
+| Training → Generate: sessions carry zone chips ("Z2 · 134–145 bpm"), "Target pace 5:27/km, zone 2."; bike intervals "4 × 8:00 @ 271–299 W with 4:00 recovery — from an FTP of 285 W."; "Strength full" with "Workout: Full body A — 6 exercises, about 44 min." and "Legs are fresh and nothing hard is due in the next 48 h — a leg day fits here." | PASS | — |
+
+- POLISH-16 (fixed): the Zones screen showed its empty state whenever there were no runs and no VDOT, hiding the zone table that follows from the profile alone → `hasAnyData` now counts a zone model.
+- POLISH-17 (fixed): the polarisation hint printed "70%%" (an escaped percent in a string used without format arguments) → "70 %".

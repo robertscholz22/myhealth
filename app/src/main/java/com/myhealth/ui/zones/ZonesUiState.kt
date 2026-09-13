@@ -34,9 +34,14 @@ data class ZonesUiState(
 
     val sessionRows: List<SessionZoneRow> get() = sessionZoneRows(model, bands)
 
-    /** Whether there is anything at all to show — gates the empty state (`zui08`). */
+    /**
+     * Whether there is anything at all to show — gates the empty state (`zui08`). A zone model
+     * alone is enough: the five zones follow from the profile (age formula / manual bounds) and
+     * are useful before the first run; only the pace rows then say "not enough data yet".
+     */
     val hasAnyData: Boolean
-        get() = vdot != null ||
+        get() = model != null ||
+            vdot != null ||
             bands.any { it.confidence != PaceConfidence.NONE } ||
             (polarisation?.totalMinutes ?: 0.0) > 0.0
 

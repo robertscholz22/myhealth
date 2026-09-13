@@ -155,6 +155,19 @@ class ZonesUiStateTest {
         val withMeasuredBand = ZonesUiState(isLoading = false, bands = listOf(band(2, 300, 320, PaceConfidence.HIGH, 5)))
         assertThat(withMeasuredBand.isEmpty).isFalse()
 
+        // A zone model alone (profile only, no runs, no VDOT) is not the empty state (POLISH-16).
+        val modelBounds = HrBounds(hrMax = 190, hrRest = 50)
+        val withModelOnly = ZonesUiState(
+            isLoading = false,
+            model = HrZoneModel(
+                scheme = HrZoneScheme.HRR_KARVONEN,
+                zones = HrZoneModel.zonesOf(listOf(134, 148, 162, 176), modelBounds),
+                bounds = modelBounds,
+            ),
+        )
+        assertThat(withModelOnly.hasAnyData).isTrue()
+        assertThat(withModelOnly.isEmpty).isFalse()
+
         val withPolarisation = ZonesUiState(
             isLoading = false,
             polarisation = PolarisationSplit(easyShare = 0.75, hardShare = 0.15, totalMinutes = 200.0),

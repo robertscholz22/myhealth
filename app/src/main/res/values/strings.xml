@@ -1009,7 +1009,7 @@
     <string name="zones_confidence_not_enough_data">Not enough data yet</string>
     <string name="zones_pace_placeholder">—</string>
     <string name="zones_polarisation_summary_format">Easy %1$d%% · Moderate %2$d%% · Hard %3$d%%</string>
-    <string name="zones_polarisation_hint">Less than 70%% easy over the last 28 days — most weeks should be mostly easy.</string>
+    <string name="zones_polarisation_hint">Less than 70 % easy over the last 28 days — most weeks should be mostly easy.</string>
     <string name="zones_table_na">n/a</string>
     <string name="zones_daniels_easy">Easy</string>
     <string name="zones_daniels_marathon">Marathon</string>
