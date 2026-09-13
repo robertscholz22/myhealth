@@ -5,6 +5,9 @@
 - Release APK (minified, 13.9 MB) from `./gradlew :app:assembleRelease` → `app/build/outputs/apk/release/app-release.apk` (debug-signed for sideloading; Play Store is out of scope).
 - 691 unit tests, instrumented Compose/Room tests, and a runtime verification log (`docs/VERIFICATION.md`, screenshots in `docs/screenshots/`) from a Pixel-7a-profile emulator with 45 days of synthetic Garmin-style Health Connect data.
 
+## Releases
+- `v1.0.0` (2026-09-13, versionCode 100): first stable release, verified on the Pixel 7a; installed on the phone. Install only from tags from now on (see README → Releases).
+
 ## Install on the Pixel 7A
 1. Enable developer options + USB debugging, connect the phone, `adb devices`.
 2. `adb install -r app/build/outputs/apk/release/app-release.apk` (or the debug APK for logcat-friendly runs).

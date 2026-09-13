@@ -26,6 +26,18 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 On first launch complete onboarding, then More → Integrations → Grant permissions (Health Connect) → Sync now. Make sure Garmin Connect is allowed to write to Health Connect on the phone.
 
+## Releases
+
+Stable releases are annotated git tags `vX.Y.Z` on `main` (the phone is only ever installed from a tag, never from main):
+
+```bash
+git checkout v1.0.0 && bash tools/verify.sh
+adb install -r app/build/outputs/apk/release/app-release.apk
+git checkout main
+```
+
+Each release is also published on GitHub with the APK attached. A `release/X.Y.x` branch is only created from a tag when a hotfix is needed while main has moved on.
+
 ## Verify
 
 ```bash
