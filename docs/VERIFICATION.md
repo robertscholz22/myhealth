@@ -376,3 +376,6 @@ Not built, deliberately. Garmin offers no personal API; the only route is the re
 | Calendar + Day detail 9 Sep: activity dot, sleep 7h 41m (Deep 109m · REM 75m · Light 277m), TRIMP 205 | PASS | phone_11_calendar.png |
 | Nutrition: target 2020 kcal / 130 P / 205 C / 74 F; "Why this target?" = BMR 1685 (Mifflin, 77 kg, 176 cm, 38 y), TDEE 2275 estimated, REST, "Lose weight (0.5 kg/week) → −550 kcal/day", "raised to the safety floor", protein 1.8 g/kg (deficit) | PASS | phone_12_nutrition.png |
 | Training → Generate suggestions on one week of history: Base, target 103 AU (CTL 14), long run + mobility fillers with rationale | PASS | phone_13_suggestions.png |
+| Scan → From photo on the phone (unbundled ML Kit model, Google Photos picker): all label values recognised (373 kcal / 1560 kJ, fat 7.0, saturates 1.2, carbs 58.7, sugars 1.1, fibre 10.0, protein 13.5, salt 0.02), per-100 g basis, per-serving column detected; camera permission prompt handled | PASS | phone_15_scan.png, phone_17_ocr_review.png |
+| BUG-9 fix verified on the phone: after reinstall + Sync now, no "Sync failed" banner, `sync_state.lastError` null on all channels | PASS | phone_14_today_after_fix.png |
+| Final state: release build (14 MB, R8) installed over the debug data; Today renders with the synced data | PASS | phone_18_release_today.png |
