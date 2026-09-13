@@ -7,6 +7,7 @@ import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.model.Goal
 import com.myhealth.domain.model.GoalType
 import com.myhealth.domain.model.Intensity
+import com.myhealth.domain.model.MuscleLoadBand
 import com.myhealth.domain.model.RationaleEntry
 import com.myhealth.domain.model.RecoveryBand
 import com.myhealth.domain.model.SessionType
@@ -37,6 +38,15 @@ data class RationaleContext(
     val bikeIndoorSeason: Boolean = false,
     /** POLISH-10: true when [Periodization.isStarterWeek] fired for this batch. */
     val isStarterWeek: Boolean = false,
+    /**
+     * P14.5: the candidate day's **projected** lower/upper band (§3.12.4's decay applied forward),
+     * or `null` when `SuggestionInput.muscleLoad` was not supplied — in which case none of the three
+     * muscle lines is ever emitted and every pre-P14.5 rationale is byte-identical.
+     */
+    val muscleLowerBand: MuscleLoadBand? = null,
+    val muscleUpperBand: MuscleLoadBand? = null,
+    /** P14.5: true when `C15` would have discarded leg work on this day ([StrengthRules]). */
+    val muscleLegWorkBlocked: Boolean = false,
 )
 
 /**
@@ -63,6 +73,12 @@ object Rationale {
     const val RULE_INTERVAL_SHORTENED_TAPER: String = "INTERVAL_SHORTENED_TAPER"
     const val RULE_PACE_TARGET: String = "PACE_TARGET"
 
+    /** P14.5's four strength ids (§3.12.5); only ever attached while muscle load is known. */
+    const val RULE_MUSCLE_LOWER_LOADED: String = "MUSCLE_LOWER_LOADED"
+    const val RULE_MUSCLE_LEGS_FRESH: String = "MUSCLE_LEGS_FRESH"
+    const val RULE_C15_RESPECTED: String = "C15_RESPECTED"
+    const val RULE_STRENGTH_WORKOUT: String = "STRENGTH_WORKOUT"
+
     /** P12.3's four cycling ids (§3.5.8); only ever attached to a `CYCLE` session. */
     const val RULE_BIKE_FTP_GOAL: String = "BIKE_FTP_GOAL"
     const val RULE_BIKE_VOLUME_GOAL: String = "BIKE_VOLUME_GOAL"
@@ -83,6 +99,7 @@ object Rationale {
         cycleEntry(ctx)?.let { entries += it }
         bikeGoalEntry(candidate, ctx)?.let { entries += it }
         bikeIndoorEntry(candidate, ctx)?.let { entries += it }
+        entries += StrengthRules.rationaleEntries(candidate, ctx)
         if (ctx.isStarterWeek) entries += starterWeekEntry()
         return entries
     }

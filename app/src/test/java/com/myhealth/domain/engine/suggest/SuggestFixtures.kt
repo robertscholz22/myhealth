@@ -1,6 +1,10 @@
 package com.myhealth.domain.engine.suggest
 
 import com.myhealth.domain.engine.cycle.CycleEngine
+import com.myhealth.domain.engine.strength.MuscleLoadEngine
+import com.myhealth.domain.engine.strength.MuscleLoadInput
+import com.myhealth.domain.engine.strength.MuscleLoadState
+import com.myhealth.domain.engine.strength.MuscleSession
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.CycleEntry
@@ -19,6 +23,7 @@ import com.myhealth.domain.model.RecoveryBand
 import com.myhealth.domain.model.RecoveryState
 import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.Sex
+import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
 import com.myhealth.testutil.Fixtures
 import java.time.LocalDate
@@ -303,6 +308,26 @@ object SuggestFixtures {
      */
     fun cycleStatuses(offset: Long, horizonDays: Int = 7): Map<Long, CycleStatus> =
         CycleEngine.statusesFor(TODAY_DAY, TODAY_DAY + horizonDays, listOf(cycleEntry(offset)))
+
+    /**
+     * P14.5: a [MuscleLoadState] built by the **real** [MuscleLoadEngine] from the sessions given,
+     * so a fixture says "a hard run yesterday" rather than hand-writing per-group AU.
+     *
+     * The default `ctl = 40.0` puts the reference at `max(0.35 × 40, 12) = 14.0`.
+     */
+    fun muscleLoad(
+        ctl: Double = 40.0,
+        sessions: List<MuscleSession> = emptyList(),
+        todayDay: Long = TODAY_DAY,
+    ): MuscleLoadState = MuscleLoadEngine.compute(
+        MuscleLoadInput(today = todayDay, ctl = ctl, sessions = sessions),
+    )
+
+    fun muscleSession(
+        day: Long,
+        sportGroup: SportGroup = SportGroup.RUN,
+        trimp: Double = 200.0,
+    ): MuscleSession = MuscleSession(day = day, sportGroup = sportGroup, trimp = trimp)
 
     /** A seeded grid for constraint tests — the engine's step 1 without the engine. */
     fun grid(input: SuggestionInput): SuggestionGrid = SuggestionGrid.seed(input)

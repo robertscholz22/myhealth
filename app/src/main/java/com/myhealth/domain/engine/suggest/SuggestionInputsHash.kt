@@ -40,6 +40,7 @@ object SuggestionInputsHash {
         )
         bikeLine(input)?.let { line("bike", it) }
         pacesLine(input)?.let { line("paces", it) }
+        muscleLine(input)?.let { line("muscle", it) }
         input.goals.sortedWith(compareBy({ it.priority }, { it.id })).forEach { goal ->
             line(
                 "goal",
@@ -142,6 +143,31 @@ object SuggestionInputsHash {
             ).joinToString(":")
         }
         return listOf(num(input.vdot), input.ftpWatts?.toString() ?: "", bands).joinToString("|")
+    }
+
+    /**
+     * P14.5's muscle-load state and template alternation, emitted **only when
+     * `SuggestionInput.muscleLoad` is set** — the same `bike=` trick, for the same reason: an
+     * athlete whose muscle load was never computed hashes exactly as before P14.5, so `sug01`…
+     * `sug36` keep their digests (`sug40`) and upgrading does not force the regeneration of an open
+     * batch. Once it *is* set, a change in any group's load moves the digest, which is what makes
+     * "you ran hard yesterday" regenerate the week.
+     */
+    private fun muscleLine(input: SuggestionInput): String? {
+        val state = input.muscleLoad ?: return null
+        val groups = state.byGroup.entries
+            .sortedBy { it.key.ordinal }
+            .joinToString(",") { (group, load) -> group.name + ":" + num(load) }
+        val templates = input.lastAcceptedTemplateByKind.entries
+            .sortedBy { it.key.ordinal }
+            .joinToString(",") { (kind, templateId) -> kind.name + ":" + templateId }
+        return listOf(
+            num(state.ref),
+            state.lowerBody.name,
+            state.upperBody.name,
+            groups,
+            templates,
+        ).joinToString("|")
     }
 
     fun sha256(value: String): String {

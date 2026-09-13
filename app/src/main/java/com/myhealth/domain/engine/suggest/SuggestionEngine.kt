@@ -59,6 +59,7 @@ class SuggestionEngine(private val clock: Clock) {
         val periodization = Periodization.compute(input)
         val ctx = ConstraintContext.of(input)
         val bike = BikeContext.of(input)
+        val muscle = MuscleContext.of(input)
         var grid = SuggestionGrid.seed(input)
         var remaining = max(periodization.weeklyTarget - grid.fixedLoad, 0.0)
         val stopFloor = MIN_BUDGET_FRACTION * periodization.weeklyTarget
@@ -71,7 +72,9 @@ class SuggestionEngine(private val clock: Clock) {
             if (breakdown.total < MIN_SCORE) break
             val rationale = Rationale.forSession(
                 candidate = candidate,
-                ctx = rationaleContext(input, periodization, grid, ctx, bike, remaining, candidate),
+                ctx = rationaleContext(
+                    input, periodization, grid, ctx, bike, muscle, remaining, candidate,
+                ),
             )
             grid = grid.place(candidate.day, candidate.asPlacedItem(breakdown.total, rationale))
             remaining = max(remaining - candidate.estTrimp, 0.0)
@@ -85,7 +88,7 @@ class SuggestionEngine(private val clock: Clock) {
         if (input.profile.mobilityOnRestDays) {
             grid = addMobilityToRestDays(grid, periodization.phase, periodization.isStarterWeek)
         }
-        return resultOf(input, periodization, grid)
+        return resultOf(input, periodization, grid, muscle)
     }
 
     // ---- steps 4 + 5 -----------------------------------------------------------------------------
@@ -221,6 +224,7 @@ class SuggestionEngine(private val clock: Clock) {
         grid: SuggestionGrid,
         ctx: ConstraintContext,
         bike: BikeContext,
+        muscle: MuscleContext,
         remaining: Double,
         candidate: Candidate,
     ): RationaleContext {
@@ -244,6 +248,9 @@ class SuggestionEngine(private val clock: Clock) {
             bikeGoal = BikeRules.primaryBikeGoal(input.goals),
             bikeIndoorSeason = bike.trainerAvailable && BikeRules.isIndoorSeason(candidate.day),
             isStarterWeek = periodization.isStarterWeek,
+            muscleLowerBand = StrengthRules.projectedLowerBand(candidate.day, muscle),
+            muscleUpperBand = StrengthRules.projectedUpperBand(candidate.day, muscle),
+            muscleLegWorkBlocked = StrengthRules.legWorkBlocked(candidate.day, grid, muscle),
         )
     }
 
@@ -251,11 +258,17 @@ class SuggestionEngine(private val clock: Clock) {
         input: SuggestionInput,
         periodization: PeriodizationResult,
         grid: SuggestionGrid,
+        muscle: MuscleContext,
     ): SuggestionResult {
         val intervalCtx = IntervalContext.of(input, periodization)
+        val seen = mutableMapOf<SessionType, Int>()
         val sessions = grid.suggested()
             .sortedWith(compareBy({ it.first }, { it.second.sessionType.ordinal }))
-            .map { (day, item) -> sessionOf(day, item, intervalCtx) }
+            .map { (day, item) ->
+                val occurrence = seen.getOrDefault(item.sessionType, 0)
+                seen[item.sessionType] = occurrence + 1
+                sessionOf(day, item, intervalCtx, muscle, occurrence)
+            }
         val hash = SuggestionInputsHash.of(input)
         return SuggestionResult(
             batch = SuggestionBatch(
@@ -277,13 +290,22 @@ class SuggestionEngine(private val clock: Clock) {
 
     /**
      * P14.3 (§3.11): the placed item as a [SuggestedSession], with the structured workout and the
-     * target pace the zone model prescribes for it.
+     * target pace the zone model prescribes for it — and, since P14.5, the built-in strength
+     * workout a `STRENGTH_*` session proposes (§3.12.5), alternating by [occurrence] inside the
+     * batch and by the last accepted template across batches. Without muscle load there is no
+     * template, no `STRENGTH_WORKOUT` line and no change at all.
      *
      * Nothing here can change *which* sessions were placed — candidate generation, scoring and the
      * constraints all ran already. Without a VDOT, a measured band or an FTP the structure is
      * zone-only and the pace is `null`, and [Rationale.intervalEntries] then adds no line at all.
      */
-    private fun sessionOf(day: Long, item: GridItem, ctx: IntervalContext): SuggestedSession {
+    private fun sessionOf(
+        day: Long,
+        item: GridItem,
+        ctx: IntervalContext,
+        muscle: MuscleContext = MuscleContext.NONE,
+        occurrence: Int = 0,
+    ): SuggestedSession {
         val entry = SessionCatalog.entryFor(item.sessionType)
         val plan = entry?.let { IntervalBuilder.plan(Candidate(it, day, item.minutes), ctx) }
         val pace = if (item.sportGroup == SportGroup.RUN) {
@@ -291,6 +313,8 @@ class SuggestionEngine(private val clock: Clock) {
         } else {
             null
         }
+        val templateId = StrengthRules.templateIdFor(item.sessionType, muscle, occurrence)
+        val workout = StrengthRules.templateFor(templateId)
         return SuggestedSession(
             id = 0L,
             batchId = 0L,
@@ -303,10 +327,12 @@ class SuggestionEngine(private val clock: Clock) {
             estimatedTrimp = item.estTrimp,
             score = item.score,
             rationale = item.rationale +
-                Rationale.intervalEntries(plan, pace, ctx, item.sessionType),
+                Rationale.intervalEntries(plan, pace, ctx, item.sessionType) +
+                listOfNotNull(StrengthRules.workoutEntry(workout)),
             status = SuggestionStatus.PROPOSED,
             targetPaceSecPerKm = pace,
             structureJson = plan?.let { WorkoutStructureCodec.encode(it.structure) },
+            workoutTemplateId = templateId,
         )
     }
 

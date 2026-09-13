@@ -1742,6 +1742,15 @@ The whole layer is **inert when `SuggestionInput.muscleLoad == null`** (the defa
 Rationale ids: `MUSCLE_LOWER_LOADED` ("Legs are still loaded from Saturday's long run — upper body works today"), `MUSCLE_LEGS_FRESH`, `C15_RESPECTED`, `STRENGTH_WORKOUT` ("Workout: Upper A — 6 exercises, about 44 min").
 `SuggestionInputsHash` gains a `muscle=` line **only when `muscleLoad != null`** (the `bike=` trick), so an upgrade does not force a regeneration of an open batch.
 
+**Implementation notes (P14.5, 2026-09-13)** — where the numbers or the wording above needed a decision:
+
+- §3.12.4 `ml03`: the quoted CHEST 20.25 / TRICEPS 10.125 assume a barbell row with **two** secondary groups (Σw = 12). The P14.4 catalog's `BARBELL_ROW` has four (`BICEPS`, `TRAPS`, `SHOULDERS_REAR`, `LOWER_BACK`), so bench 3 sets + row 3 sets gives Σw = 3 + 1.5 + 1.5 + 3 + 1.5 + 1.5 + 1.5 + 1.5 = **15.0** and TRIMP 81 lands as **CHEST 16.2 / TRICEPS 8.1 / LATS 16.2**. The engine uses the catalog; the test asserts the computed values.
+- §3.12.4: `STRENGTH_FULL` is the renormalised mean of the two generic tables — both already sum to 1.00, so the renormalisation is a no-op kept as a guard. A session dated after `today`, or older than the 14-day window, deposits nothing; a workout whose rows all name unknown exercise ids falls back to the generic table.
+- §3.12.5 (a): "the day's **projected** lower-body band" is today's `lowerBodyLoad` decayed forward to the candidate day with the engine's own 48-hour half-life, then re-banded against the same `ref` — so no caller has to recompute the state per horizon day.
+- §3.12.5 (b)/(c): "within 36 h before" is read in whole local days (the candidate's day and the day before it) and "within 48 h after" reuses `Constraints.HARD_WINDOW_DAYS` (the candidate's day and the two days after it), the same whole-day reading C1/C11/C13 use.
+- §3.12.5 workout: the alternation is extended **inside** one batch by the index of the session among the same-kind sessions of that batch, so a week holding two upper days proposes `UPPER_A` then `UPPER_B`; across batches it starts from `SuggestionInput.lastAcceptedTemplateByKind`, which `RoomSuggestionRepository` reads off the planned sessions that carry a `workoutId` (newest per kind, `[today − 14, today + 14]`).
+- `sug37`'s "day +1" holds for a long run **yesterday**: a 220 AU run *today* makes day 0 and day +1 recovery-only (C4) and active-recovery days, so the first strength slot would be day +2. The fixture therefore dates the long run day −1 and the phase is `IN_SEASON` (a soccer match three weeks out), which is where §3.5.5 actually prefers `STRENGTH_UPPER`.
+
 **Named tests**
 
 | ID | Assertion |
@@ -1764,7 +1773,7 @@ Rationale ids: `MUSCLE_LOWER_LOADED` ("Legs are still loaded from Saturday's lon
 | `sw07_set_log_links_to_planned_session` | |
 | `ml01_run_trimp_100_distribution` | CALVES 25.0, QUADS 22.0, HAMSTRINGS 20.0, GLUTES 18.0, CHEST 0.0 |
 | `ml02_ride_trimp_100_quads_38` | 38.0 |
-| `ml03_workout_shares_primary_one_secondary_half` | bench 3 sets + row 3 sets, TRIMP 81 → CHEST 20.25, TRICEPS 10.125 |
+| `ml03_workout_shares_primary_one_secondary_half` | bench 3 sets + row 3 sets, TRIMP 81 → CHEST **16.2**, TRICEPS **8.1** (Σw = 15 with the catalog's four-secondary row; see the implementation note above) |
 | `ml04_half_life_48h` | 100 AU two days ago → 50.0; four days → 25.0 |
 | `ml05_two_runs_sum` | additive |
 | `ml06_bands_from_ctl_60` | ref 21.0; 15.0 `FRESH`, 21.0 `LOADED`, 40.0 `FATIGUED` |

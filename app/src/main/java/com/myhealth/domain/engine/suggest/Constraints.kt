@@ -26,6 +26,13 @@ import kotlin.math.abs
 enum class ConstraintId {
     C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14,
 
+    /**
+     * P14.5 (§3.12.5): no leg day while the legs are fatigued, inside 36 h after a hard leg day or
+     * inside 48 h before a hard run, a match or a race. **Appended**, so every existing ordinal is
+     * untouched, and inert without `SuggestionInput.muscleLoad`.
+     */
+    C15,
+
     /** P11.2: cycle days 1–2 take nothing above `MODERATE`. */
     CYCLE_MENSTRUAL,
 
@@ -69,6 +76,8 @@ data class ConstraintContext(
     val longRunWeekday: DayOfWeek? = null,
     /** P11.2: the horizon's cycle statuses; empty when tracking is off. */
     val cycleStatusByDay: Map<Long, CycleStatus> = emptyMap(),
+    /** P14.5: the muscle-load facts `C15` reads; [MuscleContext.NONE] switches the rule off. */
+    val muscle: MuscleContext = MuscleContext.NONE,
 ) {
     companion object {
         /** Derives the context from the engine's inputs (§3.5.1). */
@@ -90,6 +99,7 @@ data class ConstraintContext(
                 weeklyCaps = SportPreferences.capsOf(input.profile.preferredSportsJson),
                 longRunWeekday = SportPreferences.longRunWeekdayOf(input.profile.preferredSportsJson),
                 cycleStatusByDay = input.cycleStatusByDay,
+                muscle = MuscleContext.of(input),
             )
         }
     }
@@ -115,6 +125,8 @@ data class ConstraintContext(
  * - C14 (P12.3) lives in [BikeRules.violatesSpacing], the way the `CYCLE_*` rules live in
  *   `CycleRules`: `BIKE_INTERVALS` is `HIGH`, so C1/C5/C9 already treat it as hard work, and C14
  *   only adds the spacing a bike session needs from other bike and other hard work.
+ * - C15 (P14.5) lives in [StrengthRules.violatesC15], the way C14 lives in `BikeRules`: it is the
+ *   only rule that needs the muscle-load state, and it is completely inert without it.
  * - C13 (POLISH-8) reads "consecutive days" as adjacent grid days and "48 h between two strength
  *   sessions" as "at least one clear day between them", the same whole-day reading C11 uses.
  *   `MOBILITY` is exempt from the same-type half: it carries no stress (12 AU), post-pass 7c
@@ -192,6 +204,7 @@ object Constraints {
         if (c12Violated(candidate, day, ctx)) broken += ConstraintId.C12
         if (c13Violated(candidate, day, grid)) broken += ConstraintId.C13
         if (BikeRules.violatesSpacing(candidate, day, grid)) broken += ConstraintId.C14
+        if (StrengthRules.violatesC15(candidate, day, grid, ctx.muscle)) broken += ConstraintId.C15
         if (CycleRules.violatesEarlyMenstrualCap(ctx.cycleStatusByDay[day], candidate.intensity)) {
             broken += ConstraintId.CYCLE_MENSTRUAL
         }

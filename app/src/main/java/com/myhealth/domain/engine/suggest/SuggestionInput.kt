@@ -1,6 +1,7 @@
 package com.myhealth.domain.engine.suggest
 
 import com.myhealth.domain.engine.running.PaceZoneBand
+import com.myhealth.domain.engine.strength.MuscleLoadState
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.model.DailyLoad
@@ -9,6 +10,7 @@ import com.myhealth.domain.model.Goal
 import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.Profile
 import com.myhealth.domain.model.RecoveryState
+import com.myhealth.domain.model.StrengthWorkoutKind
 import java.time.LocalDate
 
 /**
@@ -24,6 +26,9 @@ import java.time.LocalDate
  *   "unknown", and the engine's candidate generation, scoring and constraints never read them: they
  *   only decide how much of a *structure* a placed session can carry, which is what keeps every
  *   pre-P14 output byte-identical (`sug28`).
+ * - [muscleLoad] / [lastAcceptedTemplateByKind] — added by P14.5 for `StrengthRules` and `C15`
+ *   (§3.12.5). `null` muscle load switches the whole strength layer off, which is what `sug39`
+ *   and `sug40` pin.
  */
 data class SuggestionInput(
     val today: LocalDate,
@@ -52,6 +57,17 @@ data class SuggestionInput(
     val paceBands: List<PaceZoneBand> = emptyList(),
     /** P14.3: the FTP every bike power target is a percentage of (§3.8.1). */
     val ftpWatts: Int? = null,
+    /**
+     * P14.5: today's per-muscle-group load (§3.12.4), or `null` when nothing computed it. `null`
+     * makes `C15`, `Scorer.muscleBonus`, the three muscle rationale ids and the proposed workout
+     * template all inert — the gating invariant of §3.12.5.
+     */
+    val muscleLoad: MuscleLoadState? = null,
+    /**
+     * P14.5: the most recently accepted built-in workout per kind (`UPPER` → `"UPPER_A"`, …), which
+     * is what makes the proposed template alternate (§3.12.5). Only read while [muscleLoad] is set.
+     */
+    val lastAcceptedTemplateByKind: Map<StrengthWorkoutKind, String> = emptyMap(),
 ) {
     val todayDay: Long get() = today.toEpochDay()
 

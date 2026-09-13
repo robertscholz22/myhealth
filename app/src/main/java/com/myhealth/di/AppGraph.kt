@@ -255,6 +255,8 @@ class AppGraph(private val app: Application) {
             runningBestRepo = runningBestRepo,
             rideBestRepo = rideBestRepo,
             healthRepo = healthRepo,
+            strengthRepo = strengthRepo,
+            strengthSeeder = strengthWorkoutSeeder,
             onPlanChanged = { syncScheduler.requestTargetRecompute() },
         )
     }

@@ -13,13 +13,19 @@ import com.myhealth.domain.model.PlanStatus
 import com.myhealth.domain.model.PlannedStatus
 import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.SportType
+import com.myhealth.domain.model.StrengthSetLog
+import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.model.SuggestionStatus
 import com.myhealth.domain.model.WorkoutStructureCodec
 import com.myhealth.domain.model.TrainingPhase
+import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.util.Outcome
 import com.myhealth.testutil.Fixtures
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
@@ -53,6 +59,8 @@ class RoomSuggestionRepositoryTest {
 
     private val settingsRepo = FakeLoadSettingsRepository()
 
+    private val strengthRepo = InMemoryStrengthRepository()
+
     private val repo = RoomSuggestionRepository(
         suggestionDao = suggestionDao,
         planRepo = planRepo,
@@ -64,6 +72,8 @@ class RoomSuggestionRepositoryTest {
         settingsRepo = settingsRepo,
         engine = SuggestionEngine(clock),
         clock = clock,
+        strengthRepo = strengthRepo,
+        strengthSeeder = StrengthWorkoutSeeder(strengthRepo, clock),
         onPlanChanged = { recomputeRequests++ },
         ioDispatcher = Dispatchers.Unconfined,
     )
@@ -273,6 +283,39 @@ class RoomSuggestionRepositoryTest {
             .isEqualTo("RUN_1000_I")
     }
 
+    @Test
+    fun accepting_a_strength_suggestion_materialises_its_workout() = runTest {
+        // P14.5 (§3.12.3): the suggestion names a built-in; `accept` seeds it and writes the row id
+        // onto `planned_session.workoutId`, so the plan card can open the actual exercise list.
+        val batchId = suggestionDao.upsert(
+            SuggestionBatchEntity(
+                id = 0L,
+                generatedAtMillis = clock.millis(),
+                horizonStartDay = today,
+                horizonEndDay = today + 7,
+                phase = TrainingPhase.IN_SEASON,
+                weeklyLoadTarget = 400.0,
+                inputsHash = "hash",
+            ),
+        )
+        suggestionDao.upsertSessions(
+            listOf(
+                suggested(batchId, day = today + 1, sessionType = SessionType.STRENGTH_UPPER)
+                    .copy(sportType = SportType.STRENGTH, workoutTemplateId = "UPPER_A"),
+            ),
+        )
+
+        assertThat(repo.accept(suggestionDao.getSessionsForBatch(batchId).map { it.id }))
+            .isInstanceOf(Outcome.Ok::class.java)
+
+        val planned = planRepo.getSessions(today, today + 7).single()
+        val seeded = requireNotNull(strengthRepo.getByTemplateId("UPPER_A"))
+        assertThat(planned.workoutId).isEqualTo(seeded.id)
+        assertThat(seeded.exercises).hasSize(6)
+        // Seeding is idempotent: accepting the same template again reuses the row.
+        assertThat(strengthRepo.stored.value).hasSize(6)
+    }
+
     // ---- helpers -------------------------------------------------------------------------------
 
     /** A `PROPOSED` batch with two open sessions — the shape the review screen works on. */
@@ -323,4 +366,41 @@ class RoomSuggestionRepositoryTest {
         rationaleJson = """[{"ruleId":"PHASE_BASE","text":"Base phase: easy volume."}]""",
         status = SuggestionStatus.PROPOSED,
     )
+
+    /** In-memory [StrengthRepository] — only what [StrengthWorkoutSeeder] touches is modelled. */
+    private class InMemoryStrengthRepository : StrengthRepository {
+        val stored = MutableStateFlow<Map<Long, StrengthWorkout>>(emptyMap())
+        private var nextId = 1L
+
+        override fun observeAll(): Flow<List<StrengthWorkout>> =
+            stored.map { all -> all.values.sortedBy { it.name } }
+
+        override fun observe(id: Long): Flow<StrengthWorkout?> = stored.map { it[id] }
+
+        override suspend fun getById(id: Long): StrengthWorkout? = stored.value[id]
+
+        override suspend fun getByTemplateId(templateId: String): StrengthWorkout? =
+            stored.value.values.firstOrNull { it.templateId == templateId }
+
+        override suspend fun upsertWorkout(workout: StrengthWorkout): Outcome<Long> {
+            val id = if (workout.id == 0L) nextId++ else workout.id
+            stored.value = stored.value + (id to workout.copy(id = id))
+            return Outcome.Ok(id)
+        }
+
+        override suspend fun deleteWorkout(id: Long): Outcome<Unit> {
+            stored.value = stored.value - id
+            return Outcome.Ok(Unit)
+        }
+
+        override suspend fun insertSetLogs(logs: List<StrengthSetLog>): Outcome<Unit> = Outcome.Ok(Unit)
+
+        override fun observeSetLogsByDay(day: Long): Flow<List<StrengthSetLog>> =
+            MutableStateFlow(emptyList())
+
+        override suspend fun getSetLogsOfPlannedSession(plannedSessionId: Long): List<StrengthSetLog> =
+            emptyList()
+
+        override suspend fun deleteSetLog(id: Long): Outcome<Unit> = Outcome.Ok(Unit)
+    }
 }

@@ -21,6 +21,8 @@ data class ScoreBreakdown(
     val prefFit: Double,
     /** P11.2's `+0.10` phase nudge; `0.0` without cycle data, so the weighted sum is unchanged. */
     val cycleBonus: Double = 0.0,
+    /** P14.5's `+0.10` muscle nudge (§3.12.5); `0.0` without muscle load, for the same reason. */
+    val muscleBonus: Double = 0.0,
 ) {
     val total: Double
         get() = min(
@@ -30,7 +32,8 @@ data class ScoreBreakdown(
                 Scorer.W_RECOVERY * recoveryFit +
                 Scorer.W_SPACING * spacingFit +
                 Scorer.W_PREF * prefFit +
-                cycleBonus,
+                cycleBonus +
+                muscleBonus,
         )
 }
 
@@ -46,6 +49,8 @@ data class ScoringContext(
     val weeklyCaps: Map<SportGroup, Int> = emptyMap(),
     /** P11.2: the horizon's cycle statuses; empty when tracking is off. */
     val cycleStatusByDay: Map<Long, CycleStatus> = emptyMap(),
+    /** P14.5: the muscle-load facts [Scorer.muscleBonus] reads; `NONE` scores a flat `0.0`. */
+    val muscle: MuscleContext = MuscleContext.NONE,
 )
 
 /**
@@ -66,6 +71,8 @@ data class ScoringContext(
  * - P11.2 adds a sixth, unweighted term: [ScoreBreakdown.cycleBonus] is added on top of the
  *   weighted sum and the total is then capped at 1.0, so the score stays comparable to the 0.35
  *   placement threshold and a run without cycle data scores exactly what it did before.
+ * - P14.5 adds a seventh on exactly the same seam: [ScoreBreakdown.muscleBonus] (§3.12.5), `0.0`
+ *   whenever `SuggestionInput.muscleLoad` is `null`, so every pre-P14.5 score is unchanged.
  */
 object Scorer {
 
@@ -208,8 +215,18 @@ object Scorer {
                 sportGroup = candidate.sportGroup,
                 intensity = candidate.intensity,
             ),
+            muscleBonus = muscleBonus(candidate, grid, ctx),
         )
     }
+
+    /**
+     * §3.12.5's `muscleBonus`: `+0.10` for an upper-body day on loaded legs, `+0.10` for a leg day
+     * on fresh legs with nothing hard ahead. Unweighted — [ScoreBreakdown.total] adds it on top and
+     * caps at 1.0 — and flat `0.0` without muscle load, which is what keeps every existing score
+     * byte-identical (`sug39`).
+     */
+    fun muscleBonus(candidate: Candidate, grid: SuggestionGrid, ctx: ScoringContext): Double =
+        StrengthRules.scoreBonus(candidate, candidate.day, grid, ctx.muscle)
 
     /** The scoring context for one run of the engine (§3.5.6 step 3). */
     fun contextOf(input: SuggestionInput, result: PeriodizationResult, remainingBudget: Double): ScoringContext {
@@ -224,6 +241,7 @@ object Scorer {
             recoveryBand = result.band,
             weeklyCaps = SportPreferences.capsOf(input.profile.preferredSportsJson),
             cycleStatusByDay = input.cycleStatusByDay,
+            muscle = MuscleContext.of(input),
         )
     }
 

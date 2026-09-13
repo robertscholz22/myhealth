@@ -27,6 +27,7 @@ import com.myhealth.domain.repository.ProfileRepository
 import com.myhealth.domain.repository.RideBestRepository
 import com.myhealth.domain.repository.RunningBestRepository
 import com.myhealth.domain.repository.SettingsRepository
+import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.util.AppError
 import com.myhealth.domain.util.Outcome
@@ -52,9 +53,10 @@ import java.time.LocalDate
  * and the `ACTIVE` plan's `startDay` (the `RECOVERY_WEEK` override of §3.5.2). Writing the new
  * batch marks any previous `PROPOSED` one `SUPERSEDED`, so exactly one batch is ever reviewable.
  *
- * [accept] copies the chosen rows into `planned_session` with `status = PLANNED` and
- * `sourceSuggestionId` set; a planned session changes the day's nutrition target, so the write is
- * followed by [onPlanChanged] (wired to `SyncScheduler.requestTargetRecompute`, P4.12). Accepting
+ * [accept] copies the chosen rows into `planned_session` with `status = PLANNED`,
+ * `sourceSuggestionId` set and — since P14.5 — a `workoutId` materialised from the suggestion's
+ * `workoutTemplateId` by [StrengthWorkoutSeeder]; a planned session changes the day's nutrition
+ * target, so the write is followed by [onPlanChanged] (wired to `SyncScheduler.requestTargetRecompute`, P4.12). Accepting
  * into an empty database creates the default `ACTIVE` plan the sessions hang off — the owner never
  * has to build a plan by hand before the suggester is useful.
  */
@@ -83,6 +85,13 @@ class RoomSuggestionRepository(
     private val runningBestRepo: RunningBestRepository? = null,
     private val rideBestRepo: RideBestRepository? = null,
     private val healthRepo: HealthRepository? = null,
+    /**
+     * P14.5: the muscle-load layer (§3.12.4/§3.12.5). `null` wherever strength is not wired — the
+     * engine then sees `muscleLoad = null`, `C15` never fires and the week is the pre-P14.5 one.
+     * [strengthSeeder] is what turns an accepted `workoutTemplateId` into a real `workoutId`.
+     */
+    private val strengthRepo: StrengthRepository? = null,
+    private val strengthSeeder: StrengthWorkoutSeeder? = null,
     private val onPlanChanged: () -> Unit = {},
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : SuggestionRepository {
@@ -140,7 +149,9 @@ class RoomSuggestionRepository(
                             .forEach { planRepo.deleteSession(it.id) }
                     }
                 }
-                planRepo.upsertSessions(rows.map { it.toPlannedSession(planId) })
+                planRepo.upsertSessions(
+                    rows.map { it.toPlannedSession(planId, workoutIdFor(it.workoutTemplateId)) },
+                )
                 suggestionDao.updateSessionStatuses(rows.map { it.id }, SuggestionStatus.ACCEPTED)
                 closeBatches(rows.map { it.batchId }.distinct())
             }
@@ -197,6 +208,12 @@ class RoomSuggestionRepository(
 
     // ---- engine inputs (§3.5.1) ------------------------------------------------------------
 
+    private val muscleResolver = SuggestionMuscleResolver(
+        activityRepo = activityRepo,
+        planRepo = planRepo,
+        strengthRepo = strengthRepo,
+    )
+
     private val paceResolver = SuggestionPaceResolver(
         activityRepo = activityRepo,
         settingsRepo = settingsRepo,
@@ -211,6 +228,7 @@ class RoomSuggestionRepository(
         val horizonEnd = todayDay + horizonDays
         val latestLoad = loadRepo.getLatest()
         val paces = paceResolver.resolve(profile, todayDay)
+        val muscle = muscleResolver.resolve(todayDay, latestLoad?.ctl ?: 0.0)
         return SuggestionInput(
             today = today,
             horizonDays = horizonDays,
@@ -230,6 +248,8 @@ class RoomSuggestionRepository(
             vdot = paces.vdot,
             paceBands = paces.paceBands,
             ftpWatts = paces.ftpWatts,
+            muscleLoad = muscle.muscleLoad,
+            lastAcceptedTemplateByKind = muscle.lastAcceptedTemplateByKind,
         )
     }
 
@@ -281,7 +301,21 @@ class RoomSuggestionRepository(
         return (created as? Outcome.Ok)?.value
     }
 
-    private fun SuggestedSession.toPlannedSession(planId: Long?): PlannedSession {
+    /**
+     * P14.5: the `workoutTemplateId` a strength suggestion proposes, materialised into a real
+     * `strength_workout` row (§3.12.3). The seeder writes the six built-ins the first time one is
+     * needed and is idempotent afterwards, so accepting the same template twice reuses the row —
+     * including the user's own edits to it.
+     */
+    private suspend fun workoutIdFor(templateId: String?): Long? {
+        val id = templateId ?: return null
+        return strengthSeeder?.workoutFor(id)?.id
+    }
+
+    private fun SuggestedSession.toPlannedSession(
+        planId: Long?,
+        workoutId: Long? = null,
+    ): PlannedSession {
         val now = clock.millis()
         return PlannedSession(
             id = 0L,
@@ -304,6 +338,7 @@ class RoomSuggestionRepository(
             createdAtMillis = now,
             updatedAtMillis = now,
             structureJson = structureJson,
+            workoutId = workoutId,
         )
     }
 
