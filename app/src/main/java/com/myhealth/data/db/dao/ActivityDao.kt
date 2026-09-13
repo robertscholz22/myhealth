@@ -103,7 +103,8 @@ interface ActivityDao {
     /** Re-arrival of a known record: the payload may have changed, so it is refreshed in place. */
     @Query(
         "UPDATE activity_source_record SET activityId = :activityId, payloadJson = :payloadJson, " +
-            "receivedAtMillis = :receivedAtMillis WHERE source = :source AND externalId = :externalId",
+            "receivedAtMillis = :receivedAtMillis, importRecordId = :importRecordId " +
+            "WHERE source = :source AND externalId = :externalId",
     )
     suspend fun updateSourceRecord(
         source: ActivitySource,
@@ -111,6 +112,7 @@ interface ActivityDao {
         payloadJson: String,
         activityId: Long?,
         receivedAtMillis: Long,
+        importRecordId: Long?,
     )
 
     @Query("DELETE FROM activity_source_record WHERE source = :source AND externalId = :externalId")
@@ -121,6 +123,10 @@ interface ActivityDao {
 
     @Query("SELECT * FROM activity_source_record WHERE activityId = :activityId")
     suspend fun getSourceRecordsFor(activityId: Long): List<ActivitySourceRecordEntity>
+
+    /** Everything one import wrote — the selection "Undo import" removes (§2.2.6). */
+    @Query("SELECT * FROM activity_source_record WHERE importRecordId = :importRecordId")
+    suspend fun getSourceRecordsOfImport(importRecordId: Long): List<ActivitySourceRecordEntity>
 
     // ---- streams and laps --------------------------------------------------------------------
 

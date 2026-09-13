@@ -124,6 +124,7 @@ class FakeActivityDao : ActivityDao {
         payloadJson: String,
         activityId: Long?,
         receivedAtMillis: Long,
+        importRecordId: Long?,
     ) {
         val index = sourceRecords.indexOfFirst { it.source == source && it.externalId == externalId }
         if (index < 0) return
@@ -131,6 +132,7 @@ class FakeActivityDao : ActivityDao {
             activityId = activityId,
             payloadJson = payloadJson,
             receivedAtMillis = receivedAtMillis,
+            importRecordId = importRecordId,
         )
     }
 
@@ -146,6 +148,11 @@ class FakeActivityDao : ActivityDao {
 
     override suspend fun getSourceRecordsFor(activityId: Long): List<ActivitySourceRecordEntity> =
         sourceRecords.filter { it.activityId == activityId }
+
+    override suspend fun getSourceRecordsOfImport(
+        importRecordId: Long,
+    ): List<ActivitySourceRecordEntity> =
+        sourceRecords.filter { it.importRecordId == importRecordId }
 
     override suspend fun upsertStream(entity: ActivityStreamEntity) {
         streams[entity.activityId] = entity

@@ -29,6 +29,7 @@ import kotlinx.serialization.Serializable
     indices = [
         Index(value = ["activityId"], name = "idx_asr_activity"),
         Index(value = ["source", "externalId"], unique = true, name = "uq_asr"),
+        Index(value = ["importRecordId"], name = "idx_asr_import"),
     ],
 )
 data class ActivitySourceRecordEntity(
@@ -40,4 +41,10 @@ data class ActivitySourceRecordEntity(
     /** Normalized snapshot of the source's fields. */
     val payloadJson: String,
     val receivedAtMillis: Long,
+    /**
+     * The `import_record` that wrote this row, or `null` for a sync arrival (DB v4). It is what
+     * "Undo import" selects on; the link stays soft (no foreign key) because deleting the audit
+     * row must not cascade into the raw arrivals.
+     */
+    val importRecordId: Long? = null,
 )

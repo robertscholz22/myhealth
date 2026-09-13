@@ -64,9 +64,13 @@ internal data class GarminCsvPayload(
  * ignored; recognised columns that are absent yield `null`.
  *
  * Tolerances: RFC-4180 quoting (commas and doubled quotes inside a field), `--` as "no value",
- * German decimal commas with thousands dots (detected from the file's own numbers), `h:mm:ss` and
- * `mm:ss` durations, pace columns (`5:00` min/km) as well as speed columns (km/h), distances in
- * kilometres, and both `dd.MM.yyyy HH:mm` and `yyyy-MM-dd HH:mm:ss` timestamps.
+ * German decimal commas with thousands dots, `h:mm:ss`, `mm:ss` and `hh:mm:ss.s` durations, pace
+ * columns (`5:00` min/km) as well as speed columns (km/h), distances in kilometres, and both
+ * `dd.MM.yyyy HH:mm` and `yyyy-MM-dd HH:mm:ss` timestamps.
+ *
+ * The decimal convention is decided by [NumberStyle.detect] from the **numeric cells** of the
+ * recognised numeric columns, never from the header language: the owner's export has German
+ * headers and English numbers (BUG-11).
  */
 class GarminCsvParser(
     private val zone: ZoneId = ZoneId.systemDefault(),
@@ -89,7 +93,7 @@ class GarminCsvParser(
         }
 
         val body = lines.drop(1)
-        val style = NumberStyle.detect(body)
+        val style = NumberStyle.detect(body, columns, headerCells)
         val rows = mutableListOf<GarminCsvActivity>()
         val errors = mutableListOf<String>()
         body.forEachIndexed { index, line ->

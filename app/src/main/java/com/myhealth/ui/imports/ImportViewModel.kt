@@ -7,13 +7,17 @@ import com.myhealth.domain.model.ImportRecord
 import com.myhealth.domain.repository.ActivityImporter
 import com.myhealth.domain.repository.ImportKinds
 import com.myhealth.domain.repository.ImportRepository
+import com.myhealth.R
+import com.myhealth.domain.util.Outcome
 import com.myhealth.sync.SyncScheduler
+import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 
@@ -33,6 +37,12 @@ class ImportViewModel(
 
     private val unsupported = MutableStateFlow<String?>(null)
     private val picked = MutableStateFlow<PickedFile?>(null)
+    private val undoing = MutableStateFlow(false)
+
+    private val undoMessage = MutableStateFlow<UiMessage?>(null)
+
+    /** One-shot result of the last [undo], resolved and shown by the screen's snackbar. */
+    val message: StateFlow<UiMessage?> = undoMessage.asStateFlow()
 
     val state: StateFlow<ImportUiState> = combine(
         scheduler.observeImportState(),
@@ -64,6 +74,31 @@ class ImportViewModel(
     fun importAnyway() {
         val file = picked.value ?: return
         scheduler.startImport(file.uri, file.kind.name, force = true)
+    }
+
+    /**
+     * Undoes one import (§2.2.6): its source records go, activities another source also knows are
+     * re-merged from what remains, and the file's checksum is forgotten so it can be imported
+     * again. The counts come back as the snackbar message.
+     */
+    fun undo(importId: Long) {
+        if (undoing.value) return
+        undoing.value = true
+        viewModelScope.launch {
+            undoMessage.value = when (val outcome = importRepo.undo(importId)) {
+                is Outcome.Ok -> UiMessage.of(
+                    R.string.import_undo_result_format,
+                    outcome.value.activitiesDeleted,
+                    outcome.value.activitiesKept,
+                )
+                is Outcome.Err -> UiMessage.of(R.string.import_undo_failed)
+            }
+            undoing.value = false
+        }
+    }
+
+    fun consumeMessage() {
+        undoMessage.value = null
     }
 
     /** Clears the finished summary so the screen is ready for the next file. */

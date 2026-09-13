@@ -155,6 +155,7 @@ fun ActivitySourceRecordEntity.toDomain(): ActivitySourceRecord = ActivitySource
     externalId = externalId,
     payloadJson = payloadJson,
     receivedAtMillis = receivedAtMillis,
+    importRecordId = importRecordId,
 )
 
 fun ActivitySourceRecord.toEntity(): ActivitySourceRecordEntity = ActivitySourceRecordEntity(
@@ -164,6 +165,7 @@ fun ActivitySourceRecord.toEntity(): ActivitySourceRecordEntity = ActivitySource
     externalId = externalId,
     payloadJson = payloadJson,
     receivedAtMillis = receivedAtMillis,
+    importRecordId = importRecordId,
 )
 
 // ---- activity_lap ⇄ Lap -------------------------------------------------------------------------

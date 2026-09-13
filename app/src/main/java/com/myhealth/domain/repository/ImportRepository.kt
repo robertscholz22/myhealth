@@ -3,6 +3,7 @@ package com.myhealth.domain.repository
 import com.myhealth.domain.model.ImportKind
 import com.myhealth.domain.model.ImportProgress
 import com.myhealth.domain.model.ImportRecord
+import com.myhealth.domain.model.ImportUndoSummary
 import com.myhealth.domain.util.Outcome
 import kotlinx.coroutines.flow.Flow
 
@@ -21,6 +22,14 @@ interface ImportRepository {
     suspend fun record(record: ImportRecord): Outcome<Long>
 
     suspend fun delete(id: Long): Outcome<Unit>
+
+    /**
+     * Undoes one import: every `activity_source_record` it wrote is dropped and the canonical
+     * activity re-merged from the sources that remain (or deleted when none do), then the
+     * `import_record` itself goes, so the file's checksum is forgotten and it can be imported
+     * again. Finally a load recompute is requested from the earliest day the undo touched.
+     */
+    suspend fun undo(importId: Long): Outcome<ImportUndoSummary>
 }
 
 /**

@@ -3,7 +3,9 @@ package com.myhealth.data.fit
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.SportType
+import org.junit.Assume.assumeTrue
 import org.junit.Test
+import java.io.File
 import java.security.MessageDigest
 import java.time.ZoneId
 
@@ -160,6 +162,95 @@ class GarminCsvParserTest {
         assertThat(edited.rows.first().externalId).isNotEqualTo(run.externalId)
     }
 
+    /**
+     * BUG-11: the owner's real Garmin export has **German headers and English numbers**. The
+     * format must be decided by the numeric cells, so "7.20" is 7.20 km and not 720 km, and
+     * "1,057" is 1057 kcal and not 1.057.
+     */
+    @Test
+    fun csv09_german_headers_with_english_numbers() {
+        val result = parse(OWNER_FIXTURE)
+
+        assertThat(result.errors).isEmpty()
+        assertThat(result.rows).hasSize(20)
+
+        val soccer = result.rows.first()
+        assertThat(soccer.sportType).isEqualTo(SportType.SOCCER_TRAINING)
+        assertThat(soccer.distanceMeters).isEqualTo(7_200.0)
+        assertThat(soccer.calories).isEqualTo(1_057.0)
+        assertThat(soccer.durationSec).isEqualTo(5_374)
+        assertThat(soccer.avgHr).isEqualTo(154)
+        assertThat(soccer.maxHr).isEqualTo(186)
+        assertThat(soccer.aerobicTrainingEffect).isEqualTo(4.1)
+
+        // The 5.01 km run of 5 Sep, the one that produced no 5 km PR while BUG-11 was open.
+        val run = result.rows[3]
+        assertThat(run.sportType).isEqualTo(SportType.RUN_OUTDOOR)
+        assertThat(run.distanceMeters).isEqualTo(5_010.0)
+        assertThat(run.durationSec).isEqualTo(1_317)
+        assertThat(run.calories).isEqualTo(323.0)
+        // "Ø Geschwindigkeit" holds the pace 4:23 min/km for a run.
+        assertThat(checkNotNull(run.avgSpeedMps)).isWithin(1e-4).of(1_000.0 / 263.0)
+
+        assertThat(result.rows[17].sportType).isEqualTo(SportType.CYCLING)
+        assertThat(result.rows.count { it.sportType == SportType.SOCCER_TRAINING }).isEqualTo(7)
+        assertThat(result.rows.count { it.sportType == SportType.RUN_OUTDOOR }).isEqualTo(8)
+        assertThat(result.rows.count { it.sportType == SportType.CYCLING }).isEqualTo(5)
+    }
+
+    @Test
+    fun csv10_fractional_seconds_duration() {
+        assertThat(parseDuration("00:09:53.7")).isEqualTo(593)
+        assertThat(parseDuration("00:00:02.6")).isEqualTo(2)
+        assertThat(parseDuration("1:05:30.9")).isEqualTo(3_930)
+
+        // The 4 Aug ride is written "00:09:53.7" in the owner's export.
+        val ride = parse(OWNER_FIXTURE).rows[17]
+        assertThat(ride.durationSec).isEqualTo(593)
+        assertThat(ride.distanceMeters).isEqualTo(3_060.0)
+    }
+
+    /** Every German activity type the owner's export contains has to map (case/diacritic-blind). */
+    @Test
+    fun csv11_german_activity_types_map() {
+        val expected = mapOf(
+            "Laufen" to SportType.RUN_OUTDOOR,
+            "Laufbandtraining" to SportType.RUN_TREADMILL,
+            "Fußball" to SportType.SOCCER_TRAINING,
+            "Radfahren" to SportType.CYCLING,
+            "Virtuelles Radfahren" to SportType.CYCLING_INDOOR,
+            "Indoor-Radfahren" to SportType.CYCLING_INDOOR,
+            "Krafttraining" to SportType.STRENGTH,
+            "HIIT" to SportType.HIIT,
+            "Gehen" to SportType.WALK,
+            "Yoga" to SportType.MOBILITY,
+            "Seilspringen" to SportType.HIIT,
+            "Sonstige" to SportType.OTHER,
+        )
+        expected.forEach { (raw, sport) ->
+            assertThat(GarminActivityTypeMap.toSportType(raw)).isEqualTo(sport)
+            assertThat(GarminActivityTypeMap.toSportType(raw.uppercase())).isEqualTo(sport)
+        }
+        assertThat(GarminActivityTypeMap.toSportType("FUSSBALL")).isEqualTo(SportType.SOCCER_TRAINING)
+    }
+
+    /**
+     * The owner's whole export (600 rows, 2023-01-21 … 2026-09-09) when it is still on this
+     * machine. Skipped elsewhere — the file is the owner's data, not a committed fixture.
+     */
+    @Test
+    fun csv12_owner_full_export_parses_without_errors() {
+        val file = File(OWNER_EXPORT)
+        assumeTrue("No owner export at $OWNER_EXPORT", file.isFile)
+
+        val result = parser.parse(file.readText())
+
+        assertThat(result.errors).isEmpty()
+        assertThat(result.rows).hasSize(600)
+        assertThat(result.rows.count { it.sportType == SportType.OTHER }).isEqualTo(38)
+        assertThat(result.rows.none { it.distanceMeters?.let { d -> d > 200_000.0 } == true }).isTrue()
+    }
+
     @Test
     fun a_row_becomes_a_csv_import_ingest_item() {
         val row = parse("garmin_en").rows.first()
@@ -199,6 +290,10 @@ class GarminCsvParserTest {
     private companion object {
         /** 2026-05-10T09:00 Europe/Berlin = 2026-05-10T07:00Z. */
         const val RUN_START = 1_778_396_400_000L
+
+        /** The owner's real export, header row + the 20 rows of 3 Aug – 9 Sep 2026 (BUG-11). */
+        const val OWNER_FIXTURE = "garmin_de_headers_en_numbers"
+        const val OWNER_EXPORT = "/home/robert/Downloads/Activities.csv"
     }
 }
 

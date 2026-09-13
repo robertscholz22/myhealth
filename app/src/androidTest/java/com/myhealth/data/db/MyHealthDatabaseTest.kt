@@ -9,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.data.db.migration.Migrations
 import com.myhealth.data.db.entity.ActivitySessionEntity
+import com.myhealth.data.db.entity.ActivitySourceRecordEntity
 import com.myhealth.data.db.entity.CycleEntryEntity
 import com.myhealth.data.db.entity.IngredientEntity
 import com.myhealth.data.db.entity.MealLogEntity
@@ -281,6 +282,53 @@ class MyHealthDatabaseTest {
                 assertThat(dao.getAll()).hasSize(1)
                 assertThat(dao.getByStartDay(20_800L)?.id).isEqualTo(id)
                 assertThat(dao.getByStartDay(20_800L)?.periodEndDay).isEqualTo(20_804L)
+            }
+        } finally {
+            migrated.close()
+        }
+    }
+
+    /**
+     * "Undo import": an existing v3 database gains `activity_source_record.importRecordId` in
+     * place. The rows it already held survive with `NULL` in the new column (they predate undo),
+     * and a record written afterwards can be found by its import.
+     */
+    @Test
+    fun migration_3_to_4_adds_import_record_id_to_activity_source_record() {
+        migrations.createDatabase(MIGRATION_DB, 3).use { v3 ->
+            v3.execSQL(
+                "INSERT INTO activity_source_record (id, activityId, source, externalId, " +
+                    "payloadJson, receivedAtMillis) VALUES " +
+                    "(1, NULL, 'HEALTH_CONNECT', 'hc-1', '{}', 1000)",
+            )
+        }
+
+        migrations.runMigrationsAndValidate(MIGRATION_DB, 4, true, *Migrations.ALL)
+
+        val migrated = Room.databaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            MyHealthDatabase::class.java,
+            MIGRATION_DB,
+        ).addMigrations(*Migrations.ALL).build()
+        try {
+            runTest {
+                val dao = migrated.activityDao()
+                // The pre-v4 arrival survived and is not attributed to any import.
+                val existing = dao.getSourceRecord(ActivitySource.HEALTH_CONNECT, "hc-1")
+                assertThat(existing?.importRecordId).isNull()
+                assertThat(dao.getSourceRecordsOfImport(7L)).isEmpty()
+
+                dao.upsertSourceRecord(
+                    ActivitySourceRecordEntity(
+                        source = ActivitySource.CSV_IMPORT,
+                        externalId = "csv-1",
+                        payloadJson = "{}",
+                        receivedAtMillis = 2_000L,
+                        importRecordId = 7L,
+                    ),
+                )
+                assertThat(dao.getSourceRecordsOfImport(7L).map { it.externalId })
+                    .containsExactly("csv-1")
             }
         } finally {
             migrated.close()

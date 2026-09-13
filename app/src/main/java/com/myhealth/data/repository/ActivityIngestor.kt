@@ -162,6 +162,7 @@ class ActivityIngestor(
             payloadJson = record.payloadJson,
             activityId = activityId,
             receivedAtMillis = record.receivedAtMillis,
+            importRecordId = record.importRecordId,
         )
     }
 }

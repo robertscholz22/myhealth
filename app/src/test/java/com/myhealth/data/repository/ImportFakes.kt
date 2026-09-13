@@ -1,14 +1,17 @@
 package com.myhealth.data.repository
 
+import com.myhealth.data.db.entity.ImportRecordEntity
 import com.myhealth.domain.model.ActivitySession
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ImportRecord
+import com.myhealth.domain.model.ImportUndoSummary
 import com.myhealth.domain.model.LoadMethod
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
 import com.myhealth.domain.repository.ActivityIngestItem
 import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.repository.ImportRepository
+import com.myhealth.data.db.dao.ImportDao
 import com.myhealth.domain.repository.IngestResult
 import com.myhealth.domain.util.AppError
 import com.myhealth.domain.util.Outcome
@@ -54,9 +57,11 @@ class FakeImportRepository : ImportRepository {
     override suspend fun getByHash(fileHashSha256: String): ImportRecord? =
         records.value.firstOrNull { it.fileHashSha256 == fileHashSha256 }
 
+    /** `@Upsert` semantics: a non-zero id updates that row in place, `0` inserts a new one. */
     override suspend fun record(record: ImportRecord): Outcome<Long> {
-        val id = nextId++
-        records.value = records.value.filterNot { it.fileHashSha256 == record.fileHashSha256 } +
+        val id = if (record.id != 0L) record.id else nextId++
+        records.value = records.value
+            .filterNot { it.id == id || it.fileHashSha256 == record.fileHashSha256 } +
             record.copy(id = id)
         return Outcome.Ok(id)
     }
@@ -65,6 +70,44 @@ class FakeImportRepository : ImportRepository {
         records.value = records.value.filterNot { it.id == id }
         return Outcome.Ok(Unit)
     }
+
+    /** Set by the test to the real undo; unset it stays a no-op the pipeline never calls. */
+    var undoDelegate: (suspend (Long) -> Outcome<ImportUndoSummary>)? = null
+
+    override suspend fun undo(importId: Long): Outcome<ImportUndoSummary> =
+        checkNotNull(undoDelegate) { "No undo delegate set on FakeImportRepository" }(importId)
+}
+
+/**
+ * In-memory `import_record`, modelling Room's `@Upsert` (id 0 inserts, a known id updates) and the
+ * unique `fileHashSha256` index. Lets the **real** [RoomImportRepository] — including its undo —
+ * be exercised without Room.
+ */
+class FakeImportDao : ImportDao {
+
+    private val rows = MutableStateFlow<List<ImportRecordEntity>>(emptyList())
+    private var nextId = 1L
+
+    fun all(): List<ImportRecordEntity> = rows.value
+
+    override suspend fun upsert(entity: ImportRecordEntity): Long {
+        val id = if (entity.id != 0L) entity.id else nextId++
+        rows.value = rows.value.filterNot { it.id == id || it.fileHashSha256 == entity.fileHashSha256 } +
+            entity.copy(id = id)
+        return id
+    }
+
+    override suspend fun getById(id: Long): ImportRecordEntity? = rows.value.firstOrNull { it.id == id }
+
+    override suspend fun deleteById(id: Long) {
+        rows.value = rows.value.filterNot { it.id == id }
+    }
+
+    override suspend fun getByHash(hash: String): ImportRecordEntity? =
+        rows.value.firstOrNull { it.fileHashSha256 == hash }
+
+    override fun observeRecent(limit: Int): Flow<List<ImportRecordEntity>> =
+        rows.map { list -> list.sortedByDescending { it.importedAtMillis }.take(limit) }
 }
 
 /**

@@ -724,6 +724,12 @@
     <string name="import_history_empty_message">Imports you run appear here with their counts.</string>
     <string name="import_history_summary_format">%1$s · %2$s · %3$d parsed, %4$d saved, %5$d duplicates</string>
     <string name="import_history_summary_with_errors_format">%1$s · %2$s · %3$d parsed, %4$d saved, %5$d duplicates, %6$d errors</string>
+    <string name="import_action_undo">Undo import</string>
+    <string name="import_history_row_menu_cd">More actions for %1$s</string>
+    <string name="import_undo_dialog_title">Undo this import?</string>
+    <string name="import_undo_dialog_message_format">Removes the %1$d activities that only came from this file; activities also known from Health Connect are kept. %2$s can be imported again afterwards.</string>
+    <string name="import_undo_result_format">Import undone · %1$d activities removed, %2$d kept</string>
+    <string name="import_undo_failed">The import could not be undone.</string>
     <string name="import_kind_fit_file">FIT file</string>
     <string name="import_kind_garmin_csv">Garmin CSV</string>
     <string name="import_kind_garmin_export">Garmin export</string>

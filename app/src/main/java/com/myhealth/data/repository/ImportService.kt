@@ -65,7 +65,9 @@ private data class ItemErrorDto(val item: String, val message: String)
  * The FIT/CSV/ZIP import pipeline (PLAN P7.5).
  *
  * Per run: SHA-256 the file and short-circuit when `import_record` already holds that hash
- * (unless `force`); stream-decode the content; convert each activity with the same mappers the
+ * (unless `force`); open the `import_record` row up front so every `activity_source_record` this
+ * run writes can carry its `importRecordId` (that back-link is what "Undo import" selects on, and
+ * the id has to exist before the first ingest); stream-decode the content; convert each activity with the same mappers the
  * unit tests use; ingest in chunks of [chunkSize] through [ActivityRepository.ingest] — the exact
  * seam Health Connect uses, so de-dup and the §2.4 merge come for free; write one `import_record`
  * with the counts and the per-item errors; finally request a load recompute from the earliest day
@@ -106,16 +108,45 @@ class ImportService(
             }
         }
 
-        val run = Run(this, kind)
+        // A forced re-import reuses its own audit row; the file hash is uniquely indexed.
+        val reusedId = importRepo.getByHash(hash)?.id ?: 0L
+        val importId = openRecord(kind, fileName, hash, reusedId)
+
+        val run = Run(this, kind, importId)
         try {
             content.openStream(uri).use { stream -> run.consume(stream, fileName) }
             run.flush()
         } catch (e: Exception) {
+            // Nothing usable was written, so the checksum must not be remembered.
+            if (reusedId == 0L && importId != 0L) importRepo.delete(importId)
             emit(ImportProgress.Failed(AppError.Unexpected(e)))
             return@flow
         }
         emit(run.finish(fileName, hash))
     }.flowOn(ioDispatcher)
+
+    /**
+     * Writes (or reuses) the `import_record` before anything is ingested and returns its id, so the
+     * source records of this run can point back at it. `0` means the row could not be written; the
+     * import still runs, its arrivals simply are not undoable.
+     */
+    private suspend fun openRecord(kind: ImportKind, fileName: String, hash: String, reusedId: Long): Long {
+        val draft = ImportRecord(
+            id = reusedId,
+            kind = kind,
+            fileName = fileName,
+            fileHashSha256 = hash,
+            importedAtMillis = clock.millis(),
+            itemsParsed = 0,
+            itemsInserted = 0,
+            itemsDuplicate = 0,
+            errorsJson = null,
+        )
+        return when (val outcome = importRepo.record(draft)) {
+            is Outcome.Ok -> if (reusedId != 0L) reusedId else outcome.value
+            is Outcome.Err -> reusedId
+        }
+    }
 
     private suspend fun hashOf(uri: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
@@ -134,6 +165,7 @@ class ImportService(
     private inner class Run(
         private val collector: FlowCollector<ImportProgress>,
         private val kind: ImportKind,
+        private val importId: Long,
     ) {
         private val buffer = mutableListOf<ActivityIngestItem>()
         private val errors = mutableListOf<ImportItemError>()
@@ -192,13 +224,17 @@ class ImportService(
         /** Buffers candidates one at a time and ingests as soon as a full chunk is available. */
         private suspend fun offer(items: List<ActivityIngestItem>, itemName: String) {
             for (item in items) {
-                buffer += item
+                buffer += item.stamped()
                 counts = counts.copy(parsed = counts.parsed + 1)
                 minDay = minOf(minDay ?: item.session.day, item.session.day)
                 if (buffer.size >= chunkSize) ingestBuffer(itemName)
             }
             collector.emit(ImportProgress.Working(counts, itemName, errors.toList()))
         }
+
+        /** Every arrival of this run carries the id of the `import_record` that produced it. */
+        private fun ActivityIngestItem.stamped(): ActivityIngestItem =
+            if (importId == 0L) this else copy(record = record.copy(importRecordId = importId))
 
         suspend fun flush() {
             if (buffer.isNotEmpty()) ingestBuffer(null)
@@ -229,7 +265,7 @@ class ImportService(
         /** Writes the audit row, then asks for the load recompute the new activities invalidate. */
         suspend fun finish(fileName: String, hash: String): ImportProgress {
             val record = ImportRecord(
-                id = 0L,
+                id = importId,
                 kind = kind,
                 fileName = fileName,
                 fileHashSha256 = hash,
@@ -241,7 +277,7 @@ class ImportService(
                     ?.let { list -> json.encodeToString(list.map { ItemErrorDto(it.item, it.message) }) },
             )
             val stored = when (val outcome = importRepo.record(record)) {
-                is Outcome.Ok -> record.copy(id = outcome.value)
+                is Outcome.Ok -> record.copy(id = if (importId != 0L) importId else outcome.value)
                 is Outcome.Err -> record
             }
             minDay?.let { onImported(it) }

@@ -102,7 +102,7 @@ import com.myhealth.data.db.migration.Migrations
         // §5 P11.1 cycle
         CycleEntryEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

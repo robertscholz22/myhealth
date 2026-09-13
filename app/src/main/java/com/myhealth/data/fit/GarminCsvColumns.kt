@@ -27,50 +27,71 @@ internal object Columns {
     const val MAX_SPEED = "max speed"
     const val ELEV_GAIN = "elev gain"
     const val AEROBIC_TE = "aerobic te"
+
+    /** The columns whose cells carry free-form numbers, i.e. the evidence [NumberStyle] reads. */
+    val NUMERIC: List<String> = listOf(DISTANCE, CALORIES, AVG_SPEED, MAX_SPEED, ELEV_GAIN)
 }
 
-/**
- * Every spelling of a recognised column seen in Garmin exports, normalised. Pace columns share the
- * speed slots (the parser converts), and the German UI's headers are accepted as aliases so a
- * localised export does not silently lose every column.
- */
-internal val HEADER_ALIASES: Map<String, String> = mapOf(
-    "activity type" to Columns.ACTIVITY_TYPE, "aktivitatstyp" to Columns.ACTIVITY_TYPE,
-    "aktivitatstyp" to Columns.ACTIVITY_TYPE, "typ" to Columns.ACTIVITY_TYPE,
-    "date" to Columns.DATE, "datum" to Columns.DATE, "start time" to Columns.DATE,
-    "title" to Columns.TITLE, "titel" to Columns.TITLE, "activity name" to Columns.TITLE,
-    "distance" to Columns.DISTANCE, "distanz" to Columns.DISTANCE, "strecke" to Columns.DISTANCE,
-    "calories" to Columns.CALORIES, "kalorien" to Columns.CALORIES,
-    "time" to Columns.TIME, "zeit" to Columns.TIME, "moving time" to Columns.TIME,
-    "duration" to Columns.TIME, "dauer" to Columns.TIME,
-    "avg hr" to Columns.AVG_HR, "average hr" to Columns.AVG_HR, "durchschnittliche hf" to Columns.AVG_HR,
-    "hf" to Columns.AVG_HR,
-    "max hr" to Columns.MAX_HR, "maximale hf" to Columns.MAX_HR,
+/** English header spellings, normalised by [canonicalHeader]. */
+internal val ENGLISH_HEADER_ALIASES: Map<String, String> = mapOf(
+    "activity type" to Columns.ACTIVITY_TYPE,
+    "date" to Columns.DATE, "start time" to Columns.DATE,
+    "title" to Columns.TITLE, "activity name" to Columns.TITLE,
+    "distance" to Columns.DISTANCE,
+    "calories" to Columns.CALORIES,
+    "time" to Columns.TIME, "moving time" to Columns.TIME, "duration" to Columns.TIME,
+    "avg hr" to Columns.AVG_HR, "average hr" to Columns.AVG_HR,
+    "max hr" to Columns.MAX_HR,
     "avg speed" to Columns.AVG_SPEED, "avg pace" to Columns.AVG_SPEED,
-    "durchschnittliche geschwindigkeit" to Columns.AVG_SPEED, "durchschnittspace" to Columns.AVG_SPEED,
     "max speed" to Columns.MAX_SPEED, "best pace" to Columns.MAX_SPEED,
-    "maximale geschwindigkeit" to Columns.MAX_SPEED, "beste pace" to Columns.MAX_SPEED,
     "elev gain" to Columns.ELEV_GAIN, "total ascent" to Columns.ELEV_GAIN,
-    "anstieg gesamt" to Columns.ELEV_GAIN, "gesamtanstieg" to Columns.ELEV_GAIN,
-    "aerobic te" to Columns.AEROBIC_TE, "aerober te" to Columns.AEROBIC_TE,
+    "aerobic te" to Columns.AEROBIC_TE,
 )
+
+/**
+ * German header spellings. `Ø` is expanded to `durchschnittliche` by [canonicalHeader], so the
+ * averages of a German export arrive here spelled out ("Ø Herzfrequenz" → "durchschnittliche
+ * herzfrequenz"). Which of the two maps a file's headers come from is only ever the *tie-breaker*
+ * for the number format (see [NumberStyle.detect]) — never the decision itself (BUG-11).
+ */
+internal val GERMAN_HEADER_ALIASES: Map<String, String> = mapOf(
+    "aktivitatstyp" to Columns.ACTIVITY_TYPE, "typ" to Columns.ACTIVITY_TYPE,
+    "datum" to Columns.DATE,
+    "titel" to Columns.TITLE,
+    "distanz" to Columns.DISTANCE, "strecke" to Columns.DISTANCE,
+    "kalorien" to Columns.CALORIES,
+    "zeit" to Columns.TIME, "dauer" to Columns.TIME,
+    "durchschnittliche hf" to Columns.AVG_HR, "hf" to Columns.AVG_HR,
+    "durchschnittliche herzfrequenz" to Columns.AVG_HR, "herzfrequenz" to Columns.AVG_HR,
+    "maximale hf" to Columns.MAX_HR, "maximale herzfrequenz" to Columns.MAX_HR,
+    "durchschnittliche geschwindigkeit" to Columns.AVG_SPEED,
+    "durchschnittspace" to Columns.AVG_SPEED, "durchschnittliche pace" to Columns.AVG_SPEED,
+    "maximale geschwindigkeit" to Columns.MAX_SPEED, "beste pace" to Columns.MAX_SPEED,
+    "anstieg gesamt" to Columns.ELEV_GAIN, "gesamtanstieg" to Columns.ELEV_GAIN,
+    "aerober te" to Columns.AEROBIC_TE,
+)
+
+/** Every spelling of a recognised column seen in Garmin exports, normalised. */
+internal val HEADER_ALIASES: Map<String, String> = ENGLISH_HEADER_ALIASES + GERMAN_HEADER_ALIASES
 
 /**
  * Lowercases, strips the unit suffix in parentheses, folds the German umlauts and the `Ø` prefix
  * Garmin uses for averages, and collapses everything that is not a letter or digit to one space.
  */
-internal fun canonicalHeader(raw: String): String? {
-    val folded = raw.lowercase()
-        .replace("ø", "durchschnittliche ")
-        .replace("ä", "a").replace("ö", "o").replace("ü", "u").replace("ß", "ss")
-        .substringBefore('(')
-    val normalized = folded.map { if (it.isLetterOrDigit()) it else ' ' }
-        .joinToString("")
-        .split(' ')
-        .filter { it.isNotEmpty() }
-        .joinToString(" ")
-    return HEADER_ALIASES[normalized]
-}
+internal fun canonicalHeader(raw: String): String? = HEADER_ALIASES[normalizeHeader(raw)]
+
+private fun normalizeHeader(raw: String): String = foldGerman(raw)
+    .replace("ø", "durchschnittliche ")
+    .substringBefore('(')
+    .map { if (it.isLetterOrDigit()) it else ' ' }
+    .joinToString("")
+    .split(' ')
+    .filter { it.isNotEmpty() }
+    .joinToString(" ")
+
+/** Lowercase plus the umlaut/ß folding every German lookup in this file shares. */
+private fun foldGerman(raw: String): String = raw.lowercase()
+    .replace("ä", "a").replace("ö", "o").replace("ü", "u").replace("ß", "ss")
 
 // ---- cell parsing ---------------------------------------------------------------------------
 
@@ -91,19 +112,82 @@ internal enum class NumberStyle {
     }
 
     companion object {
-        private val GERMAN_DECIMAL = Regex("""^-?\d{1,3}(\.\d{3})*,\d{1,3}$|^-?\d+,\d{1,3}$""")
+        /** `1,057` / `12,345,678` — a comma followed by exactly three digits is a thousands group. */
+        private val ENGLISH_THOUSANDS = Regex("""^\d{1,3}(,\d{3})+$""")
 
-        /** German as soon as any cell is unambiguously `1.234,5` / `10,52`; English otherwise. */
-        fun detect(lines: List<String>): NumberStyle {
-            val german = lines.asSequence()
-                .flatMap { splitCsvLine(it).asSequence() }
-                .any { GERMAN_DECIMAL.matches(it.trim()) }
-            return if (german) GERMAN else ENGLISH
+        /** `1.057` — the same shape with the separators swapped. */
+        private val GERMAN_THOUSANDS = Regex("""^\d{1,3}(\.\d{3})+$""")
+
+        /** `7.20`, `1,057.5` — a dot decimal, with or without comma thousands groups. */
+        private val ENGLISH_DECIMAL = Regex("""^\d{1,3}(,\d{3})*\.\d+$""")
+
+        /** `10,52`, `1.057,5` — a comma decimal, with or without dot thousands groups. */
+        private val GERMAN_DECIMAL = Regex("""^\d{1,3}(\.\d{3})*,\d+$""")
+
+        /**
+         * The number format one cell is evidence for, or `null` when it is evidence for neither —
+         * a plain integer (`452`), a pace (`4:23`), `--`, or any shape outside both grammars.
+         *
+         * Where the two grammars genuinely overlap (`1,057` is an English thousands group and a
+         * German three-decimal number) the thousands reading wins, symmetrically for both
+         * languages: three digits behind the separator is how a grouped number looks.
+         */
+        internal fun classify(raw: String?): NumberStyle? = when (val value = raw?.trim()) {
+            null -> null
+            else -> when {
+                ENGLISH_THOUSANDS.matches(value) -> ENGLISH
+                GERMAN_THOUSANDS.matches(value) -> GERMAN
+                ENGLISH_DECIMAL.matches(value) -> ENGLISH
+                GERMAN_DECIMAL.matches(value) -> GERMAN
+                else -> null
+            }
+        }
+
+        /**
+         * BUG-11: the number format is decided by the **numbers**, never by the header language.
+         * The owner's real export has German headers and English numbers ("7.20", "1,057"), which
+         * the old "any German-looking cell wins" rule read as German — every distance came out
+         * ×100. Each cell of the recognised numeric columns ([Columns.NUMERIC]) votes through
+         * [classify]; the majority wins and only an exact tie falls back to the headers.
+         */
+        fun detect(
+            rows: List<String>,
+            columns: Map<String, Int>,
+            headerCells: List<String>,
+        ): NumberStyle {
+            val indexes = Columns.NUMERIC.mapNotNull { columns[it] }
+            var english = 0
+            var german = 0
+            if (indexes.isNotEmpty()) {
+                for (line in rows) {
+                    val cells = splitCsvLine(line)
+                    for (index in indexes) {
+                        when (classify(cells.getOrNull(index))) {
+                            ENGLISH -> english++
+                            GERMAN -> german++
+                            null -> Unit
+                        }
+                    }
+                }
+            }
+            return when {
+                english > german -> ENGLISH
+                german > english -> GERMAN
+                else -> headerStyleGuess(headerCells)
+            }
+        }
+
+        /** The tie-breaker only: a header row written in German suggests German numbers. */
+        fun headerStyleGuess(headerCells: List<String>): NumberStyle {
+            val normalized = headerCells.map { normalizeHeader(it) }
+            val german = normalized.count { it in GERMAN_HEADER_ALIASES }
+            val english = normalized.count { it in ENGLISH_HEADER_ALIASES }
+            return if (german > english) GERMAN else ENGLISH
         }
     }
 }
 
-/** `h:mm:ss`, `mm:ss` or plain seconds; fractional seconds are truncated. */
+/** `h:mm:ss`, `mm:ss` or plain seconds; fractional seconds (`00:09:53.7`) are truncated. */
 internal fun parseDuration(raw: String, style: NumberStyle = NumberStyle.ENGLISH): Int? {
     val value = raw.trim()
     if (':' !in value) return style.parse(value)?.toInt()
@@ -172,11 +256,16 @@ internal fun splitCsvLine(line: String): List<String> {
     return cells
 }
 
-/** Garmin's activity-type strings (English and German UI) → [SportType]; unknown → `OTHER`. */
+/**
+ * Garmin's activity-type strings (English and German UI) → [SportType]; unknown → `OTHER`.
+ *
+ * Lookup is case- and diacritic-insensitive and ignores punctuation, so "Fußball", "FUSSBALL" and
+ * "Indoor-Radfahren" all resolve ("indoor radfahren" is the normalised key).
+ */
 internal object GarminActivityTypeMap {
 
     fun toSportType(raw: String?): SportType {
-        val key = raw?.lowercase()?.trim().orEmpty()
+        val key = raw?.let { normalizeHeader(it) }.orEmpty()
         if (key.isEmpty()) return SportType.OTHER
         EXACT[key]?.let { return it }
         return CONTAINS.firstOrNull { (needle, _) -> needle in key }?.second ?: SportType.OTHER
@@ -186,28 +275,33 @@ internal object GarminActivityTypeMap {
         "running" to SportType.RUN_OUTDOOR, "laufen" to SportType.RUN_OUTDOOR,
         "street running" to SportType.RUN_OUTDOOR, "laufen im freien" to SportType.RUN_OUTDOOR,
         "treadmill running" to SportType.RUN_TREADMILL, "laufband" to SportType.RUN_TREADMILL,
-        "indoor running" to SportType.RUN_TREADMILL,
+        "laufbandtraining" to SportType.RUN_TREADMILL, "indoor running" to SportType.RUN_TREADMILL,
         "trail running" to SportType.RUN_TRAIL, "traillauf" to SportType.RUN_TRAIL,
         "track running" to SportType.RUN_TRACK, "bahnlauf" to SportType.RUN_TRACK,
         "cycling" to SportType.CYCLING, "radfahren" to SportType.CYCLING,
-        "road cycling" to SportType.CYCLING, "gravel/unpaved cycling" to SportType.CYCLING,
-        "indoor cycling" to SportType.CYCLING_INDOOR, "indoor-radfahren" to SportType.CYCLING_INDOOR,
+        "road cycling" to SportType.CYCLING, "gravel unpaved cycling" to SportType.CYCLING,
+        "indoor cycling" to SportType.CYCLING_INDOOR, "indoor radfahren" to SportType.CYCLING_INDOOR,
+        "virtual cycling" to SportType.CYCLING_INDOOR,
+        "virtuelles radfahren" to SportType.CYCLING_INDOOR,
         "walking" to SportType.WALK, "gehen" to SportType.WALK,
         "hiking" to SportType.HIKE, "wandern" to SportType.HIKE,
         "soccer" to SportType.SOCCER_TRAINING, "football" to SportType.SOCCER_TRAINING,
-        "fussball" to SportType.SOCCER_TRAINING, "fußball" to SportType.SOCCER_TRAINING,
+        "fussball" to SportType.SOCCER_TRAINING,
         "strength training" to SportType.STRENGTH, "krafttraining" to SportType.STRENGTH,
         "cardio" to SportType.HIIT, "hiit" to SportType.HIIT,
+        "jump rope" to SportType.HIIT, "seilspringen" to SportType.HIIT,
         "yoga" to SportType.MOBILITY, "pilates" to SportType.MOBILITY,
         "breathwork" to SportType.MOBILITY, "stretching" to SportType.MOBILITY,
         "pool swim" to SportType.SWIM, "open water swimming" to SportType.SWIM,
         "schwimmbadschwimmen" to SportType.SWIM, "schwimmen" to SportType.SWIM,
         "rowing" to SportType.ROWING, "indoor rowing" to SportType.ROWING, "rudern" to SportType.ROWING,
+        "other" to SportType.OTHER, "sonstige" to SportType.OTHER, "sonstiges" to SportType.OTHER,
     )
 
     /** Fallbacks for the long tail ("Virtual Running", "E-Bike Ride", …). */
     private val CONTAINS: List<Pair<String, SportType>> = listOf(
         "treadmill" to SportType.RUN_TREADMILL,
+        "laufband" to SportType.RUN_TREADMILL,
         "trail" to SportType.RUN_TRAIL,
         "running" to SportType.RUN_OUTDOOR,
         "lauf" to SportType.RUN_OUTDOOR,

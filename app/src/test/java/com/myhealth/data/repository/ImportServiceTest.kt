@@ -5,7 +5,9 @@ import com.myhealth.data.fit.GarminCsvParser
 import com.myhealth.data.fit.RunFixtureEncoder
 import com.myhealth.data.fit.zipOf
 import com.myhealth.domain.model.ActivitySource
+import com.myhealth.domain.model.ActivitySourceRecord
 import com.myhealth.domain.model.ImportKind
+import com.myhealth.domain.repository.ActivityIngestItem
 import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.repository.ImportKinds
 import com.myhealth.domain.model.ImportProgress
@@ -168,6 +170,91 @@ class ImportServiceTest {
         assertThat(recomputeDays).containsExactly(day)
     }
 
+    /**
+     * "Undo import" (BUG-11 recovery): every source record this import wrote goes, the canonical
+     * activity Health Connect also knows survives with HC's data, the CSV-only activity is
+     * deleted, and the `import_record` — the file's checksum — is forgotten, so the same file can
+     * be imported again.
+     */
+    @Test
+    fun undo_removes_only_this_imports_source_records_and_forgets_the_file() = runTest {
+        val runDay = LocalDate.of(2026, 5, 10).toEpochDay()
+        seedHealthConnectRun(runDay)
+        val importDao = FakeImportDao()
+        val undoableRepo = RoomImportRepository(
+            importDao = importDao,
+            activityDao = dao,
+            ingestor = ingestor,
+            onUndone = { day -> recomputeDays += day },
+            ioDispatcher = Dispatchers.Unconfined,
+        )
+        val content = FakeImportContentSource("activities.csv", UNDO_CSV.toByteArray())
+        fun run() = ImportService(
+            content = content,
+            activityRepo = activityRepo,
+            importRepo = undoableRepo,
+            csvParser = GarminCsvParser(zone),
+            clock = clock,
+            onImported = { day -> recomputeDays += day },
+            ioDispatcher = Dispatchers.Unconfined,
+        ).import("content://csv", ImportKind.GARMIN_CSV)
+
+        val finished = run().toList().filterIsInstance<ImportProgress.Finished>().single()
+        assertThat(finished.counts.parsed).isEqualTo(2)
+        assertThat(dao.rows()).hasSize(2)
+        // Both CSV arrivals are stamped with the import that wrote them; the HC one is not.
+        assertThat(dao.sourceRecords.filter { it.importRecordId == finished.record.id }).hasSize(2)
+        assertThat(dao.sourceRecords.single { it.source == ActivitySource.HEALTH_CONNECT }.importRecordId)
+            .isNull()
+
+        val undone = undoableRepo.undo(finished.record.id)
+
+        val summary = (undone as Outcome.Ok).value
+        assertThat(summary.sourceRecordsRemoved).isEqualTo(2)
+        assertThat(summary.activitiesDeleted).isEqualTo(1)
+        assertThat(summary.activitiesKept).isEqualTo(1)
+
+        // The merged run is kept and falls back to Health Connect alone; the CSV-only ride is gone.
+        val kept = dao.rows().single()
+        assertThat(kept.mergedSourcesCsv).isEqualTo("HEALTH_CONNECT")
+        assertThat(kept.primarySource).isEqualTo(ActivitySource.HEALTH_CONNECT)
+        assertThat(kept.totalEnergyKcal).isEqualTo(400.0)
+        assertThat(dao.sourceRecords.map { it.source }).containsExactly(ActivitySource.HEALTH_CONNECT)
+        assertThat(recomputeDays).contains(runDay)
+
+        // The checksum is forgotten, so the very same file imports again.
+        assertThat(importDao.all()).isEmpty()
+        val again = run().toList()
+        assertThat(again.filterIsInstance<ImportProgress.AlreadyImported>()).isEmpty()
+        assertThat(again.filterIsInstance<ImportProgress.Finished>().single().counts.parsed).isEqualTo(2)
+        assertThat(dao.rows()).hasSize(2)
+    }
+
+    /** One Health Connect arrival, ingested through the real seam so it has a source record. */
+    private suspend fun seedHealthConnectRun(day: Long) {
+        val outcome = activityRepo.ingest(
+            listOf(
+                ActivityIngestItem(
+                    record = ActivitySourceRecord(
+                        id = 0L,
+                        activityId = null,
+                        source = ActivitySource.HEALTH_CONNECT,
+                        externalId = "hc-run",
+                        payloadJson = "{}",
+                        receivedAtMillis = NOW,
+                    ),
+                    session = hcSession(
+                        startAtMillis = RUN_START,
+                        durationSec = 1_500,
+                        distanceMeters = 4_980.0,
+                        day = day,
+                    ),
+                ),
+            ),
+        )
+        assertThat(outcome).isInstanceOf(Outcome.Ok::class.java)
+    }
+
     @Test
     fun an_unreadable_document_fails_the_whole_import() = runTest {
         val content = object : ImportContentSource {
@@ -199,6 +286,16 @@ class ImportServiceTest {
 
     private companion object {
         const val NOW = 1_800_000_000_000L
+
+        /** 2026-05-10T09:00 Europe/Berlin. */
+        const val RUN_START = 1_778_396_400_000L
+
+        /** Row 1 is the run Health Connect already knows; row 2 exists only in this file. */
+        val UNDO_CSV = """
+            Activity Type,Date,Title,Distance,Calories,Time,Avg HR
+            Running,2026-05-10 09:00:00,Morning run,5.00,355,00:25:00,152
+            Cycling,2026-05-11 17:30:00,Evening ride,30.25,700,1:05:30,138
+        """.trimIndent()
     }
 }
 

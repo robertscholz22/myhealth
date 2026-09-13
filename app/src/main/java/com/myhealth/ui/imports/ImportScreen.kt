@@ -18,10 +18,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -33,14 +37,10 @@ import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.ImportKind
 import com.myhealth.sync.ImportWorkState
-import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.ErrorBanner
 import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 /** MIME filter for the document picker (§4.2): Garmin exports arrive under all of these. */
 private val IMPORT_MIME_TYPES = arrayOf(
@@ -51,8 +51,6 @@ private val IMPORT_MIME_TYPES = arrayOf(
     "*/*",
 )
 
-private val TIMESTAMP_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm")
-
 @Composable
 fun ImportScreen(modifier: Modifier = Modifier) {
     val vm = rememberVm { g ->
@@ -60,7 +58,9 @@ fun ImportScreen(modifier: Modifier = Modifier) {
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val sharedUri by vm.sharedUri.collectAsStateWithLifecycle()
+    val message by vm.message.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val snackbar = remember { SnackbarHostState() }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -82,13 +82,24 @@ fun ImportScreen(modifier: Modifier = Modifier) {
         vm.clearSharedUri()
     }
 
-    ImportContent(
-        state = state,
-        onPickFile = { picker.launch(IMPORT_MIME_TYPES) },
-        onImportAnyway = vm::importAnyway,
-        onDismissResult = vm::dismissResult,
-        modifier = modifier,
-    )
+    // The undo result (or its failure) is reported once, then cleared.
+    LaunchedEffect(message) {
+        message?.let {
+            snackbar.showSnackbar(it.resolve(context))
+            vm.consumeMessage()
+        }
+    }
+
+    Scaffold(modifier = modifier, snackbarHost = { SnackbarHost(snackbar) }) { innerPadding ->
+        ImportContent(
+            state = state,
+            onPickFile = { picker.launch(IMPORT_MIME_TYPES) },
+            onImportAnyway = vm::importAnyway,
+            onDismissResult = vm::dismissResult,
+            onUndo = vm::undo,
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
+        )
+    }
 }
 
 @Composable
@@ -97,6 +108,7 @@ private fun ImportContent(
     onPickFile: () -> Unit,
     onImportAnyway: () -> Unit,
     onDismissResult: () -> Unit,
+    onUndo: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -111,7 +123,7 @@ private fun ImportContent(
             }
         }
         item { StatusSection(state, onImportAnyway, onDismissResult) }
-        item { HistorySection(state.history) }
+        item { HistorySection(state.history, onUndo) }
     }
 }
 
@@ -186,56 +198,6 @@ private fun CountsRow(work: ImportWorkState) {
     )
 }
 
-@Composable
-private fun HistorySection(history: List<ImportHistoryItem>) {
-    SectionCard(title = stringResource(R.string.import_history_title)) {
-        if (history.isEmpty()) {
-            EmptyState(
-                title = stringResource(R.string.import_history_empty_title),
-                message = stringResource(R.string.import_history_empty_message),
-            )
-            return@SectionCard
-        }
-        history.forEach { item ->
-            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-                Text(item.fileName, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                val summary = if (item.errorCount > 0) {
-                    stringResource(
-                        R.string.import_history_summary_with_errors_format,
-                        formatTimestamp(item.importedAtMillis),
-                        item.kind.label(),
-                        item.parsed,
-                        item.inserted,
-                        item.duplicate,
-                        item.errorCount,
-                    )
-                } else {
-                    stringResource(
-                        R.string.import_history_summary_format,
-                        formatTimestamp(item.importedAtMillis),
-                        item.kind.label(),
-                        item.parsed,
-                        item.inserted,
-                        item.duplicate,
-                    )
-                }
-                Text(summary, style = MaterialTheme.typography.bodySmall)
-            }
-        }
-    }
-}
-
-@Composable
-private fun ImportKind.label(): String = when (this) {
-    ImportKind.FIT_FILE -> stringResource(R.string.import_kind_fit_file)
-    ImportKind.GARMIN_CSV -> stringResource(R.string.import_kind_garmin_csv)
-    ImportKind.GARMIN_ZIP -> stringResource(R.string.import_kind_garmin_export)
-    ImportKind.JSON_BACKUP -> stringResource(R.string.import_kind_json_backup)
-}
-
-private fun formatTimestamp(millis: Long): String =
-    TIMESTAMP_FORMAT.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
-
 /** `OpenableColumns.DISPLAY_NAME` when the provider offers it, else the last path segment. */
 private fun displayNameOf(context: Context, uri: Uri): String {
     runCatching {
@@ -275,6 +237,7 @@ private fun ImportContentPreview() {
             onPickFile = {},
             onImportAnyway = {},
             onDismissResult = {},
+            onUndo = {},
         )
     }
 }

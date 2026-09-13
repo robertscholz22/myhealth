@@ -54,6 +54,18 @@ data class RunningBest(
     val createdAtMillis: Long,
 )
 
+/**
+ * What undoing one import removed (§2.2.6). [activitiesDeleted] only counts canonical rows whose
+ * last source record was this import's; an activity Health Connect also knows is re-merged from
+ * the sources that remain and counted in [activitiesKept].
+ */
+data class ImportUndoSummary(
+    val importId: Long,
+    val sourceRecordsRemoved: Int,
+    val activitiesDeleted: Int,
+    val activitiesKept: Int,
+)
+
 /** Mirrors `import_record` (§2.2.6). */
 data class ImportRecord(
     val id: Long,

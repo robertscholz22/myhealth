@@ -157,4 +157,6 @@ data class ActivitySourceRecord(
     val externalId: String,
     val payloadJson: String,
     val receivedAtMillis: Long,
+    /** The `import_record` this arrival came from, or `null` for a sync arrival (undo, DB v4). */
+    val importRecordId: Long? = null,
 )

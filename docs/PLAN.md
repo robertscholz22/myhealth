@@ -2201,6 +2201,7 @@ If a phase ends below its floor, the lead rejects the phase and orders the missi
 | 1 | P1.5 | initial schema (26 tables) | — |
 | 2 | P8.5 | `ingredient_fts` FTS4 table over `ingredient(name, brand)` (external content) + Room's four content-sync triggers + a one-off `INSERT INTO ingredient_fts(ingredient_fts) VALUES('rebuild')` so existing rows are indexed | `MIGRATION_1_2` |
 | 3 | P11.1 | `cycle_entry` table (`id`, `periodStartDay`, `periodEndDay?`, `note?`, `createdAtMillis`, `updatedAtMillis`) + unique index `uq_cycle_entry_start` over `periodStartDay`, so exactly one logged period can be anchored on a given day | `MIGRATION_2_3` |
+| 4 | BUG-11 follow-up (Undo import) | `activity_source_record.importRecordId` (nullable back-link to `import_record`) + index `idx_asr_import`, so one import's arrivals can be removed and the file re-imported | `MIGRATION_3_4` |
 
 ### 6.5 Manual smoke test (phone attached)
 

@@ -239,7 +239,14 @@ class AppGraph(private val app: Application) {
     // ---- FIT / CSV / ZIP import (P7.5) --------------------------------------------------
 
     /** `import_record` (§2.2.6): the file-hash guard against importing the same export twice. */
-    val importRepo: ImportRepository by lazy { RoomImportRepository(db.importDao()) }
+    val importRepo: ImportRepository by lazy {
+        RoomImportRepository(
+            importDao = db.importDao(),
+            activityDao = db.activityDao(),
+            ingestor = ingestor,
+            onUndone = { day -> syncScheduler.requestLoadRecompute(day) },
+        )
+    }
 
     /**
      * The import pipeline. It feeds [activityRepo]`.ingest` — the same seam Health Connect uses —

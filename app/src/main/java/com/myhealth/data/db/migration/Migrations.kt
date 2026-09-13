@@ -83,8 +83,23 @@ object Migrations {
     }
 
     /**
+     * 3 → 4 (BUG-11 follow-up, "Undo import"): `activity_source_record.importRecordId`, the
+     * nullable back-link from a raw arrival to the `import_record` that wrote it, plus the index
+     * the undo selects on. Existing rows keep `NULL`: they predate the column, so they were either
+     * synced or imported before undo existed and are not undoable. The statements are Room's own,
+     * copied from `app/schemas/com.myhealth.data.db.MyHealthDatabase/4.json`, so
+     * `runMigrationsAndValidate` compares them character for character.
+     */
+    private val MIGRATION_3_4 = Migration(3, 4) { db ->
+        db.execSQL("ALTER TABLE `activity_source_record` ADD COLUMN `importRecordId` INTEGER")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `idx_asr_import` ON `activity_source_record` (`importRecordId`)",
+        )
+    }
+
+    /**
      * Every migration, oldest first. `.addMigrations(*ALL)` is the only call site, in
      * `MyHealthDatabase.build`, so adding a migration never changes it.
      */
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 }
