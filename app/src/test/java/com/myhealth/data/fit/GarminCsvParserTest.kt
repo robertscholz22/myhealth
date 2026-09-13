@@ -198,6 +198,77 @@ class GarminCsvParserTest {
         assertThat(result.rows.count { it.sportType == SportType.CYCLING }).isEqualTo(5)
     }
 
+    /**
+     * P12: the four power/cadence columns are read from both the English and the German export.
+     * The rows are copied verbatim out of the owner's real export — the 60-minute Zwift ride of
+     * 5 Feb (avg 166 W, max 310 W, NP 167 W, 91 rpm) and a 5 km run, which Garmin also writes a
+     * running power for. The German header spells the running and the cycling cadence column
+     * identically, so the parser has to take the first non-empty of the two.
+     */
+    @Test
+    fun bike06_csv_power_columns_en_and_de() {
+        for (fixture in listOf("garmin_de_power", "garmin_en_power")) {
+            val result = parse(fixture)
+            assertThat(result.errors).isEmpty()
+
+            val ride = result.rows.first()
+            assertThat(ride.sportType).isEqualTo(SportType.CYCLING_INDOOR)
+            assertThat(ride.avgPowerW).isEqualTo(166)
+            assertThat(ride.maxPowerW).isEqualTo(310)
+            assertThat(ride.normalizedPowerW).isEqualTo(167)
+            // A ride's cadence column is the bike one, in rpm.
+            assertThat(checkNotNull(ride.avgCadenceSpm)).isWithin(1e-9).of(91.0)
+
+            val run = result.rows[1]
+            assertThat(run.sportType).isEqualTo(SportType.RUN_OUTDOOR)
+            // Garmin records running power too; it lands in the same columns.
+            assertThat(run.avgPowerW).isEqualTo(389)
+            assertThat(run.maxPowerW).isEqualTo(504)
+            assertThat(run.normalizedPowerW).isEqualTo(391)
+            // …and the run's cadence comes from the *running* cadence column, in steps/min.
+            assertThat(checkNotNull(run.avgCadenceSpm)).isWithin(1e-9).of(182.0)
+
+            // The candidate session carries them through to the merger (§2.4).
+            val session = parser.toIngestItem(ride, nowMillis = 1L).session
+            assertThat(session.avgPowerW).isEqualTo(166)
+            assertThat(session.normalizedPowerW).isEqualTo(167)
+            assertThat(session.avgCadenceSpm).isEqualTo(91.0)
+        }
+    }
+
+    /**
+     * P12: Garmin writes `0` where a device reported no power at all and `--` where the column
+     * does not apply. Both mean "unknown" — a stored 0 W would drag every average down and would
+     * make a no-power ride look like a measured one.
+     */
+    @Test
+    fun bike07_csv_zero_power_is_null() {
+        val text = buildString {
+            appendLine(
+                "Aktivitätstyp,Datum,Zeit,Ø Leistung,Max. Leistung," +
+                    "Normalized Power® (NP®),Ø Trittfrequenz",
+            )
+            appendLine("Radfahren,2026-02-05 16:25:06,01:00:12,0,0,0,0")
+            appendLine("Radfahren,2026-02-06 16:25:06,01:00:12,--,--,--,--")
+            appendLine("Radfahren,2026-02-07 16:25:06,01:00:12,166,310,167,91")
+        }
+
+        val rows = parser.parse(text).rows
+
+        assertThat(rows).hasSize(3)
+        assertThat(rows[0].avgPowerW).isNull()
+        assertThat(rows[0].maxPowerW).isNull()
+        assertThat(rows[0].normalizedPowerW).isNull()
+        assertThat(rows[0].avgCadenceSpm).isNull()
+        assertThat(rows[1].avgPowerW).isNull()
+        assertThat(rows[1].normalizedPowerW).isNull()
+        assertThat(rows[1].avgCadenceSpm).isNull()
+        // The real values are untouched by the guard.
+        assertThat(rows[2].avgPowerW).isEqualTo(166)
+        assertThat(rows[2].normalizedPowerW).isEqualTo(167)
+        assertThat(rows[2].avgCadenceSpm).isEqualTo(91.0)
+    }
+
     @Test
     fun csv10_fractional_seconds_duration() {
         assertThat(parseDuration("00:09:53.7")).isEqualTo(593)

@@ -23,6 +23,8 @@ fun ProfileEntity.toDomain(): Profile = Profile(
     sleepTargetHours = sleepTargetHours,
     preferredSportsJson = preferredSportsJson,
     mobilityOnRestDays = mobilityOnRestDays,
+    ftpWattsManual = ftpWattsManual,
+    indoorTrainerAvailable = indoorTrainerAvailable,
     createdAtMillis = createdAtMillis,
     updatedAtMillis = updatedAtMillis,
 )
@@ -42,6 +44,8 @@ fun Profile.toEntity(): ProfileEntity = ProfileEntity(
     sleepTargetHours = sleepTargetHours,
     preferredSportsJson = preferredSportsJson,
     mobilityOnRestDays = mobilityOnRestDays,
+    ftpWattsManual = ftpWattsManual,
+    indoorTrainerAvailable = indoorTrainerAvailable,
     createdAtMillis = createdAtMillis,
     updatedAtMillis = updatedAtMillis,
 )

@@ -58,6 +58,12 @@ data class FitSession(
     val maxSpeedMps: Double? = null,
     val avgCadenceSpm: Double? = null,
     val totalAscentM: Double? = null,
+    /** `session.avg_power`, watts (P12). */
+    val avgPowerW: Int? = null,
+    /** `session.max_power`, watts (P12). */
+    val maxPowerW: Int? = null,
+    /** `session.normalized_power`, watts (P12). */
+    val normalizedPowerW: Int? = null,
 )
 
 /** `lap` — mirrors `activity_lap` (§2.2.2) before it is bound to an activity id. */
@@ -84,6 +90,8 @@ data class FitRecord(
     val speedMps: Double? = null,
     val cadenceSpm: Int? = null,
     val altitudeM: Double? = null,
+    /** `record.power`, watts (P12). */
+    val powerW: Int? = null,
     /** Native FIT semicircles; converted by [FitToDomainMapper] (`deg = semicircles * 180 / 2^31`). */
     val positionLatSemicircles: Int? = null,
     val positionLongSemicircles: Int? = null,

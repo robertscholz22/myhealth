@@ -42,6 +42,48 @@ class ActivityMergerTest {
         laps = listOf(ActivityFixtures.lap(0, 5_000.0), ActivityFixtures.lap(1, 5_000.0)),
     )
 
+    /**
+     * P12: power lives in `MergeFieldGroup.MOTION`, so Health Connect's per-sample average and
+     * maximum beat the CSV's — but each field is picked on its own, so the normalized power only
+     * the CSV carries is not dropped along with them.
+     */
+    @Test
+    fun bike02_merge_hc_power_beats_csv_and_csv_np_survives() {
+        val hcRide = ActivityFixtures.session(
+            source = ActivitySource.HEALTH_CONNECT,
+            startIso = "2026-02-05T16:25:06Z",
+            durationSec = 3_600,
+            sportType = SportType.CYCLING_INDOOR,
+            distanceMeters = null,
+            avgPowerW = 247,
+            maxPowerW = 300,
+            normalizedPowerW = null,
+        )
+        val csvRide = ActivityFixtures.session(
+            source = ActivitySource.CSV_IMPORT,
+            startIso = "2026-02-05T16:25:06Z",
+            durationSec = 3_612,
+            sportType = SportType.CYCLING_INDOOR,
+            distanceMeters = 34_620.0,
+            avgPowerW = 166,
+            maxPowerW = 310,
+            normalizedPowerW = 167,
+        )
+
+        val merged = ActivityMerger.merge(listOf(hcRide, csvRide), existing = null, nowMillis = now)
+
+        assertThat(merged.avgPowerW).isEqualTo(247)
+        assertThat(merged.maxPowerW).isEqualTo(300)
+        assertThat(merged.normalizedPowerW).isEqualTo(167)
+        assertThat(merged.mergedSources)
+            .containsExactly(ActivitySource.HEALTH_CONNECT, ActivitySource.CSV_IMPORT)
+
+        // The order of the candidates must not change the outcome (§2.4).
+        val flipped = ActivityMerger.merge(listOf(csvRide, hcRide), existing = null, nowMillis = now)
+        assertThat(flipped.avgPowerW).isEqualTo(247)
+        assertThat(flipped.normalizedPowerW).isEqualTo(167)
+    }
+
     @Test
     fun dedup08_merge_prefers_fit_streams_and_hc_calories() {
         val merged = ActivityMerger.merge(listOf(fit), existing = mergedHcOnly(), nowMillis = now)

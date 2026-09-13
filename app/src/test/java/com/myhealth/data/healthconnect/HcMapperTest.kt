@@ -37,6 +37,8 @@ class HcMapperTest {
         heartRateSamples: List<HcHeartRateSample> = emptyList(),
         speedSamples: List<HcSample> = emptyList(),
         cadenceSamples: List<HcSample> = emptyList(),
+        powerSamples: List<HcSample> = emptyList(),
+        pedalCadenceSamples: List<HcSample> = emptyList(),
     ) = HcExercise(
         externalId = externalId,
         packageName = "com.garmin.android.apps.connectmobile",
@@ -51,6 +53,8 @@ class HcMapperTest {
         heartRateSamples = heartRateSamples,
         speedSamples = speedSamples,
         cadenceSamples = cadenceSamples,
+        powerSamples = powerSamples,
+        pedalCadenceSamples = pedalCadenceSamples,
     )
 
     @Test

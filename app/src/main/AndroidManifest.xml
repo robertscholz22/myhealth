@@ -40,6 +40,13 @@
     <uses-permission android:name="android.permission.health.READ_OXYGEN_SATURATION" />
     <uses-permission android:name="android.permission.health.READ_RESPIRATORY_RATE" />
     <uses-permission android:name="android.permission.health.READ_VO2_MAX" />
+    <!--
+        P12: per-sample cycling power. Pedalling cadence needs no entry of its own — in
+        connect-client 1.1.0 CyclingPedalingCadenceRecord maps to READ_EXERCISE (verified with
+        javap on the AAR), which is already declared above. Both are optional
+        (HcPermissions.OPTIONAL_DETAIL): sync keeps working without them.
+    -->
+    <uses-permission android:name="android.permission.health.READ_POWER" />
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY" />
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND" />
 

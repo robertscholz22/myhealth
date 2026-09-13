@@ -211,6 +211,7 @@ private fun LoadMethod.label(): String = when (this) {
     LoadMethod.HR_AVERAGE -> stringResource(R.string.activity_detail_load_method_avg_hr)
     LoadMethod.RPE_ESTIMATE -> stringResource(R.string.activity_detail_load_method_rpe_estimate)
     LoadMethod.DURATION_ONLY -> stringResource(R.string.activity_detail_load_method_duration_only)
+    LoadMethod.POWER_TSS -> stringResource(R.string.activity_detail_load_method_power_tss)
 }
 
 @Composable

@@ -79,6 +79,52 @@ class FitFileDecoderTest {
         assertThat(checkNotNull(streams.latLngE7)).hasSize(streams.sampleCount)
     }
 
+    /**
+     * P12: the binary `ride_power.fit` fixture — a 60-minute trainer ride at 220 W with a
+     * 20-minute 300 W block and no heart rate — survives the real SDK decoder, and the mapper
+     * turns it into session power fields plus a `powerW` stream.
+     */
+    @Test
+    fun bike05_fit_power_stream_and_session_fields() {
+        val bytes = RidePowerFixtureEncoder.ensure().readBytes()
+        val data = when (val outcome = decoder.decode(ByteArrayInputStream(bytes))) {
+            is Outcome.Ok -> outcome.value
+            is Outcome.Err -> error("Decoding ride_power.fit failed: ${outcome.error}")
+        }
+
+        // The decoder lifted session.avg_power / max_power / normalized_power…
+        val decoded = data.sessions.single()
+        assertThat(decoded.avgPowerW).isEqualTo(RidePowerFixtureEncoder.AVG_POWER_W)
+        assertThat(decoded.maxPowerW).isEqualTo(RidePowerFixtureEncoder.BLOCK_WATTS)
+        assertThat(decoded.normalizedPowerW).isEqualTo(RidePowerFixtureEncoder.NORMALIZED_POWER_W)
+        // …and record.power.
+        assertThat(data.records.first().powerW).isEqualTo(RidePowerFixtureEncoder.BASE_WATTS)
+        assertThat(data.records.none { it.hr != null }).isTrue()
+
+        val session = FitToDomainMapper().toIngestItems(
+            data,
+            ZoneId.of("Europe/Berlin"),
+            nowMillis = 1_800_000_000_000L,
+        ).single().session
+
+        assertThat(session.sportType).isEqualTo(SportType.CYCLING_INDOOR)
+        assertThat(session.avgPowerW).isEqualTo(RidePowerFixtureEncoder.AVG_POWER_W)
+        assertThat(session.maxPowerW).isEqualTo(RidePowerFixtureEncoder.BLOCK_WATTS)
+        assertThat(session.normalizedPowerW).isEqualTo(RidePowerFixtureEncoder.NORMALIZED_POWER_W)
+        // Cycling cadence passes through as rpm — it is not doubled the way a run's would be.
+        assertThat(checkNotNull(session.avgCadenceSpm))
+            .isWithin(0.5).of(RidePowerFixtureEncoder.CADENCE_RPM.toDouble())
+
+        val power = checkNotNull(checkNotNull(session.streams).powerW)
+        assertThat(power).hasLength(session.streams!!.sampleCount)
+        assertThat(power.first()).isEqualTo(RidePowerFixtureEncoder.BASE_WATTS)
+        assertThat(power[RidePowerFixtureEncoder.BLOCK_START_SEC + 10])
+            .isEqualTo(RidePowerFixtureEncoder.BLOCK_WATTS)
+        assertThat(power[RidePowerFixtureEncoder.BLOCK_END_SEC + 10])
+            .isEqualTo(RidePowerFixtureEncoder.BASE_WATTS)
+        assertThat(power.max()).isEqualTo(RidePowerFixtureEncoder.BLOCK_WATTS)
+    }
+
     @Test
     fun a_stream_that_is_not_a_fit_file_becomes_a_parse_error() {
         val outcome = decoder.decode(ByteArrayInputStream(ByteArray(64) { 0x7 }))

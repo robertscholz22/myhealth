@@ -21,6 +21,7 @@ import com.myhealth.data.db.dao.MealDao
 import com.myhealth.data.db.dao.NutritionDao
 import com.myhealth.data.db.dao.PlanDao
 import com.myhealth.data.db.dao.ProfileDao
+import com.myhealth.data.db.dao.RideBestDao
 import com.myhealth.data.db.dao.RunningBestDao
 import com.myhealth.data.db.dao.SleepDao
 import com.myhealth.data.db.dao.SuggestionDao
@@ -46,6 +47,7 @@ import com.myhealth.data.db.entity.MealTemplateItemEntity
 import com.myhealth.data.db.entity.NutritionTargetSnapshotEntity
 import com.myhealth.data.db.entity.PlannedSessionEntity
 import com.myhealth.data.db.entity.ProfileEntity
+import com.myhealth.data.db.entity.RideBestEntity
 import com.myhealth.data.db.entity.RunningBestEntity
 import com.myhealth.data.db.entity.SleepSessionEntity
 import com.myhealth.data.db.entity.SuggestedSessionEntity
@@ -56,8 +58,8 @@ import com.myhealth.data.db.entity.WaterLogEntity
 import com.myhealth.data.db.migration.Migrations
 
 /**
- * The single Room database (PLAN §2.2): 26 tables plus the P8.5 `ingredient_fts` index and the
- * P11.1 `cycle_entry` table,
+ * The single Room database (PLAN §2.2): 26 tables plus the P8.5 `ingredient_fts` index, the
+ * P11.1 `cycle_entry` table and the P12 `ride_best` table,
  * `exportSchema = true`, schemas in `app/schemas`.
  *
  * Every version bump ships an explicit `Migration` in [Migrations] plus a row in `docs/PLAN.md`
@@ -98,11 +100,12 @@ import com.myhealth.data.db.migration.Migrations
         // §2.2.6 derived / cache
         DailyLoadEntity::class,
         RunningBestEntity::class,
+        RideBestEntity::class,
         ImportRecordEntity::class,
         // §5 P11.1 cycle
         CycleEntryEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -137,6 +140,9 @@ abstract class MyHealthDatabase : RoomDatabase() {
     abstract fun loadDao(): LoadDao
 
     abstract fun runningBestDao(): RunningBestDao
+
+    /** `ride_best` (P12). */
+    abstract fun rideBestDao(): RideBestDao
 
     abstract fun importDao(): ImportDao
 

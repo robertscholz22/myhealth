@@ -15,11 +15,13 @@ import com.myhealth.data.db.entity.IngredientEntity
 import com.myhealth.data.db.entity.MealLogEntity
 import com.myhealth.data.db.entity.MealLogItemEntity
 import com.myhealth.data.db.entity.ProfileEntity
+import com.myhealth.data.db.entity.RideBestEntity
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.MealSlot
 import com.myhealth.domain.model.MeasureBasis
 import com.myhealth.domain.model.NeatLevel
 import com.myhealth.domain.model.QuantityUnit
+import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.model.Sex
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
@@ -329,6 +331,98 @@ class MyHealthDatabaseTest {
                 )
                 assertThat(dao.getSourceRecordsOfImport(7L).map { it.externalId })
                     .containsExactly("csv-1")
+            }
+        } finally {
+            migrated.close()
+        }
+    }
+
+    /**
+     * P12: an existing v4 database gains the three power columns on `activity_session`, the
+     * `powerWJson` channel on `activity_stream`, the FTP override plus trainer flag on `profile`,
+     * and the new `ride_best` table — in place, with rows already in the two tables that change.
+     */
+    @Test
+    fun migration_4_to_5_adds_power_columns_and_ride_best() {
+        migrations.createDatabase(MIGRATION_DB, 4).use { v4 ->
+            v4.execSQL(
+                "INSERT INTO activity_session (id, startAtMillis, endAtMillis, day, sportType, " +
+                    "sportGroup, title, durationSec, elapsedSec, primarySource, mergedSourcesCsv, " +
+                    "dedupeBucket, userEditedFieldsCsv, hasStreams, createdAtMillis, updatedAtMillis) " +
+                    "VALUES (1, 1000, 4600, 19662, 'CYCLING', 'CYCLE', 'Zwift', 3600, 3600, " +
+                    "'CSV_IMPORT', 'CSV_IMPORT', 'CYCLE|0', '', 0, 1, 1)",
+            )
+            v4.execSQL(
+                "INSERT INTO profile (id, displayName, sex, birthDay, heightCm, neatLevel, " +
+                    "goalPaceKgPerWeek, sleepTargetHours, preferredSportsJson, mobilityOnRestDays, " +
+                    "createdAtMillis, updatedAtMillis) VALUES " +
+                    "(1, 'Robert', 'MALE', 5000, 180.0, 'LIGHT_ACTIVE', 0.0, 8.0, '{}', 1, 1, 1)",
+            )
+        }
+
+        migrations.runMigrationsAndValidate(MIGRATION_DB, 5, true, *Migrations.ALL)
+
+        val migrated = Room.databaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            MyHealthDatabase::class.java,
+            MIGRATION_DB,
+        ).addMigrations(*Migrations.ALL).build()
+        try {
+            runTest {
+                // The pre-v5 ride survived and simply has no power — nothing before 1.1.0 read one.
+                val ride = checkNotNull(migrated.activityDao().getById(1L))
+                assertThat(ride.title).isEqualTo("Zwift")
+                assertThat(ride.avgPowerW).isNull()
+                assertThat(ride.maxPowerW).isNull()
+                assertThat(ride.normalizedPowerW).isNull()
+
+                // The profile row stayed valid: the new flag took its `DEFAULT 0`.
+                val profile = checkNotNull(migrated.profileDao().observeProfile().first())
+                assertThat(profile.ftpWattsManual).isNull()
+                assertThat(profile.indoorTrainerAvailable).isFalse()
+
+                val dao = migrated.rideBestDao()
+                dao.upsertAll(
+                    listOf(
+                        RideBestEntity(
+                            kind = RideBestKind.POWER_20MIN,
+                            value = 300.0,
+                            activityId = 1L,
+                            day = 19_662L,
+                            createdAtMillis = 1L,
+                        ),
+                        RideBestEntity(
+                            kind = RideBestKind.TIME_40K,
+                            value = 4_478.0,
+                            activityId = null,
+                            day = 19_662L,
+                            isEstimated = true,
+                            createdAtMillis = 1L,
+                        ),
+                    ),
+                )
+                assertThat(dao.getByActivity(1L).single().kind).isEqualTo(RideBestKind.POWER_20MIN)
+                val bests = dao.observeBestPerKind().first().associateBy { it.kind }
+                assertThat(bests.getValue(RideBestKind.POWER_20MIN).value).isEqualTo(300.0)
+                assertThat(bests.getValue(RideBestKind.TIME_40K).isEstimated).isTrue()
+
+                // `uq_ride_best_activity_kind` keeps one row per (ride, kind).
+                runCatching {
+                    dao.upsert(
+                        RideBestEntity(
+                            kind = RideBestKind.POWER_20MIN,
+                            value = 280.0,
+                            activityId = 1L,
+                            day = 19_662L,
+                            createdAtMillis = 2L,
+                        ),
+                    )
+                }
+                assertThat(dao.getByActivity(1L)).hasSize(1)
+
+                // The FK is SET_NULL: deleting the ride keeps the effort, drops the link.
+                migrated.activityDao().deleteById(1L)
+                assertThat(dao.getSince(0L).map { it.activityId }).containsExactly(null, null)
             }
         } finally {
             migrated.close()

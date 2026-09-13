@@ -3,13 +3,11 @@ package com.myhealth.data.healthconnect
 import com.myhealth.domain.model.ActivitySession
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ActivitySourceRecord
-import com.myhealth.domain.model.ActivityStreams
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.model.DailyHealthSummary
 import com.myhealth.domain.model.SleepRecord
 import com.myhealth.domain.model.SleepStage
 import com.myhealth.domain.model.SleepStageInterval
-import com.myhealth.domain.model.SportType
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.time.Instant
@@ -63,22 +61,16 @@ internal data class HcExercisePayload(
     val avgSpeedMps: Double?,
     val maxSpeedMps: Double?,
     val avgCadenceSpm: Double?,
+    val avgPowerW: Int?,
+    val maxPowerW: Int?,
+    val normalizedPowerW: Int?,
     val heartRateSampleCount: Int,
     val speedSampleCount: Int,
     val cadenceSampleCount: Int,
+    val powerSampleCount: Int,
+    val pedalCadenceSampleCount: Int,
     val laps: List<HcLap>,
     val segments: List<HcSegment>,
-)
-
-/** Metrics derived once from an [HcExercise] and reused by the session and the payload. */
-private data class Derived(
-    val sportType: SportType,
-    val durationSec: Int,
-    val avgHr: Int?,
-    val maxHr: Int?,
-    val avgSpeedMps: Double?,
-    val maxSpeedMps: Double?,
-    val avgCadenceSpm: Double?,
 )
 
 class HealthConnectMapper(
@@ -109,9 +101,14 @@ class HealthConnectMapper(
             avgSpeedMps = derived.avgSpeedMps,
             maxSpeedMps = derived.maxSpeedMps,
             avgCadenceSpm = derived.avgCadenceSpm,
+            avgPowerW = derived.avgPowerW,
+            maxPowerW = derived.maxPowerW,
+            normalizedPowerW = derived.normalizedPowerW,
             heartRateSampleCount = exercise.heartRateSamples.size,
             speedSampleCount = exercise.speedSamples.size,
             cadenceSampleCount = exercise.cadenceSamples.size,
+            powerSampleCount = exercise.powerSamples.size,
+            pedalCadenceSampleCount = exercise.pedalCadenceSamples.size,
             laps = exercise.laps,
             segments = exercise.segments,
         )
@@ -153,6 +150,9 @@ class HealthConnectMapper(
             maxSpeedMps = derived.maxSpeedMps,
             avgCadenceSpm = derived.avgCadenceSpm,
             elevationGainM = exercise.elevationGainM,
+            avgPowerW = derived.avgPowerW,
+            maxPowerW = derived.maxPowerW,
+            normalizedPowerW = derived.normalizedPowerW,
             trimp = null,
             loadMethod = null,
             rpe = null,
@@ -276,108 +276,12 @@ class HealthConnectMapper(
     }
 }
 
-// ---- derived metrics ----------------------------------------------------------------------
-
-private fun HcExercise.derive(): Derived {
-    val durationSec = ((endMillis - startMillis) / 1000L).toInt().coerceAtLeast(0)
-    val hr = heartRateSamples.map { it.bpm }
-    val speed = speedSamples.map { it.value }
-    val cadence = cadenceSamples.map { it.value }
-    val fallbackSpeed = distanceMeters?.takeIf { durationSec > 0 }?.div(durationSec)
-    return Derived(
-        sportType = ExerciseTypeMap.toSportType(exerciseType, title),
-        durationSec = durationSec,
-        avgHr = if (hr.isEmpty()) null else hr.average().roundHalfUp(),
-        maxHr = hr.maxOrNull(),
-        avgSpeedMps = if (speed.isEmpty()) fallbackSpeed else speed.average(),
-        maxSpeedMps = speed.maxOrNull(),
-        avgCadenceSpm = if (cadence.isEmpty()) null else cadence.average(),
-    )
-}
-
-/**
- * Builds the shared time axis (§2.2.2) from the heart-rate samples — the only per-sample channel
- * Health Connect reliably provides and the one the TRIMP engine needs (§3.2). Speed and cadence,
- * which arrive on their own clocks, are resampled onto that axis with a last-value-carried-
- * forward fill. Falls back to the speed axis when there is no heart rate at all, and returns
- * `null` when the session has no samples whatsoever.
- *
- * Down-sampling: at most one sample per second, keeping the first of each second.
- */
-private fun HcExercise.toStreams(): ActivityStreams? {
-    val hrAxis = heartRateSamples.map { it.timeMillis }.toOffsets(startMillis)
-    val axis = if (hrAxis.isNotEmpty()) {
-        hrAxis
-    } else {
-        speedSamples.map { it.timeMillis }.toOffsets(startMillis)
-    }
-    if (axis.isEmpty()) return null
-
-    val offsets = axis.map { it.second }
-    val hr: List<Int?> = if (hrAxis.isNotEmpty()) {
-        axis.map { (index, _) -> heartRateSamples[index].bpm }
-    } else {
-        List(axis.size) { null }
-    }
-    return ActivityStreams(
-        sampleOffsetsSec = offsets.toIntArray(),
-        hr = hr,
-        distanceMeters = null,
-        speedMps = speedSamples.resampleOnto(offsets, startMillis),
-        cadenceSpm = cadenceSamples.resampleOnto(offsets, startMillis),
-        altitudeM = null,
-        latLngE7 = null,
-        sampleCount = offsets.size,
-        medianIntervalSec = offsets.medianInterval(),
-    )
-}
-
-/**
- * Sample index → whole-second offset from [startMillis], at most one entry per second and never
- * negative. Input is assumed sorted by time (the reader sorts it).
- */
-private fun List<Long>.toOffsets(startMillis: Long): List<Pair<Int, Int>> {
-    val out = mutableListOf<Pair<Int, Int>>()
-    var lastSecond = Int.MIN_VALUE
-    forEachIndexed { index, timeMillis ->
-        val second = ((timeMillis - startMillis) / 1000L).toInt()
-        if (second >= 0 && second > lastSecond) {
-            out += index to second
-            lastSecond = second
-        }
-    }
-    return out
-}
-
-/** Last-value-carried-forward resampling onto [offsets]; `null` when there is nothing to carry. */
-private fun List<HcSample>.resampleOnto(offsets: List<Int>, startMillis: Long): DoubleArray? {
-    if (isEmpty()) return null
-    var cursor = 0
-    var current = first().value
-    return DoubleArray(offsets.size) { i ->
-        val atMillis = startMillis + offsets[i] * 1000L
-        while (cursor < size && this[cursor].timeMillis <= atMillis) {
-            current = this[cursor].value
-            cursor++
-        }
-        current
-    }
-}
-
-/** Median gap between consecutive offsets; `0.0` for a single sample. */
-private fun List<Int>.medianInterval(): Double {
-    if (size < 2) return 0.0
-    val gaps = (1 until size).map { (this[it] - this[it - 1]).toDouble() }.sorted()
-    val middle = gaps.size / 2
-    return if (gaps.size % 2 == 1) gaps[middle] else (gaps[middle - 1] + gaps[middle]) / 2.0
-}
-
 // ---- small helpers ------------------------------------------------------------------------
 
 /** Half-up rounding (§3 preamble) — `kotlin.math.round` is half-to-even. */
-private fun Double.roundHalfUp(): Int = floor(this + 0.5).toInt()
+internal fun Double.roundHalfUp(): Int = floor(this + 0.5).toInt()
 
 private fun Long.toMinutes(): Int = (this / 60_000L).toInt()
 
-private fun Long.toLocalDay(zone: ZoneId): Long =
+internal fun Long.toLocalDay(zone: ZoneId): Long =
     LocalDate.ofInstant(Instant.ofEpochMilli(this), zone).toEpochDay()

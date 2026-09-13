@@ -280,20 +280,23 @@ Converter rule: unknown strings decode to the enum's `UNKNOWN`/last-resort membe
 | `Sex` | `MALE, FEMALE, OTHER` |
 | `NeatLevel` | `DESK(1.25), LIGHT_ACTIVE(1.35), ACTIVE(1.45), PHYSICAL_JOB(1.60)` — carries `factor: Double` |
 | `Intensity` | `RECOVERY, LOW, MODERATE, HIGH, MAX` |
-| `SessionType` | `EASY_RUN, LONG_RUN, TEMPO_RUN, INTERVAL_RUN, RECOVERY_RUN, STRENGTH_FULL, STRENGTH_UPPER, STRENGTH_LOWER, SOCCER_TRAINING, SOCCER_MATCH, MOBILITY, CROSS_TRAINING, REST` |
-| `GoalType` | `RACE_TIME, BODY_WEIGHT, STRENGTH_LIFT, CONSISTENCY, SOCCER_AVAILABILITY` |
+| `SessionType` | `EASY_RUN, LONG_RUN, TEMPO_RUN, INTERVAL_RUN, RECOVERY_RUN, STRENGTH_FULL, STRENGTH_UPPER, STRENGTH_LOWER, SOCCER_TRAINING, SOCCER_MATCH, MOBILITY, CROSS_TRAINING, REST` + P12 `ENDURANCE_RIDE, BIKE_INTERVALS, TRAINER_SESSION, RECOVERY_SPIN` |
+| `GoalType` | `RACE_TIME, BODY_WEIGHT, STRENGTH_LIFT, CONSISTENCY, SOCCER_AVAILABILITY` + P12 `BIKE_FTP` (`targetValue` = W), `BIKE_VOLUME` (`targetValue` = h/week), `BIKE_EVENT` (`targetDistanceMeters`, optional `targetTimeSec`/`targetDay`) |
 | `GoalStatus` | `ACTIVE, ACHIEVED, ABANDONED, EXPIRED` |
 | `TrainingPhase` | `BASE, BUILD, PEAK, TAPER, RACE_WEEK, IN_SEASON, OFF_SEASON, RECOVERY_WEEK` |
 | `RecoveryBand` | `FRESH, GOOD, MODERATE, FATIGUED, STRAINED` |
 | `LinkMethod` | `MANUAL, AUTO_TIME_OVERLAP, AUTO_ACCEPTED` |
 | `SleepStage` | `UNKNOWN, AWAKE, AWAKE_IN_BED, OUT_OF_BED, SLEEPING, LIGHT, DEEP, REM` |
 | `DayType` | `REST, TRAINING, HARD_TRAINING, MATCH_DAY, PRE_MATCH, RACE_DAY, PRE_RACE, RECOVERY` (computed, not stored except in the target snapshot) |
-| `LoadMethod` | `HR_SAMPLES, HR_AVERAGE, RPE_ESTIMATE, DURATION_ONLY` |
+| `LoadMethod` | `HR_SAMPLES, HR_AVERAGE, RPE_ESTIMATE, DURATION_ONLY` + P12 `POWER_TSS` |
+| `RideBestKind` | P12: `POWER_5MIN, POWER_20MIN, POWER_60MIN` (watts, PR = `MAX`), `TIME_10K, TIME_20K, TIME_40K, TIME_100K` (seconds, PR = `MIN`); last-resort member `POWER_5MIN` |
 | `ImportKind` | `FIT_FILE, GARMIN_CSV, GARMIN_ZIP, JSON_BACKUP` |
 | `PlanStatus` | `DRAFT, ACTIVE, ARCHIVED` |
 | `PlannedStatus` | `PLANNED, COMPLETED, SKIPPED, MOVED` |
 | `SuggestionStatus` | `PROPOSED, ACCEPTED, REJECTED, SUPERSEDED` |
 | `EngineWarningCode` | `MISSING_WEIGHT, MISSING_HR, ESTIMATED_LOAD, INSUFFICIENT_HISTORY, CLAMPED_TO_FLOOR, CLAMPED_TO_CEILING, ENERGY_MISMATCH, IMPLAUSIBLE_VALUE, COLUMN_AMBIGUOUS, NO_NUTRIENTS_FOUND, LOW_CONFIDENCE` |
+
+P12 enum members are **appended** to their enum classes so every existing ordinal is unchanged (Room stores `name()`, but the suggestion fixtures and the UI dropdowns iterate in declaration order).
 
 `SportType.group` mapping: `SOCCER_MATCH,SOCCER_TRAINING → SOCCER`; `RUN_* → RUN`; `STRENGTH,HIIT → STRENGTH`; `CYCLING,CYCLING_INDOOR → CYCLE`; `WALK,HIKE → WALK`; `SWIM → SWIM`; rest `OTHER`.
 
@@ -328,6 +331,8 @@ Common column conventions:
 | `sleepTargetHours` | `Double` | default 8.0 |
 | `preferredSportsJson` | `String` | JSON `{"RUN":3,"STRENGTH":2,"SOCCER":2}` sessions/week caps |
 | `mobilityOnRestDays` | `Boolean` | default true |
+| `ftpWattsManual` | `Int?` | P12 (DB v5); manual FTP override, wins over every estimate |
+| `indoorTrainerAvailable` | `Boolean` | P12 (DB v5); `NOT NULL DEFAULT 0` |
 | `createdAtMillis`,`updatedAtMillis` | `Long` | |
 
 **`body_measurement`**
@@ -367,8 +372,9 @@ Indices: `idx_body_day (day)`, unique `uq_body_source_ext (source, externalId)` 
 | `totalEnergyKcal` | `Double?` | |
 | `avgHr`,`maxHr` | `Int?` | |
 | `avgSpeedMps`,`maxSpeedMps` | `Double?` | |
-| `avgCadenceSpm` | `Double?` | |
+| `avgCadenceSpm` | `Double?` | steps/min for runs and walks, **rpm for CYCLE rides** (P12) |
 | `elevationGainM` | `Double?` | |
+| `avgPowerW`,`maxPowerW`,`normalizedPowerW` | `Int?` | P12 (DB v5); cycling power in watts |
 | `trimp` | `Double?` | computed by the load engine, cached |
 | `loadMethod` | `LoadMethod?` | |
 | `rpe` | `Int?` | 1–10, user-entered |
@@ -404,9 +410,10 @@ Unique index `uq_asr (source, externalId)` — this is the **idempotency key for
 | `hrJson` | `String?` | `[null,132,133,…]` bpm |
 | `distanceMetersJson` | `String?` | cumulative |
 | `speedMpsJson` | `String?` | |
-| `cadenceSpmJson` | `String?` | |
+| `cadenceSpmJson` | `String?` | steps/min for runs and walks, **rpm for CYCLE rides** (P12) |
 | `altitudeMJson` | `String?` | |
 | `latLngE7Json` | `String?` | `[[lat1e7,lng1e7],…]` |
+| `powerWJson` | `String?` | `[210,215,…]` watts, P12 (DB v5) |
 | `sampleCount` | `Int` | |
 | `medianIntervalSec` | `Double` | used to decide `estimated` for PR splits |
 
@@ -536,6 +543,8 @@ Recompute trigger: inputs hash change (weight, profile, plan for the day, actual
 
 **`running_best`** — `id`, `distanceMeters: Double` (canonical: 1000, 1609.34, 3000, 5000, 10000, 15000, 21097.5, 42195), `timeSec: Int`, `activityId: Long?` FK SET_NULL, `day: Long`, `method: String` (`FULL_ACTIVITY`/`BEST_SPLIT`/`MANUAL`), `isEstimated: Boolean`, `paceSecPerKm: Int`, `createdAtMillis`. Index `(distanceMeters, timeSec)`. Keep **all** qualifying efforts; "the PR" is `MIN(timeSec)` per distance via a DAO query. A partial unique index is not used; duplicates per activity are prevented by unique `(activityId, distanceMeters)`.
 
+**`ride_best`** (P12, DB v5) — `id`, `kind: RideBestKind`, `value: Double` (watts for `POWER_*`, seconds for `TIME_*`), `activityId: Long?` FK → `activity_session` `SET_NULL`, `day: Long`, `isEstimated: Boolean`, `createdAtMillis: Long`. Index `idx_ride_best_kind_value (kind, value)`, unique `uq_ride_best_activity_kind (activityId, kind)`. Like `running_best`, **all** qualifying efforts are kept; the PR per kind is derived — `MAX(value)` for the `POWER_*` kinds, `MIN(value)` for the `TIME_*` kinds (`RideBestDao.observeBestPerKind`).
+
 **`import_record`** — `id`, `kind: ImportKind`, `fileName`, `fileHashSha256` (unique index), `importedAtMillis`, `itemsParsed: Int`, `itemsInserted: Int`, `itemsDuplicate: Int`, `errorsJson: String?`.
 
 ### 2.3 Domain models that differ from entities
@@ -567,7 +576,7 @@ Implementation:
 | Field group | Precedence (highest first) |
 |---|---|
 | streams (HR/GPS/cadence), laps | `FIT_IMPORT` > `GARMIN_API` > `HEALTH_CONNECT` |
-| distance, duration, speed | `FIT_IMPORT` > `HEALTH_CONNECT` > `GARMIN_API` > `CSV_IMPORT` |
+| distance, duration, speed, cadence, **power** (`avgPowerW`/`maxPowerW`/`normalizedPowerW`, P12) | `FIT_IMPORT` > `HEALTH_CONNECT` > `GARMIN_API` > `CSV_IMPORT` |
 | calories | `HEALTH_CONNECT` > `FIT_IMPORT` > `GARMIN_API` > `CSV_IMPORT` (HC carries Garmin's own kcal, already device-calibrated) |
 | title, sportType | `FIT_IMPORT` > `CSV_IMPORT` > `GARMIN_API` > `HEALTH_CONNECT` (HC types are coarse) |
 | `rpe`, `note` | `MANUAL` always wins |
@@ -2202,6 +2211,7 @@ If a phase ends below its floor, the lead rejects the phase and orders the missi
 | 2 | P8.5 | `ingredient_fts` FTS4 table over `ingredient(name, brand)` (external content) + Room's four content-sync triggers + a one-off `INSERT INTO ingredient_fts(ingredient_fts) VALUES('rebuild')` so existing rows are indexed | `MIGRATION_1_2` |
 | 3 | P11.1 | `cycle_entry` table (`id`, `periodStartDay`, `periodEndDay?`, `note?`, `createdAtMillis`, `updatedAtMillis`) + unique index `uq_cycle_entry_start` over `periodStartDay`, so exactly one logged period can be anchored on a given day | `MIGRATION_2_3` |
 | 4 | BUG-11 follow-up (Undo import) | `activity_source_record.importRecordId` (nullable back-link to `import_record`) + index `idx_asr_import`, so one import's arrivals can be removed and the file re-imported | `MIGRATION_3_4` |
+| 5 | P12.1 (Bike & power) | `activity_session.avgPowerW/maxPowerW/normalizedPowerW` (`INTEGER`, nullable), `activity_stream.powerWJson` (`TEXT`, nullable), `profile.ftpWattsManual` (`INTEGER`) + `profile.indoorTrainerAvailable` (`INTEGER NOT NULL DEFAULT 0`), and the new `ride_best` table with `idx_ride_best_kind_value` + unique `uq_ride_best_activity_kind`. Existing rows keep `NULL`/`0`: nothing before 1.1.0 ever recorded a watt. `BackupFile.CURRENT_SCHEMA_VERSION` is raised 3 → **5** here, correcting the drift that left it at 3 when the database moved to 4 | `MIGRATION_4_5` |
 
 ### 6.5 Manual smoke test (phone attached)
 

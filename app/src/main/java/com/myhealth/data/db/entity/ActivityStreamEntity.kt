@@ -34,10 +34,13 @@ data class ActivityStreamEntity(
     /** Cumulative metres. */
     val distanceMetersJson: String? = null,
     val speedMpsJson: String? = null,
+    /** Steps/min for runs and walks, **revolutions per minute for CYCLE rides** (P12). */
     val cadenceSpmJson: String? = null,
     val altitudeMJson: String? = null,
     /** `[[lat1e7,lng1e7],…]`. */
     val latLngE7Json: String? = null,
+    /** `[210,215,…]` watts (P12, DB v5); absent for every non-power activity. */
+    val powerWJson: String? = null,
     val sampleCount: Int,
     /** Median sampling interval; decides whether a PR split is flagged `estimated` (§3.4). */
     val medianIntervalSec: Double,

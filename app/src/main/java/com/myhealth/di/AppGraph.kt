@@ -37,6 +37,7 @@ import com.myhealth.data.repository.RoomMealRepository
 import com.myhealth.data.repository.RoomNutritionRepository
 import com.myhealth.data.repository.RoomPlanRepository
 import com.myhealth.data.repository.RoomProfileRepository
+import com.myhealth.data.repository.RoomRideBestRepository
 import com.myhealth.data.repository.RoomRunningBestRepository
 import com.myhealth.data.repository.RoomSuggestionRepository
 import com.myhealth.data.repository.RoomSyncStateRepository
@@ -59,6 +60,7 @@ import com.myhealth.domain.repository.MealRepository
 import com.myhealth.domain.repository.NutritionRepository
 import com.myhealth.domain.repository.PlanRepository
 import com.myhealth.domain.repository.ProfileRepository
+import com.myhealth.domain.repository.RideBestRepository
 import com.myhealth.domain.repository.RunningBestRepository
 import com.myhealth.domain.repository.SettingsRepository
 import com.myhealth.domain.repository.SuggestionRepository
@@ -159,6 +161,9 @@ class AppGraph(private val app: Application) {
     }
 
     val runningBestRepo: RunningBestRepository by lazy { RoomRunningBestRepository(db.runningBestDao()) }
+
+    /** `ride_best` (P12); read by the Bike screen and the FTP estimate. */
+    val rideBestRepo: RideBestRepository by lazy { RoomRideBestRepository(db.rideBestDao()) }
 
     /**
      * `daily_load` (§2.2.6, P5.5). [RoomLoadRepository.recomputeFrom] is wired to

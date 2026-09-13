@@ -21,6 +21,7 @@ import com.myhealth.data.db.entity.MealTemplateItemEntity
 import com.myhealth.data.db.entity.NutritionTargetSnapshotEntity
 import com.myhealth.data.db.entity.PlannedSessionEntity
 import com.myhealth.data.db.entity.ProfileEntity
+import com.myhealth.data.db.entity.RideBestEntity
 import com.myhealth.data.db.entity.RunningBestEntity
 import com.myhealth.data.db.entity.SleepSessionEntity
 import com.myhealth.data.db.entity.SuggestedSessionEntity
@@ -273,6 +274,15 @@ internal class FakeBackupDao : BackupDao {
         auto(runningBest, rows, { it.id }) { row, id -> row.copy(id = id) }
 
     override suspend fun deleteRunningBest() = runningBest.clear()
+
+    val rideBest: MutableList<RideBestEntity> = mutableListOf()
+
+    override suspend fun allRideBest(): List<RideBestEntity> = rideBest.toList()
+
+    override suspend fun insertRideBest(rows: List<RideBestEntity>) =
+        auto(rideBest, rows, { it.id }) { row, id -> row.copy(id = id) }
+
+    override suspend fun deleteRideBest() = rideBest.clear()
 
     val importRecord: MutableList<ImportRecordEntity> = mutableListOf()
 

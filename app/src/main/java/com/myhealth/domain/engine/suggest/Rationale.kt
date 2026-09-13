@@ -199,6 +199,10 @@ object Rationale {
         SessionType.MOBILITY -> "mobility work protects the next hard day"
         SessionType.CROSS_TRAINING -> "cross-training adds aerobic load without impact"
         SessionType.REST -> "rest is the session"
+        SessionType.ENDURANCE_RIDE -> "steady riding builds aerobic volume without impact"
+        SessionType.BIKE_INTERVALS -> "bike intervals raise threshold power"
+        SessionType.TRAINER_SESSION -> "the trainer keeps the intensity controlled indoors"
+        SessionType.RECOVERY_SPIN -> "an easy spin moves the legs without adding load"
     }
 
     private fun groupLabel(group: SportGroup): String = when (group) {

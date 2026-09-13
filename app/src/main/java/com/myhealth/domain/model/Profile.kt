@@ -22,6 +22,10 @@ data class Profile(
     val sleepTargetHours: Double = 8.0,
     val preferredSportsJson: String = "{}",
     val mobilityOnRestDays: Boolean = true,
+    /** Manual FTP override in watts (P12); wins over every estimate when set. */
+    val ftpWattsManual: Int? = null,
+    /** The owner has an indoor trainer, so the planner may offer indoor rides (P12). */
+    val indoorTrainerAvailable: Boolean = false,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
 ) {

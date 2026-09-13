@@ -24,6 +24,7 @@ import com.myhealth.data.db.entity.MealTemplateItemEntity
 import com.myhealth.data.db.entity.NutritionTargetSnapshotEntity
 import com.myhealth.data.db.entity.PlannedSessionEntity
 import com.myhealth.data.db.entity.ProfileEntity
+import com.myhealth.data.db.entity.RideBestEntity
 import com.myhealth.data.db.entity.RunningBestEntity
 import com.myhealth.data.db.entity.SleepSessionEntity
 import com.myhealth.data.db.entity.SuggestedSessionEntity
@@ -270,6 +271,17 @@ interface BackupDao {
 
     @Query("DELETE FROM running_best")
     suspend fun deleteRunningBest()
+
+    // ---- ride_best (P12) ---------------------------------------------------------------------
+
+    @Query("SELECT * FROM ride_best")
+    suspend fun allRideBest(): List<RideBestEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertRideBest(rows: List<RideBestEntity>): List<Long>
+
+    @Query("DELETE FROM ride_best")
+    suspend fun deleteRideBest()
 
     @Query("SELECT * FROM import_record")
     suspend fun allImportRecord(): List<ImportRecordEntity>

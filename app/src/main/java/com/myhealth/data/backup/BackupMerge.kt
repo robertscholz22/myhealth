@@ -127,6 +127,13 @@ internal class BackupMerge(private val dao: BackupDao) {
             { "${it.distanceMeters}|${it.timeSec}|${it.day}|${it.method}" },
             { it.copy(id = 0L, activityId = activities.target(it.activityId)) }, dao::insertRunningBest,
         ).inserted
+        // P12: `ride_best` mirrors `running_best` — the effort itself is the natural key, and the
+        // activity link is remapped so a restored best still points at the right ride.
+        written += mergeRoot(
+            file.rideBest, existing.rideBest, { it.id },
+            { "${it.kind}|${it.value}|${it.day}" },
+            { it.copy(id = 0L, activityId = activities.target(it.activityId)) }, dao::insertRideBest,
+        ).inserted
         written += mergeRoot(
             file.importRecord, existing.importRecord, { it.id }, { it.fileHashSha256 },
             { it.copy(id = 0L) }, dao::insertImportRecord,

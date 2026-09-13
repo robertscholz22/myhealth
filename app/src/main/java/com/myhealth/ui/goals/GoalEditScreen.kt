@@ -273,9 +273,19 @@ private fun TypeFields(
             isError = state.errors.containsKey(GoalField.VALUE),
             supportingText = state.errors[GoalField.VALUE]?.resolve(),
         )
-        GoalType.STRENGTH_LIFT, GoalType.SOCCER_AVAILABILITY -> NumberField(
+        // P12.1 gives the three cycling goals the generic "target value" field; P12.4 replaces
+        // this arm with the watts / hours-per-week / distance+time editors of the plan.
+        GoalType.STRENGTH_LIFT, GoalType.SOCCER_AVAILABILITY, GoalType.BIKE_FTP,
+        GoalType.BIKE_VOLUME, GoalType.BIKE_EVENT,
+        -> NumberField(
             label = stringResource(
-                if (draft.type == GoalType.STRENGTH_LIFT) R.string.goal_edit_target_lift_label else R.string.goal_edit_target_matches_label,
+                when (draft.type) {
+                    GoalType.STRENGTH_LIFT -> R.string.goal_edit_target_lift_label
+                    GoalType.BIKE_FTP -> R.string.goal_edit_target_ftp_label
+                    GoalType.BIKE_VOLUME -> R.string.goal_edit_target_ride_hours_label
+                    GoalType.BIKE_EVENT -> R.string.goal_edit_target_event_km_label
+                    else -> R.string.goal_edit_target_matches_label
+                },
             ),
             value = draft.targetValue,
             onValueChange = { v -> onChange { it.copy(targetValue = v) } },

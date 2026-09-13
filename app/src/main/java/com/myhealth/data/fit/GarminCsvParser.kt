@@ -29,6 +29,11 @@ data class GarminCsvActivity(
     val maxSpeedMps: Double?,
     val elevationGainM: Double?,
     val aerobicTrainingEffect: Double?,
+    /** Steps/min for runs and walks, revolutions per minute for rides (P12). */
+    val avgCadenceSpm: Double? = null,
+    val avgPowerW: Int? = null,
+    val maxPowerW: Int? = null,
+    val normalizedPowerW: Int? = null,
 )
 
 /** Rows that parsed, plus one message per row that did not (the import records them, P7.5). */
@@ -53,6 +58,11 @@ internal data class GarminCsvPayload(
     val maxSpeedMps: Double?,
     val elevationGainM: Double?,
     val aerobicTrainingEffect: Double?,
+    /** Steps/min for runs and walks, revolutions per minute for rides (P12). */
+    val avgCadenceSpm: Double? = null,
+    val avgPowerW: Int? = null,
+    val maxPowerW: Int? = null,
+    val normalizedPowerW: Int? = null,
 )
 
 /**
@@ -82,9 +92,14 @@ class GarminCsvParser(
         if (lines.isEmpty()) return GarminCsvResult(errors = listOf("The file is empty."))
 
         val headerCells = splitCsvLine(lines.first())
-        val columns = headerCells.withIndex()
+        // Garmin's German export spells two different columns identically ("Ø Trittfrequenz" is
+        // both the running and the cycling cadence), so a canonical name may own several indices;
+        // `cell()` reads the first non-empty of them. `columns` keeps one index per name for the
+        // number-format vote and the distance-unit sniff, which only need a representative column.
+        val allColumns: Map<String, List<Int>> = headerCells.withIndex()
             .mapNotNull { (index, raw) -> canonicalHeader(raw)?.let { it to index } }
-            .toMap()
+            .groupBy({ it.first }, { it.second })
+        val columns = allColumns.mapValues { (_, indexes) -> indexes.last() }
         if (Columns.DATE !in columns) {
             return GarminCsvResult(
                 headers = headerCells,
@@ -97,7 +112,7 @@ class GarminCsvParser(
         val rows = mutableListOf<GarminCsvActivity>()
         val errors = mutableListOf<String>()
         body.forEachIndexed { index, line ->
-            when (val row = parseRow(line, columns, style, headerCells)) {
+            when (val row = parseRow(line, allColumns, style, headerCells)) {
                 is RowOutcome.Parsed -> rows += row.activity
                 is RowOutcome.Failed -> errors += "Row ${index + 2}: ${row.reason}"
             }
@@ -123,6 +138,10 @@ class GarminCsvParser(
             maxSpeedMps = row.maxSpeedMps,
             elevationGainM = row.elevationGainM,
             aerobicTrainingEffect = row.aerobicTrainingEffect,
+            avgCadenceSpm = row.avgCadenceSpm,
+            avgPowerW = row.avgPowerW,
+            maxPowerW = row.maxPowerW,
+            normalizedPowerW = row.normalizedPowerW,
         )
         val session = ActivitySession(
             id = 0L,
@@ -142,8 +161,11 @@ class GarminCsvParser(
             avgSpeedMps = row.avgSpeedMps
                 ?: row.distanceMeters?.takeIf { durationSec > 0 }?.div(durationSec),
             maxSpeedMps = row.maxSpeedMps,
-            avgCadenceSpm = null,
+            avgCadenceSpm = row.avgCadenceSpm,
             elevationGainM = row.elevationGainM,
+            avgPowerW = row.avgPowerW,
+            maxPowerW = row.maxPowerW,
+            normalizedPowerW = row.normalizedPowerW,
             trimp = null,
             loadMethod = null,
             rpe = null,
@@ -178,15 +200,22 @@ class GarminCsvParser(
 
     private fun parseRow(
         line: String,
-        columns: Map<String, Int>,
+        columns: Map<String, List<Int>>,
         style: NumberStyle,
         headerCells: List<String>,
     ): RowOutcome {
         val cells = splitCsvLine(line)
         fun cell(name: String): String? = columns[name]
-            ?.let { cells.getOrNull(it) }
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() && it != NO_VALUE && it != "-" }
+            .orEmpty()
+            .firstNotNullOfOrNull { index ->
+                cells.getOrNull(index)
+                    ?.trim()
+                    ?.takeIf { it.isNotEmpty() && it != NO_VALUE && it != "-" }
+            }
+
+        /** A power cell: Garmin writes `0` for "the device measured no power at all" (P12). */
+        fun power(name: String): Int? =
+            cell(name)?.let { style.parse(it) }?.toInt()?.takeIf { it > 0 }
 
         val startAtMillis = cell(Columns.DATE)?.let { parseDateTime(it, zone) }
             ?: return RowOutcome.Failed("unparseable date '${cell(Columns.DATE)}'")
@@ -210,13 +239,18 @@ class GarminCsvParser(
                 maxSpeedMps = cell(Columns.MAX_SPEED)?.let { toMetresPerSecond(it, style) },
                 elevationGainM = cell(Columns.ELEV_GAIN)?.let { style.parse(it) },
                 aerobicTrainingEffect = cell(Columns.AEROBIC_TE)?.let { style.parse(it) },
+                avgCadenceSpm = cell(Columns.AVG_CADENCE)?.let { style.parse(it) }?.takeIf { it > 0.0 },
+                avgPowerW = power(Columns.AVG_POWER),
+                maxPowerW = power(Columns.MAX_POWER),
+                normalizedPowerW = power(Columns.NORMALIZED_POWER),
             ),
         )
     }
 
     /** Garmin exports distance in kilometres unless the header spells out metres. */
-    private fun distanceScale(columns: Map<String, Int>, headerCells: List<String>): Double {
-        val raw = columns[Columns.DISTANCE]?.let { headerCells.getOrNull(it) }?.lowercase().orEmpty()
+    private fun distanceScale(columns: Map<String, List<Int>>, headerCells: List<String>): Double {
+        val raw = columns[Columns.DISTANCE]?.lastOrNull()
+            ?.let { headerCells.getOrNull(it) }?.lowercase().orEmpty()
         return if ("(m)" in raw || " m)" in raw) 1.0 else 1000.0
     }
 

@@ -98,8 +98,46 @@ object Migrations {
     }
 
     /**
+     * 4 → 5 (P12 "Bike & power"): cycling power on `activity_session` and `activity_stream`, the
+     * FTP override and trainer flag on `profile`, and the new `ride_best` table.
+     *
+     * The three session columns and the stream column are nullable, so existing rows simply have
+     * no power — which is the truth: nothing before 1.1.0 ever read a watt. `profile`'s flag is
+     * `NOT NULL DEFAULT 0`, matching the entity default, so the single existing row stays valid
+     * without a rewrite. The statements are Room's own, copied verbatim from
+     * `app/schemas/com.myhealth.data.db.MyHealthDatabase/5.json`, so `runMigrationsAndValidate`
+     * compares them character for character.
+     */
+    private val MIGRATION_4_5 = Migration(4, 5) { db ->
+        db.execSQL("ALTER TABLE `activity_session` ADD COLUMN `avgPowerW` INTEGER")
+        db.execSQL("ALTER TABLE `activity_session` ADD COLUMN `maxPowerW` INTEGER")
+        db.execSQL("ALTER TABLE `activity_session` ADD COLUMN `normalizedPowerW` INTEGER")
+        db.execSQL("ALTER TABLE `activity_stream` ADD COLUMN `powerWJson` TEXT")
+        db.execSQL("ALTER TABLE `profile` ADD COLUMN `ftpWattsManual` INTEGER")
+        db.execSQL(
+            "ALTER TABLE `profile` ADD COLUMN `indoorTrainerAvailable` INTEGER NOT NULL DEFAULT 0",
+        )
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `ride_best` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `kind` TEXT NOT NULL, " +
+                "`value` REAL NOT NULL, `activityId` INTEGER, `day` INTEGER NOT NULL, " +
+                "`isEstimated` INTEGER NOT NULL, `createdAtMillis` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`activityId`) REFERENCES `activity_session`(`id`) " +
+                "ON UPDATE NO ACTION ON DELETE SET NULL )",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `idx_ride_best_kind_value` ON `ride_best` (`kind`, `value`)",
+        )
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `uq_ride_best_activity_kind` " +
+                "ON `ride_best` (`activityId`, `kind`)",
+        )
+    }
+
+    /**
      * Every migration, oldest first. `.addMigrations(*ALL)` is the only call site, in
      * `MyHealthDatabase.build`, so adding a migration never changes it.
      */
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+    val ALL: Array<Migration> =
+        arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 }

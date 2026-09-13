@@ -1,5 +1,6 @@
 package com.myhealth.data.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.myhealth.domain.model.NeatLevel
@@ -30,6 +31,15 @@ data class ProfileEntity(
     /** JSON `{"RUN":3,"STRENGTH":2,"SOCCER":2}` — sessions/week caps. */
     val preferredSportsJson: String = "{}",
     val mobilityOnRestDays: Boolean = true,
+    /** Manual FTP override in watts (P12, DB v5); wins over every estimate when set. */
+    val ftpWattsManual: Int? = null,
+    /**
+     * The owner has an indoor trainer (P12, DB v5). The SQL default is declared explicitly so the
+     * exported schema carries `DEFAULT 0`, matching the `ALTER TABLE … NOT NULL DEFAULT 0` that
+     * `MIGRATION_4_5` has to write (SQLite cannot add a `NOT NULL` column without one).
+     */
+    @ColumnInfo(defaultValue = "0")
+    val indoorTrainerAvailable: Boolean = false,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
 ) {

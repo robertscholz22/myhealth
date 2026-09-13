@@ -16,7 +16,11 @@ enum class MergeFieldGroup(val precedence: List<ActivitySource>) {
     /** Streams, laps and the heart-rate summaries derived from them: device files win. */
     STREAMS(listOf(FIT_IMPORT, GARMIN_API, HEALTH_CONNECT)),
 
-    /** Distance, duration, speed, cadence, elevation and the session's time span. */
+    /**
+     * Distance, duration, speed, cadence, elevation, **cycling power** and the session's time
+     * span. Power joins this group rather than [STREAMS] because the CSV carries session power
+     * (avg / max / NP) without any stream at all, and `CSV_IMPORT` is not in [STREAMS]' list.
+     */
     MOTION(listOf(FIT_IMPORT, HEALTH_CONNECT, GARMIN_API, CSV_IMPORT)),
 
     /** Calories: Health Connect carries Garmin's own, device-calibrated kcal. */
@@ -54,6 +58,9 @@ object ActivityFields {
     const val MAX_SPEED_MPS = "maxSpeedMps"
     const val AVG_CADENCE_SPM = "avgCadenceSpm"
     const val ELEVATION_GAIN_M = "elevationGainM"
+    const val AVG_POWER_W = "avgPowerW"
+    const val MAX_POWER_W = "maxPowerW"
+    const val NORMALIZED_POWER_W = "normalizedPowerW"
     const val TRIMP = "trimp"
     const val RPE = "rpe"
     const val NOTE = "note"
@@ -130,6 +137,13 @@ object ActivityMerger {
             maxSpeedMps = pick(ActivityFields.MAX_SPEED_MPS, MergeFieldGroup.MOTION) { it.maxSpeedMps },
             avgCadenceSpm = pick(ActivityFields.AVG_CADENCE_SPM, MergeFieldGroup.MOTION) { it.avgCadenceSpm },
             elevationGainM = pick(ActivityFields.ELEVATION_GAIN_M, MergeFieldGroup.MOTION) { it.elevationGainM },
+            // Each power field is picked independently, so a CSV-only normalized power survives
+            // even when a higher-ranked source supplied the average and maximum (P12).
+            avgPowerW = pick(ActivityFields.AVG_POWER_W, MergeFieldGroup.MOTION) { it.avgPowerW },
+            maxPowerW = pick(ActivityFields.MAX_POWER_W, MergeFieldGroup.MOTION) { it.maxPowerW },
+            normalizedPowerW = pick(ActivityFields.NORMALIZED_POWER_W, MergeFieldGroup.MOTION) {
+                it.normalizedPowerW
+            },
             // TRIMP and its method are computed by the load engine (§3.2), never by a source.
             trimp = pick(ActivityFields.TRIMP, MergeFieldGroup.MOTION) { it.trimp },
             loadMethod = pick("loadMethod", MergeFieldGroup.MOTION) { it.loadMethod },

@@ -9,12 +9,14 @@ import com.myhealth.data.db.entity.IngredientEntity
 import com.myhealth.data.db.entity.MealLogEntity
 import com.myhealth.data.db.entity.MealLogItemEntity
 import com.myhealth.data.db.entity.ProfileEntity
+import com.myhealth.data.db.entity.RideBestEntity
 import com.myhealth.data.db.entity.RunningBestEntity
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.MealSlot
 import com.myhealth.domain.model.MeasureBasis
 import com.myhealth.domain.model.NeatLevel
 import com.myhealth.domain.model.QuantityUnit
+import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.model.Sex
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
@@ -78,6 +80,22 @@ internal object BackupFixtures {
         day = DAY,
         method = "BEST_SPLIT",
         paceSecPerKm = timeSec / 5,
+        createdAtMillis = 1L,
+    )
+
+    /** P12: one ride best; `kind|value|day` is the natural key a MERGE matches on. */
+    fun rideBest(
+        id: Long = 1L,
+        activityId: Long? = 1L,
+        kind: RideBestKind = RideBestKind.POWER_20MIN,
+        value: Double = 300.0,
+    ) = RideBestEntity(
+        id = id,
+        kind = kind,
+        value = value,
+        activityId = activityId,
+        day = DAY,
+        isEstimated = false,
         createdAtMillis = 1L,
     )
 
@@ -168,6 +186,7 @@ internal object BackupFixtures {
         mealLog = listOf(mealLog()),
         mealLogItem = listOf(mealLogItem()),
         runningBest = listOf(runningBest()),
+        rideBest = listOf(rideBest()),
         cycleEntry = listOf(cycleEntry()),
     )
 }

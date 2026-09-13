@@ -20,7 +20,8 @@ class BackupSerializerTest {
         assertThat(restored.activitySession.single().trimp).isWithin(1e-9).of(226.2)
         assertThat(restored.mealLogItem.single().unit).isEqualTo(original.mealLogItem.single().unit)
         assertThat(restored.rowsPerTable()).isEqualTo(original.rowsPerTable())
-        assertThat(restored.totalRows).isEqualTo(10)
+        assertThat(restored.rideBest.single().kind).isEqualTo(original.rideBest.single().kind)
+        assertThat(restored.totalRows).isEqualTo(11)
     }
 
     @Test
@@ -30,7 +31,7 @@ class BackupSerializerTest {
         assertThat(counts.keys).containsExactly(
             "profile", "body_measurement", "activity_session", "activity_stream",
             "ingredient", "meal_log", "meal_log_item", "daily_load", "running_best",
-            "cycle_entry",
+            "ride_best", "cycle_entry",
         )
         assertThat(counts["activity_session"]).isEqualTo(1)
         assertThat(counts).doesNotContainKey("sleep_session")
@@ -75,8 +76,13 @@ class BackupSerializerTest {
         val file = (decoded as Outcome.Ok).value
         assertThat(file.appVersion).isEqualTo("9.9")
         assertThat(file.profile.single().displayName).isEqualTo("Robert")
-        // Columns the file leaves out fall back to the entity's own defaults.
+        // Columns the file leaves out fall back to the entity's own defaults — including the
+        // P12 ones, so a backup written by 1.0.x still restores into a v5 database.
         assertThat(file.profile.single().sleepTargetHours).isEqualTo(8.0)
+        assertThat(file.profile.single().ftpWattsManual).isNull()
+        assertThat(file.profile.single().indoorTrainerAvailable).isFalse()
+        assertThat(file.rideBest).isEmpty()
+        assertThat(file.activitySession).isEmpty()
     }
 
     @Test

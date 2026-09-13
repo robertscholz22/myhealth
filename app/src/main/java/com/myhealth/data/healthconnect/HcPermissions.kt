@@ -3,6 +3,7 @@ package com.myhealth.data.healthconnect
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BodyFatRecord
+import androidx.health.connect.client.records.CyclingPedalingCadenceRecord
 import androidx.health.connect.client.records.DistanceRecord
 import androidx.health.connect.client.records.ElevationGainedRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
@@ -10,6 +11,7 @@ import androidx.health.connect.client.records.FloorsClimbedRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
+import androidx.health.connect.client.records.PowerRecord
 import androidx.health.connect.client.records.RespiratoryRateRecord
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
@@ -56,6 +58,23 @@ object HcPermissions {
     )
 
     /**
+     * The per-session power and pedalling-cadence channels (P12). **Not** in [REQUIRED_CORE]: a
+     * phone upgrading from 1.0.x has not granted them, and sync must keep working — `HcReader`
+     * degrades each read to an empty list on `SecurityException`. They are part of [ALL] so the
+     * permission sheet offers them.
+     *
+     * Verified against connect-client 1.1.0 (`javap` on the AAR): `PowerRecord` maps to
+     * `android.permission.health.READ_POWER`, but `CyclingPedalingCadenceRecord` maps to
+     * `android.permission.health.READ_EXERCISE` — there is no separate
+     * `READ_CYCLING_PEDALING_CADENCE` permission. So this set adds exactly one new string to
+     * [ALL]; pedalling cadence rides along with the workout permission that is already required.
+     */
+    val OPTIONAL_DETAIL: Set<String> = setOf(
+        HealthPermission.getReadPermission(PowerRecord::class),
+        HealthPermission.getReadPermission(CyclingPedalingCadenceRecord::class),
+    )
+
+    /**
      * Grants access to data older than 30 days. Optional: without it the first backfill simply
      * stops at the 30-day wall instead of failing.
      */
@@ -68,7 +87,7 @@ object HcPermissions {
     const val BACKGROUND: String = HealthPermission.PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND
 
     /** Everything the permission request contract is launched with. */
-    val ALL: Set<String> = REQUIRED_CORE + HISTORY + BACKGROUND
+    val ALL: Set<String> = REQUIRED_CORE + OPTIONAL_DETAIL + HISTORY + BACKGROUND
 
     /** True when every [REQUIRED_CORE] permission is present in [granted]. */
     fun hasRequiredCore(granted: Set<String>): Boolean = granted.containsAll(REQUIRED_CORE)

@@ -129,6 +129,9 @@ class FitToDomainMapper(
             maxSpeedMps = session.maxSpeedMps,
             avgCadenceSpm = session.avgCadenceSpm?.let { toStepsPerMinute(it, group) },
             elevationGainM = session.totalAscentM,
+            avgPowerW = session.avgPowerW,
+            maxPowerW = session.maxPowerW,
+            normalizedPowerW = session.normalizedPowerW,
             trimp = null,
             loadMethod = null,
             rpe = null,
@@ -182,6 +185,9 @@ class FitToDomainMapper(
             cadenceSpm = rows.map { it.cadenceSpm?.toDouble() }.carryForward(),
             altitudeM = rows.map { it.altitudeM }.carryForward(),
             latLngE7 = positions.carryForwardPositions(),
+            powerW = rows.map { it.powerW?.toDouble() }.carryForward()
+                ?.map { it.roundHalfUp() }
+                ?.toIntArray(),
             sampleCount = offsets.size,
             medianIntervalSec = offsets.medianInterval(),
         )
@@ -218,7 +224,8 @@ class FitToDomainMapper(
 
     /**
      * FIT records running cadence per leg (strides/min); the domain — like Health Connect — stores
-     * steps per minute, so running cadences are doubled and every other sport is left alone.
+     * steps per minute, so running cadences are doubled and every other sport is left alone. A
+     * ride's cadence is already revolutions per minute and passes through untouched (P12).
      */
     private fun toStepsPerMinute(cadence: Double, group: SportGroup): Double =
         if (group == SportGroup.RUN || group == SportGroup.WALK) cadence * 2.0 else cadence

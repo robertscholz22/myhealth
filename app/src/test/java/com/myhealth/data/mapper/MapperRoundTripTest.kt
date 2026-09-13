@@ -25,6 +25,8 @@ import com.myhealth.domain.model.PlannedStatus
 import com.myhealth.domain.model.Profile
 import com.myhealth.domain.model.QuantityUnit
 import com.myhealth.domain.model.RecoveryBand
+import com.myhealth.domain.model.RideBest
+import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.model.RunningBest
 import com.myhealth.domain.model.Sex
 import com.myhealth.domain.model.SleepRecord
@@ -58,11 +60,16 @@ class MapperRoundTripTest {
             sleepTargetHours = 7.5,
             preferredSportsJson = """{"RUN":3,"STRENGTH":2,"SOCCER":2}""",
             mobilityOnRestDays = true,
+            ftpWattsManual = 285,
+            indoorTrainerAvailable = true,
             createdAtMillis = 1_000L,
             updatedAtMillis = 2_000L,
         )
 
         assertThat(profile.toEntity().toDomain()).isEqualTo(profile)
+        // The P12 defaults (no override, no trainer) also survive the round trip.
+        val plain = profile.copy(ftpWattsManual = null, indoorTrainerAvailable = false)
+        assertThat(plain.toEntity().toDomain()).isEqualTo(plain)
     }
 
     @Test
@@ -337,6 +344,89 @@ class MapperRoundTripTest {
         )
 
         assertThat(best.toEntity().toDomain()).isEqualTo(best)
+    }
+
+    /**
+     * P12: the `powerW` channel and the three session power fields survive the JSON columns, and
+     * `ActivityStreams`' hand-written `equals` really compares the new array by content.
+     */
+    @Test
+    fun bike01_stream_power_round_trips() {
+        val streams = ActivityStreams(
+            sampleOffsetsSec = intArrayOf(0, 1, 2, 3),
+            hr = listOf(null, null, null, null),
+            cadenceSpm = doubleArrayOf(90.0, 90.0, 91.0, 90.0),
+            powerW = intArrayOf(220, 221, 300, 299),
+            sampleCount = 4,
+            medianIntervalSec = 1.0,
+        )
+        val session = ActivitySession(
+            id = 5L,
+            startAtMillis = 200_000L,
+            endAtMillis = 203_000L,
+            day = 20_490L,
+            sportType = SportType.CYCLING_INDOOR,
+            sportGroup = SportGroup.CYCLE,
+            title = "Zwift",
+            durationSec = 3_600,
+            elapsedSec = 3_600,
+            distanceMeters = null,
+            activeEnergyKcal = 886.0,
+            totalEnergyKcal = null,
+            avgHr = null,
+            maxHr = null,
+            avgSpeedMps = null,
+            maxSpeedMps = null,
+            // rpm for a ride, not steps per minute.
+            avgCadenceSpm = 90.0,
+            elevationGainM = null,
+            avgPowerW = 246,
+            maxPowerW = 300,
+            normalizedPowerW = 255,
+            trimp = null,
+            loadMethod = LoadMethod.POWER_TSS,
+            rpe = null,
+            note = null,
+            primarySource = ActivitySource.FIT_IMPORT,
+            mergedSources = listOf(ActivitySource.FIT_IMPORT),
+            dedupeBucket = "CYCLE|0",
+            userEditedFields = emptyList(),
+            hasStreams = true,
+            streams = streams,
+            laps = emptyList(),
+            createdAtMillis = 1L,
+            updatedAtMillis = 2L,
+        )
+
+        val rebuilt = ActivityWithStream(
+            activity = session.toEntity(),
+            stream = streams.toEntity(activityId = session.id),
+            laps = emptyList(),
+        ).toDomain()
+
+        assertThat(rebuilt).isEqualTo(session)
+        assertThat(checkNotNull(rebuilt.streams).powerW).isEqualTo(intArrayOf(220, 221, 300, 299))
+        // A stream without power is still a valid stream, and stays null through the round trip.
+        val noPower = streams.copy(powerW = null)
+        assertThat(noPower.toEntity(1L).toDomain()).isEqualTo(noPower)
+        assertThat(noPower).isNotEqualTo(streams)
+    }
+
+    @Test
+    fun rideBest_roundTrips() {
+        val best = RideBest(
+            id = 3L,
+            kind = RideBestKind.POWER_20MIN,
+            value = 300.0,
+            activityId = 5L,
+            day = 20_490L,
+            isEstimated = false,
+            createdAtMillis = 7_000L,
+        )
+
+        assertThat(best.toEntity().toDomain()).isEqualTo(best)
+        val timeBest = best.copy(kind = RideBestKind.TIME_40K, value = 4_478.0, isEstimated = true)
+        assertThat(timeBest.toEntity().toDomain()).isEqualTo(timeBest)
     }
 
     @Test

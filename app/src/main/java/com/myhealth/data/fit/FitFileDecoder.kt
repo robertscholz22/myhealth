@@ -103,6 +103,10 @@ class FitFileDecoder {
                 maxSpeedMps = mesg.maxSpeed?.toDouble(),
                 avgCadenceSpm = mesg.avgCadence?.toDouble(),
                 totalAscentM = mesg.totalAscent?.toDouble(),
+                // `avg_power` / `max_power` / `normalized_power` are already `Integer` in the SDK.
+                avgPowerW = mesg.avgPower,
+                maxPowerW = mesg.maxPower,
+                normalizedPowerW = mesg.normalizedPower,
             )
         }
 
@@ -132,6 +136,7 @@ class FitFileDecoder {
                 speedMps = (mesg.enhancedSpeed ?: mesg.speed)?.toDouble(),
                 cadenceSpm = mesg.cadence?.toInt(),
                 altitudeM = (mesg.enhancedAltitude ?: mesg.altitude)?.toDouble(),
+                powerW = mesg.power,
                 positionLatSemicircles = mesg.positionLat,
                 positionLongSemicircles = mesg.positionLong,
             )

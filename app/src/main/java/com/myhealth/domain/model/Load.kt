@@ -55,6 +55,24 @@ data class RunningBest(
 )
 
 /**
+ * Mirrors `ride_best` (§2.2.6, P12). One row per qualifying effort, exactly like `running_best`:
+ * the PR of a kind is `MAX(value)` for [RideBestKind.isPower] kinds and `MIN(value)` for the
+ * `TIME_*` kinds (see `RideBestDao.observeBestPerKind`).
+ *
+ * [value] is watts for a `POWER_*` kind and seconds for a `TIME_*` kind. [isEstimated] marks an
+ * effort derived from sparse samples or scaled from the whole ride rather than an exact split.
+ */
+data class RideBest(
+    val id: Long,
+    val kind: RideBestKind,
+    val value: Double,
+    val activityId: Long?,
+    val day: Long,
+    val isEstimated: Boolean,
+    val createdAtMillis: Long,
+)
+
+/**
  * What undoing one import removed (§2.2.6). [activitiesDeleted] only counts canonical rows whose
  * last source record was this import's; an activity Health Connect also knows is re-merged from
  * the sources that remain and counted in [activitiesKept].

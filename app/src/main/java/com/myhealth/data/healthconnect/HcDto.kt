@@ -14,7 +14,7 @@ import kotlinx.serialization.Serializable
  * sentinel values.
  */
 
-/** One timestamped scalar sample (speed in m/s, cadence in steps/min). */
+/** One timestamped scalar sample (speed in m/s, step cadence in steps/min, power in watts). */
 @Serializable
 data class HcSample(val timeMillis: Long, val value: Double)
 
@@ -42,7 +42,8 @@ data class HcSegment(
 
 /**
  * One `ExerciseSessionRecord` plus everything read with that session's own time window:
- * heart rate, distance, speed, step cadence, elevation and both calorie channels.
+ * heart rate, distance, speed, step cadence, cycling power, pedalling cadence, elevation and both
+ * calorie channels.
  *
  * [externalId] is `metadata.id` — the idempotency key of `activity_source_record` (§2.4).
  * [exerciseType] is the raw `EXERCISE_TYPE_*` Int; only `ExerciseTypeMap` interprets it.
@@ -62,7 +63,12 @@ data class HcExercise(
     val elevationGainM: Double? = null,
     val heartRateSamples: List<HcHeartRateSample> = emptyList(),
     val speedSamples: List<HcSample> = emptyList(),
+    /** `StepsCadenceRecord`, steps per minute. */
     val cadenceSamples: List<HcSample> = emptyList(),
+    /** `PowerRecord`, watts (P12); empty when the permission is not granted. */
+    val powerSamples: List<HcSample> = emptyList(),
+    /** `CyclingPedalingCadenceRecord`, revolutions per minute (P12). */
+    val pedalCadenceSamples: List<HcSample> = emptyList(),
     val laps: List<HcLap> = emptyList(),
     val segments: List<HcSegment> = emptyList(),
 )

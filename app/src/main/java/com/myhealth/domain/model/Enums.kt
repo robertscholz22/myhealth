@@ -86,9 +86,33 @@ enum class SessionType {
     MOBILITY,
     CROSS_TRAINING,
     REST,
+
+    // P12 cycling (appended so the ordinals of every member above stay put).
+    /** Steady aerobic ride, outdoors or on the trainer. */
+    ENDURANCE_RIDE,
+    /** Hard bike session: threshold / VO2 intervals. */
+    BIKE_INTERVALS,
+    /** A structured indoor trainer session. */
+    TRAINER_SESSION,
+    /** Very easy spin for active recovery. */
+    RECOVERY_SPIN,
 }
 
-enum class GoalType { RACE_TIME, BODY_WEIGHT, STRENGTH_LIFT, CONSISTENCY, SOCCER_AVAILABILITY }
+enum class GoalType {
+    RACE_TIME,
+    BODY_WEIGHT,
+    STRENGTH_LIFT,
+    CONSISTENCY,
+    SOCCER_AVAILABILITY,
+
+    // P12 cycling (appended; ordinals of the members above are unchanged).
+    /** Functional threshold power target; `targetValue` is watts. */
+    BIKE_FTP,
+    /** Weekly riding volume; `targetValue` is hours per week. */
+    BIKE_VOLUME,
+    /** A cycling event: `targetDistanceMeters`, optional `targetTimeSec`, optional `targetDay`. */
+    BIKE_EVENT,
+}
 
 enum class GoalStatus { ACTIVE, ACHIEVED, ABANDONED, EXPIRED }
 
@@ -121,7 +145,55 @@ enum class DayType {
     RECOVERY,
 }
 
-enum class LoadMethod { HR_SAMPLES, HR_AVERAGE, RPE_ESTIMATE, DURATION_ONLY }
+enum class LoadMethod {
+    HR_SAMPLES,
+    HR_AVERAGE,
+    RPE_ESTIMATE,
+    DURATION_ONLY,
+
+    /** P12: TSS from cycling power and an FTP estimate (§3.2, appended to keep the ordinals). */
+    POWER_TSS,
+}
+
+/**
+ * The kinds of ride best kept in `ride_best` (P12, §2.2.6).
+ *
+ * `POWER_*` values are watts and the PR is the **maximum**; `TIME_*` values are seconds over that
+ * distance and the PR is the **minimum**. The two families are deliberately one enum because they
+ * share a table, a repository and a screen; consumers branch on [isPower].
+ */
+enum class RideBestKind {
+    POWER_5MIN,
+    POWER_20MIN,
+    POWER_60MIN,
+    TIME_10K,
+    TIME_20K,
+    TIME_40K,
+    TIME_100K,
+    ;
+
+    /** True for the `POWER_*` members, whose PR is `MAX(value)` rather than `MIN(value)`. */
+    val isPower: Boolean get() = name.startsWith("POWER_")
+
+    /** Seconds of the power window for a `POWER_*` kind, `null` for a `TIME_*` kind. */
+    val windowSec: Int?
+        get() = when (this) {
+            POWER_5MIN -> 300
+            POWER_20MIN -> 1_200
+            POWER_60MIN -> 3_600
+            else -> null
+        }
+
+    /** Metres of the distance for a `TIME_*` kind, `null` for a `POWER_*` kind. */
+    val distanceMeters: Double?
+        get() = when (this) {
+            TIME_10K -> 10_000.0
+            TIME_20K -> 20_000.0
+            TIME_40K -> 40_000.0
+            TIME_100K -> 100_000.0
+            else -> null
+        }
+}
 
 enum class ImportKind { FIT_FILE, GARMIN_CSV, GARMIN_ZIP, JSON_BACKUP }
 

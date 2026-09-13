@@ -23,8 +23,15 @@ data class ActivitySummary(
     val maxHr: Int?,
     val avgSpeedMps: Double?,
     val maxSpeedMps: Double?,
+    /** Steps/min for runs and walks, **revolutions per minute for CYCLE rides** (P12). */
     val avgCadenceSpm: Double?,
     val elevationGainM: Double?,
+    /** Average cycling power, watts (P12). */
+    val avgPowerW: Int? = null,
+    /** Maximum cycling power, watts (P12). */
+    val maxPowerW: Int? = null,
+    /** Normalized power, watts — from the source, or `PowerMath.normalizedPower` (P12). */
+    val normalizedPowerW: Int? = null,
     val trimp: Double?,
     val loadMethod: LoadMethod?,
     val rpe: Int?,
@@ -56,8 +63,15 @@ data class ActivitySession(
     val maxHr: Int?,
     val avgSpeedMps: Double?,
     val maxSpeedMps: Double?,
+    /** Steps/min for runs and walks, **revolutions per minute for CYCLE rides** (P12). */
     val avgCadenceSpm: Double?,
     val elevationGainM: Double?,
+    /** Average cycling power, watts (P12). */
+    val avgPowerW: Int? = null,
+    /** Maximum cycling power, watts (P12). */
+    val maxPowerW: Int? = null,
+    /** Normalized power, watts — from the source, or `PowerMath.normalizedPower` (P12). */
+    val normalizedPowerW: Int? = null,
     val trimp: Double?,
     val loadMethod: LoadMethod?,
     val rpe: Int?,
@@ -95,9 +109,12 @@ data class ActivityStreams(
     val hr: List<Int?>,
     val distanceMeters: DoubleArray? = null,
     val speedMps: DoubleArray? = null,
+    /** Steps/min for runs and walks, **revolutions per minute for CYCLE rides** (P12). */
     val cadenceSpm: DoubleArray? = null,
     val altitudeM: DoubleArray? = null,
     val latLngE7: List<GeoPoint>? = null,
+    /** Cycling power in watts, last-value-carried-forward like the other numeric channels (P12). */
+    val powerW: IntArray? = null,
     val sampleCount: Int,
     val medianIntervalSec: Double,
 ) {
@@ -111,6 +128,7 @@ data class ActivityStreams(
             cadenceSpm.contentEqualsOrNull(other.cadenceSpm) &&
             altitudeM.contentEqualsOrNull(other.altitudeM) &&
             latLngE7 == other.latLngE7 &&
+            powerW.contentEqualsOrNull(other.powerW) &&
             sampleCount == other.sampleCount &&
             medianIntervalSec == other.medianIntervalSec
     }
@@ -123,6 +141,7 @@ data class ActivityStreams(
         result = 31 * result + (cadenceSpm?.contentHashCode() ?: 0)
         result = 31 * result + (altitudeM?.contentHashCode() ?: 0)
         result = 31 * result + (latLngE7?.hashCode() ?: 0)
+        result = 31 * result + (powerW?.contentHashCode() ?: 0)
         result = 31 * result + sampleCount
         result = 31 * result + medianIntervalSec.hashCode()
         return result
@@ -130,6 +149,12 @@ data class ActivityStreams(
 }
 
 private fun DoubleArray?.contentEqualsOrNull(other: DoubleArray?): Boolean = when {
+    this == null && other == null -> true
+    this == null || other == null -> false
+    else -> this.contentEquals(other)
+}
+
+private fun IntArray?.contentEqualsOrNull(other: IntArray?): Boolean = when {
     this == null && other == null -> true
     this == null || other == null -> false
     else -> this.contentEquals(other)

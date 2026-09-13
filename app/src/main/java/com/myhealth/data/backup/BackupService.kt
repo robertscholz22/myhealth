@@ -92,6 +92,7 @@ class BackupService(
         waterLog = dao.allWaterLog(),
         dailyLoad = dao.allDailyLoad(),
         runningBest = dao.allRunningBest(),
+        rideBest = dao.allRideBest(),
         importRecord = dao.allImportRecord(),
         cycleEntry = dao.allCycleEntry(),
     )
@@ -105,6 +106,8 @@ class BackupService(
     private suspend fun deleteAllChildFirst() {
         dao.deleteCycleEntry()
         dao.deleteImportRecord()
+        // `ride_best` and `running_best` are children of `activity_session`, so they go first.
+        dao.deleteRideBest()
         dao.deleteRunningBest()
         dao.deleteDailyLoad()
         dao.deleteWaterLog()
@@ -159,6 +162,7 @@ class BackupService(
         written += dao.insertWaterLog(file.waterLog).size
         written += dao.insertDailyLoad(file.dailyLoad).size
         written += dao.insertRunningBest(file.runningBest).size
+        written += dao.insertRideBest(file.rideBest).size
         written += dao.insertImportRecord(file.importRecord).size
         written += dao.insertCycleEntry(file.cycleEntry).size
         return written

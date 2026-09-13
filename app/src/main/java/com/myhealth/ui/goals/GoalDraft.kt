@@ -80,7 +80,9 @@ fun validateGoal(draft: GoalDraft): Map<GoalField, UiMessage> {
             if ((draft.targetWeightKg ?: 0.0) <= 0.0) errors[GoalField.WEIGHT] = UiMessage.of(R.string.goal_error_weight_required)
         GoalType.CONSISTENCY ->
             if ((draft.targetValue ?: 0.0) <= 0.0) errors[GoalField.VALUE] = UiMessage.of(R.string.goal_error_sessions_required)
-        GoalType.STRENGTH_LIFT, GoalType.SOCCER_AVAILABILITY ->
+        GoalType.STRENGTH_LIFT, GoalType.SOCCER_AVAILABILITY, GoalType.BIKE_FTP,
+        GoalType.BIKE_VOLUME, GoalType.BIKE_EVENT,
+        ->
             if ((draft.targetValue ?: 0.0) <= 0.0) errors[GoalField.VALUE] = UiMessage.of(R.string.goal_error_value_required)
     }
     return errors
@@ -133,6 +135,9 @@ fun goalTypeLabel(type: GoalType): String = when (type) {
     GoalType.STRENGTH_LIFT -> "Strength lift"
     GoalType.CONSISTENCY -> "Consistency"
     GoalType.SOCCER_AVAILABILITY -> "Soccer availability"
+    GoalType.BIKE_FTP -> "Bike FTP"
+    GoalType.BIKE_VOLUME -> "Bike volume"
+    GoalType.BIKE_EVENT -> "Bike event"
 }
 
 fun goalStatusLabel(status: GoalStatus): String = when (status) {
@@ -156,7 +161,9 @@ fun goalHeadline(goal: Goal): String {
         }
         GoalType.BODY_WEIGHT -> "${goal.targetWeightKg ?: 0.0} kg$by"
         GoalType.CONSISTENCY -> "${goal.targetValue ?: 0.0} sessions/week$by"
-        GoalType.STRENGTH_LIFT, GoalType.SOCCER_AVAILABILITY ->
+        GoalType.BIKE_FTP -> "${goal.targetValue ?: 0.0} W FTP$by"
+        GoalType.BIKE_VOLUME -> "${goal.targetValue ?: 0.0} h/week riding$by"
+        GoalType.STRENGTH_LIFT, GoalType.SOCCER_AVAILABILITY, GoalType.BIKE_EVENT ->
             "${goalTypeLabel(goal.type)}: ${goal.targetValue ?: 0.0}$by"
     }
 }

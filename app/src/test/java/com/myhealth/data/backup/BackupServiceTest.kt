@@ -2,6 +2,7 @@ package com.myhealth.data.backup
 
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.domain.repository.BackupContentSource
+import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.repository.BackupMode
 import com.myhealth.domain.util.AppError
 import com.myhealth.domain.util.Outcome
@@ -37,6 +38,7 @@ class BackupServiceTest {
         dao.mealLog += BackupFixtures.mealLog()
         dao.mealLogItem += BackupFixtures.mealLogItem()
         dao.runningBest += BackupFixtures.runningBest()
+        dao.rideBest += BackupFixtures.rideBest()
     }
 
     @Test
@@ -45,8 +47,8 @@ class BackupServiceTest {
 
         val summary = (service.export(URI) as Outcome.Ok).value
 
-        assertThat(summary.totalRows).isEqualTo(9)
-        assertThat(summary.rowsWritten).isEqualTo(9)
+        assertThat(summary.totalRows).isEqualTo(10)
+        assertThat(summary.rowsWritten).isEqualTo(10)
         assertThat(summary.appVersion).isEqualTo("1.0")
         assertThat(summary.exportedAtMillis).isEqualTo(clock.millis())
         assertThat(summary.schemaVersion).isEqualTo(BackupFile.CURRENT_SCHEMA_VERSION)
@@ -64,7 +66,7 @@ class BackupServiceTest {
 
         val summary = (service.import(URI, BackupMode.REPLACE) as Outcome.Ok).value
 
-        assertThat(summary.rowsWritten).isEqualTo(9)
+        assertThat(summary.rowsWritten).isEqualTo(10)
         assertThat(dao.activitySession.map { it.id to it.title }).containsExactly(1L to "Spiel")
         assertThat(dao.ingredient.map { it.name }).containsExactly("Haferflocken")
         assertThat(dao.activityStream.single().activityId).isEqualTo(1L)
@@ -78,7 +80,7 @@ class BackupServiceTest {
 
         val summary = (service.import(URI, BackupMode.MERGE) as Outcome.Ok).value
 
-        assertThat(summary.rowsWritten).isEqualTo(9)
+        assertThat(summary.rowsWritten).isEqualTo(10)
         val activityId = dao.activitySession.single().id
         assertThat(activityId).isNotEqualTo(1L)
         assertThat(dao.activityStream.single().activityId).isEqualTo(activityId)
@@ -86,6 +88,50 @@ class BackupServiceTest {
         val mealLogId = dao.mealLog.single().id
         assertThat(dao.mealLogItem.single().mealLogId).isEqualTo(mealLogId)
         assertThat(dao.mealLogItem.single().ingredientId).isEqualTo(dao.ingredient.single().id)
+    }
+
+    /**
+     * P12: `ride_best` merges on `kind|value|day`, not on its primary key, and its `activityId`
+     * is remapped onto the ride this merge actually created — so a restored 20-minute best still
+     * points at the right ride, and importing a backup that only differs by row id inserts nothing.
+     */
+    @Test
+    fun bike08_backup_ride_best_merges_by_natural_key() = runTest {
+        seed()
+        service.export(URI)
+        clearDevice()
+
+        service.import(URI, BackupMode.MERGE)
+
+        val activityId = dao.activitySession.single().id
+        val best = dao.rideBest.single()
+        assertThat(activityId).isNotEqualTo(1L)
+        assertThat(best.activityId).isEqualTo(activityId)
+        assertThat(best.kind).isEqualTo(RideBestKind.POWER_20MIN)
+        assertThat(best.value).isEqualTo(300.0)
+
+        // The same effort arriving again under a different id is recognised and skipped…
+        content.bytes = BackupSerializer
+            .encodeToString(BackupFixtures.file().copy(rideBest = listOf(BackupFixtures.rideBest(id = 77L))))
+            .toByteArray()
+        service.import(URI, BackupMode.MERGE)
+        assertThat(dao.rideBest).hasSize(1)
+
+        // …while a genuinely different kind is a new row.
+        content.bytes = BackupSerializer
+            .encodeToString(
+                BackupFixtures.file().copy(
+                    rideBest = listOf(
+                        BackupFixtures.rideBest(id = 5L, kind = RideBestKind.TIME_40K, value = 4_478.0),
+                    ),
+                ),
+            )
+            .toByteArray()
+        service.import(URI, BackupMode.MERGE)
+        assertThat(dao.rideBest.map { it.kind })
+            .containsExactly(RideBestKind.POWER_20MIN, RideBestKind.TIME_40K)
+        assertThat(dao.rideBest.first { it.kind == RideBestKind.TIME_40K }.activityId)
+            .isEqualTo(activityId)
     }
 
     /** The smoke test in code: importing the same file twice must not double anything. */
@@ -146,6 +192,7 @@ class BackupServiceTest {
         dao.mealLog.clear()
         dao.mealLogItem.clear()
         dao.runningBest.clear()
+        dao.rideBest.clear()
     }
 
     private companion object {

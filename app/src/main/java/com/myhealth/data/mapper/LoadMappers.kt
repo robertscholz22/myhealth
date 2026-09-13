@@ -2,12 +2,18 @@ package com.myhealth.data.mapper
 
 import com.myhealth.data.db.entity.DailyLoadEntity
 import com.myhealth.data.db.entity.ImportRecordEntity
+import com.myhealth.data.db.dao.RideBestRow
+import com.myhealth.data.db.entity.RideBestEntity
 import com.myhealth.data.db.entity.RunningBestEntity
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.ImportRecord
+import com.myhealth.domain.model.RideBest
 import com.myhealth.domain.model.RunningBest
 
-/** `daily_load`, `running_best` and `import_record` ⇄ the domain load models (PLAN §2.2.6 / P1.6). */
+/**
+ * `daily_load`, `running_best`, `ride_best` and `import_record` ⇄ the domain load models
+ * (PLAN §2.2.6 / P1.6, P12).
+ */
 
 // ---- daily_load ⇄ DailyLoad (flagsCsv ⇄ List<String>) ---------------------------------------------
 
@@ -73,6 +79,39 @@ fun RunningBest.toEntity(): RunningBestEntity = RunningBestEntity(
     method = method,
     isEstimated = isEstimated,
     paceSecPerKm = paceSecPerKm,
+    createdAtMillis = createdAtMillis,
+)
+
+// ---- ride_best ⇄ RideBest (P12) ---------------------------------------------------------------------
+
+fun RideBestEntity.toDomain(): RideBest = RideBest(
+    id = id,
+    kind = kind,
+    value = value,
+    activityId = activityId,
+    day = day,
+    isEstimated = isEstimated,
+    createdAtMillis = createdAtMillis,
+)
+
+/** The PR projection of `RideBestDao.observeBestPerKind`; its `ordering` column is not a value. */
+fun RideBestRow.toDomain(): RideBest = RideBest(
+    id = id,
+    kind = kind,
+    value = value,
+    activityId = activityId,
+    day = day,
+    isEstimated = isEstimated,
+    createdAtMillis = createdAtMillis,
+)
+
+fun RideBest.toEntity(): RideBestEntity = RideBestEntity(
+    id = id,
+    kind = kind,
+    value = value,
+    activityId = activityId,
+    day = day,
+    isEstimated = isEstimated,
     createdAtMillis = createdAtMillis,
 )
 

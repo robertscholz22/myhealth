@@ -4,6 +4,7 @@ import android.os.RemoteException
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BodyFatRecord
+import androidx.health.connect.client.records.CyclingPedalingCadenceRecord
 import androidx.health.connect.client.changes.DeletionChange
 import androidx.health.connect.client.changes.UpsertionChange
 import androidx.health.connect.client.records.DistanceRecord
@@ -13,6 +14,7 @@ import androidx.health.connect.client.records.FloorsClimbedRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
+import androidx.health.connect.client.records.PowerRecord
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.RespiratoryRateRecord
 import androidx.health.connect.client.records.RestingHeartRateRecord
@@ -258,6 +260,26 @@ class HealthConnectReader(
             .filter { it.timeMillis in window }
             .sortedBy { it.timeMillis }
 
+        // P12: the two optional detail channels. They live in `HcPermissions.OPTIONAL_DETAIL`,
+        // which is part of ALL but not of REQUIRED_CORE, so a phone upgrading from 1.0.x keeps
+        // syncing without re-granting anything — each read simply degrades to an empty list until
+        // the owner grants it (see `optionalSamples`).
+        val power = optionalSamples {
+            client.readAllRecords(PowerRecord::class, from, to)
+                .flatMap { record -> record.samples }
+                .map { HcSample(it.time.toEpochMilli(), it.power.inWatts) }
+                .filter { it.timeMillis in window }
+                .sortedBy { it.timeMillis }
+        }
+
+        val pedalCadence = optionalSamples {
+            client.readAllRecords(CyclingPedalingCadenceRecord::class, from, to)
+                .flatMap { record -> record.samples }
+                .map { HcSample(it.time.toEpochMilli(), it.revolutionsPerMinute) }
+                .filter { it.timeMillis in window }
+                .sortedBy { it.timeMillis }
+        }
+
         return HcExercise(
             externalId = session.metadata.id,
             packageName = session.metadata.dataOrigin.packageName,
@@ -277,6 +299,8 @@ class HealthConnectReader(
             heartRateSamples = heartRate,
             speedSamples = speed,
             cadenceSamples = cadence,
+            powerSamples = power,
+            pedalCadenceSamples = pedalCadence,
             laps = session.laps.mapIndexed { index, lap ->
                 HcLap(
                     lapIndex = index,
@@ -329,6 +353,19 @@ private fun BodyFatRecord.toDto(): HcBody = HcBody(
  */
 private fun Record.dailyPoint(from: Instant, to: Instant): HcRecordDto.DailyPoint =
     HcRecordDto.DailyPoint(metadata.id, from.toEpochMilli(), to.toEpochMilli())
+
+/**
+ * An optional per-session channel (P12): a `SecurityException` means the permission behind it was
+ * never granted, which is an expected state, not a failure — the session is still worth having
+ * without power or pedalling cadence. Every other exception is left to [hcCatching], which maps
+ * it to the right [AppError]; `CancellationException` is a subclass of nothing caught here, so
+ * structured concurrency is unaffected.
+ */
+private inline fun optionalSamples(read: () -> List<HcSample>): List<HcSample> = try {
+    read()
+} catch (_: SecurityException) {
+    emptyList()
+}
 
 /** Sum of [select] over the list, or `null` when the list is empty (no data is not zero). */
 private inline fun <T> List<T>.sumOrNull(select: (T) -> Double): Double? =

@@ -47,8 +47,15 @@ data class ActivitySessionEntity(
     val maxHr: Int? = null,
     val avgSpeedMps: Double? = null,
     val maxSpeedMps: Double? = null,
+    /** Steps/min for runs and walks, **revolutions per minute for CYCLE rides** (P12). */
     val avgCadenceSpm: Double? = null,
     val elevationGainM: Double? = null,
+    /** Average cycling power, watts (P12, DB v5). */
+    val avgPowerW: Int? = null,
+    /** Maximum cycling power, watts (P12, DB v5). */
+    val maxPowerW: Int? = null,
+    /** Normalized power, watts (P12, DB v5). */
+    val normalizedPowerW: Int? = null,
     /** Cached load-engine output (§3.2). */
     val trimp: Double? = null,
     val loadMethod: LoadMethod? = null,

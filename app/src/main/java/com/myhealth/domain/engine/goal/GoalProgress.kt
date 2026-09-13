@@ -68,6 +68,10 @@ object GoalProgress {
         GoalType.BODY_WEIGHT -> bodyWeight(goal, weights, today)
         GoalType.CONSISTENCY -> consistency(goal, activities, today)
         GoalType.STRENGTH_LIFT, GoalType.SOCCER_AVAILABILITY -> manual(goal)
+        // P12.1 placeholder: the cycling goals need the FTP estimate and the ride bests, which
+        // P12.2 adds to this engine's inputs. Until then they report as manual, which is exactly
+        // how an unmeasurable goal already behaves, rather than as "0 % and behind".
+        GoalType.BIKE_FTP, GoalType.BIKE_VOLUME, GoalType.BIKE_EVENT -> manual(goal)
     }
 
     // ---- RACE_TIME -----------------------------------------------------------------------------

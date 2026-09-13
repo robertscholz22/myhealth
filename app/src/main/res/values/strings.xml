@@ -53,7 +53,7 @@
     <string name="settings_section_advanced">Advanced</string>
     <!-- Health Connect -->
     <string name="hc_rationale_title">MyHealth and Health Connect</string>
-    <string name="hc_rationale_what_we_read">MyHealth reads your workouts, steps, distance, speed, cadence, heart rate, resting heart rate, heart-rate variability, calories, floors, elevation, blood oxygen, respiratory rate, VO2 max, sleep, weight and body fat from Health Connect. It never writes anything back.</string>
+    <string name="hc_rationale_what_we_read">MyHealth reads your workouts, steps, distance, speed, cadence, cycling power, cycling cadence, heart rate, resting heart rate, heart-rate variability, calories, floors, elevation, blood oxygen, respiratory rate, VO2 max, sleep, weight and body fat from Health Connect. It never writes anything back.</string>
     <string name="hc_rationale_why">This data is used to show your training history, to estimate training load and recovery, and to work out daily calorie and macro targets that match what you actually did.</string>
     <string name="hc_rationale_on_device">Your data stays on this device. MyHealth stores everything in a local database, has no account, and does not upload your health data to any server.</string>
     <string name="hc_rationale_revoke">You can withdraw access at any time in the Health Connect app. MyHealth then keeps only the data already synced, which you can delete from the app.</string>
@@ -381,6 +381,7 @@
     <string name="activity_detail_load_method_avg_hr">avg HR</string>
     <string name="activity_detail_load_method_rpe_estimate">RPE estimate</string>
     <string name="activity_detail_load_method_duration_only">duration only</string>
+    <string name="activity_detail_load_method_power_tss">from power (TSS)</string>
     <string name="activity_detail_title_card_title">Title</string>
     <string name="activity_detail_notes_title">Notes</string>
     <string name="activity_detail_hr_summary_title">Heart rate</string>
@@ -530,6 +531,9 @@
     <string name="goal_edit_kg_suffix">kg</string>
     <string name="goal_edit_sessions_label">Sessions per week</string>
     <string name="goal_edit_target_lift_label">Target lift (kg)</string>
+    <string name="goal_edit_target_ftp_label">Target FTP (W)</string>
+    <string name="goal_edit_target_ride_hours_label">Target riding (h/week)</string>
+    <string name="goal_edit_target_event_km_label">Event distance (km)</string>
     <string name="goal_edit_target_matches_label">Target matches</string>
     <!-- ingredients: IngredientDraft.kt -->
     <string name="ingredient_unit_suffix_100g">g / 100 g</string>

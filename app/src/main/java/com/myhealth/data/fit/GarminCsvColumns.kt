@@ -27,6 +27,17 @@ internal object Columns {
     const val MAX_SPEED = "max speed"
     const val ELEV_GAIN = "elev gain"
     const val AEROBIC_TE = "aerobic te"
+    const val AVG_POWER = "avg power"
+    const val MAX_POWER = "max power"
+    const val NORMALIZED_POWER = "normalized power"
+
+    /**
+     * Average cadence: steps/min for a run or walk, **revolutions per minute for a ride** (P12).
+     * Garmin's German export spells the running and the cycling column identically
+     * ("Ø Trittfrequenz" twice), so both map here and the parser takes the first non-empty cell —
+     * a row only ever fills one of the two.
+     */
+    const val AVG_CADENCE = "avg cadence"
 
     /** The columns whose cells carry free-form numbers, i.e. the evidence [NumberStyle] reads. */
     val NUMERIC: List<String> = listOf(DISTANCE, CALORIES, AVG_SPEED, MAX_SPEED, ELEV_GAIN)
@@ -46,6 +57,12 @@ internal val ENGLISH_HEADER_ALIASES: Map<String, String> = mapOf(
     "max speed" to Columns.MAX_SPEED, "best pace" to Columns.MAX_SPEED,
     "elev gain" to Columns.ELEV_GAIN, "total ascent" to Columns.ELEV_GAIN,
     "aerobic te" to Columns.AEROBIC_TE,
+    // P12 power and cadence. `normalizeHeader` strips the `(NP®)` suffix and the ® glyphs, so
+    // "Normalized Power® (NP®)" arrives here as "normalized power".
+    "avg power" to Columns.AVG_POWER,
+    "max power" to Columns.MAX_POWER,
+    "normalized power" to Columns.NORMALIZED_POWER,
+    "avg bike cadence" to Columns.AVG_CADENCE, "avg run cadence" to Columns.AVG_CADENCE,
 )
 
 /**
@@ -69,6 +86,12 @@ internal val GERMAN_HEADER_ALIASES: Map<String, String> = mapOf(
     "maximale geschwindigkeit" to Columns.MAX_SPEED, "beste pace" to Columns.MAX_SPEED,
     "anstieg gesamt" to Columns.ELEV_GAIN, "gesamtanstieg" to Columns.ELEV_GAIN,
     "aerober te" to Columns.AEROBIC_TE,
+    // P12. "Ø Leistung" → "durchschnittliche leistung"; "Max. Leistung" → "max leistung";
+    // "Ø Trittfrequenz" → "durchschnittliche trittfrequenz" (both the bike and the run column).
+    "durchschnittliche leistung" to Columns.AVG_POWER,
+    "max leistung" to Columns.MAX_POWER, "maximale leistung" to Columns.MAX_POWER,
+    "durchschnittliche trittfrequenz" to Columns.AVG_CADENCE,
+    "durchschnittliche laufschrittfrequenz" to Columns.AVG_CADENCE,
 )
 
 /** Every spelling of a recognised column seen in Garmin exports, normalised. */
@@ -80,7 +103,7 @@ internal val HEADER_ALIASES: Map<String, String> = ENGLISH_HEADER_ALIASES + GERM
  */
 internal fun canonicalHeader(raw: String): String? = HEADER_ALIASES[normalizeHeader(raw)]
 
-private fun normalizeHeader(raw: String): String = foldGerman(raw)
+internal fun normalizeHeader(raw: String): String = foldGerman(raw)
     .replace("ø", "durchschnittliche ")
     .substringBefore('(')
     .map { if (it.isLetterOrDigit()) it else ' ' }

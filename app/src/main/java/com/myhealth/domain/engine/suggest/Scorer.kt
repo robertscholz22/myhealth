@@ -112,6 +112,7 @@ object Scorer {
         GoalType.RACE_TIME -> SportGroup.RUN
         GoalType.SOCCER_AVAILABILITY -> SportGroup.SOCCER
         GoalType.STRENGTH_LIFT -> SportGroup.STRENGTH
+        GoalType.BIKE_FTP, GoalType.BIKE_VOLUME, GoalType.BIKE_EVENT -> SportGroup.CYCLE
         GoalType.BODY_WEIGHT, GoalType.CONSISTENCY -> null
     }
 

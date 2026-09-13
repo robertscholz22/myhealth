@@ -18,6 +18,7 @@ import com.myhealth.domain.model.PlanStatus
 import com.myhealth.domain.model.PlannedStatus
 import com.myhealth.domain.model.QuantityUnit
 import com.myhealth.domain.model.RecoveryBand
+import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.model.Sex
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
@@ -211,6 +212,20 @@ class Converters {
     @TypeConverter
     fun toRecoveryBand(value: String): RecoveryBand =
         decode(value, RecoveryBand.entries.toTypedArray(), RecoveryBand.MODERATE)
+
+    /**
+     * `ride_best.kind` (P12). The last-resort member is [RideBestKind.POWER_5MIN]: an unknown
+     * kind written by a newer build is far more likely to be another power window than a time
+     * over a distance, and a stray power row only ever shows up as one more line on the Bike
+     * screen, whereas decoding it as a `TIME_*` kind would put watts into a seconds column and
+     * poison the "fastest 40 km" PR (which is a `MIN`, so a bogus 200 would win outright).
+     */
+    @TypeConverter
+    fun fromRideBestKind(value: RideBestKind): String = value.name
+
+    @TypeConverter
+    fun toRideBestKind(value: String): RideBestKind =
+        decode(value, RideBestKind.entries.toTypedArray(), RideBestKind.POWER_5MIN)
 
     @TypeConverter
     fun fromImportKind(value: ImportKind): String = value.name

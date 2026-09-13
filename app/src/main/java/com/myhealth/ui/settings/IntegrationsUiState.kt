@@ -38,7 +38,7 @@ fun permissionLabel(permission: String): String =
     KNOWN_PERMISSION_LABELS[permission] ?: fallbackPermissionLabel(permission)
 
 private val KNOWN_PERMISSION_LABELS: Map<String, String> = mapOf(
-    "android.permission.health.READ_EXERCISE" to "Workouts",
+    "android.permission.health.READ_EXERCISE" to "Workouts and cycling cadence",
     "android.permission.health.READ_STEPS" to "Steps",
     "android.permission.health.READ_DISTANCE" to "Distance",
     "android.permission.health.READ_SPEED" to "Speed",
@@ -56,6 +56,9 @@ private val KNOWN_PERMISSION_LABELS: Map<String, String> = mapOf(
     "android.permission.health.READ_OXYGEN_SATURATION" to "Blood oxygen",
     "android.permission.health.READ_RESPIRATORY_RATE" to "Respiratory rate",
     "android.permission.health.READ_VO2_MAX" to "VO2 max",
+    // P12. Cycling cadence has no permission of its own — CyclingPedalingCadenceRecord maps to
+    // READ_EXERCISE ("Workouts"), so only power gets a row here.
+    "android.permission.health.READ_POWER" to "Power",
     "android.permission.health.READ_HEALTH_DATA_HISTORY" to "Full history (30+ days)",
     "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND" to "Background sync",
 )
