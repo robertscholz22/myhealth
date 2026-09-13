@@ -79,6 +79,7 @@ fun TodayScreen(
             graph.planRepo,
             graph.suggestionRepo,
             graph.cycleRepo,
+            graph.strengthRepo,
             graph.clock,
         )
     }
@@ -179,7 +180,7 @@ private fun TodayList(
             )
         }
         item { RecoveryCard(state.latestLoad, state.topRecoveryFlag, onOpenLoad) }
-        item { LoadCard(state.latestLoad, state.weeklyTrimp, onOpenLoad) }
+        item { LoadCard(state.latestLoad, state.weeklyTrimp, state.muscleLoad, onOpenLoad) }
         if (state.cycleTrackingEnabled) {
             item { TodayCycleCard(state.cycleStatus, onOpenCycle) }
         }

@@ -27,8 +27,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.calendar.LinkProposal
+import com.myhealth.domain.engine.strength.MuscleLoadEngine
+import com.myhealth.domain.engine.strength.MuscleLoadInput
+import com.myhealth.domain.engine.strength.MuscleSession
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ActivitySummary
+import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.LoadMethod
 import com.myhealth.domain.model.MacroTotals
 import com.myhealth.domain.model.NutritionTarget
@@ -95,6 +99,31 @@ private fun TodayContentPreview() {
                 ),
                 latestWeight = null,
                 lastSyncSuccessAtMillis = 1_757_000_000_000L,
+                latestLoad = DailyLoad(
+                    day = 19980,
+                    trimp = 108.1,
+                    sessionCount = 1,
+                    atl = 62.0,
+                    ctl = 45.0,
+                    acwr = 1.1,
+                    tsb = -17.0,
+                    monotony = 1.4,
+                    strain = 620.0,
+                    recoveryScore = null,
+                    recoveryBand = null,
+                    recoveryConfidence = 0.0,
+                    flags = emptyList(),
+                    computedAtMillis = 1_757_000_000_000L,
+                ),
+                muscleLoad = MuscleLoadEngine.compute(
+                    MuscleLoadInput(
+                        today = 19980,
+                        ctl = 45.0,
+                        sessions = listOf(
+                            MuscleSession(day = 19979, sportGroup = SportGroup.RUN, trimp = 220.0),
+                        ),
+                    ),
+                ),
             ),
             onSyncNow = {},
             onOpenActivity = {},

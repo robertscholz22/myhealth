@@ -2,6 +2,7 @@ package com.myhealth.ui.today
 
 import com.myhealth.domain.engine.calendar.LinkProposal
 import com.myhealth.domain.engine.load.HrZoneModel
+import com.myhealth.domain.engine.strength.MuscleLoadState
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.model.CycleStatus
@@ -58,6 +59,9 @@ data class TodayUiState(
     val cycleStatus: CycleStatus? = null,
     /** A profile-only zone model (P14.6, §4.2) for the plan card's target-zone chip. */
     val hrZoneModel: HrZoneModel? = null,
+    /** Today's per-muscle-group load (§3.12.4, P14.8) — only its `lowerBody`/`upperBody` bands
+     * back the load card's chip; `null` before the first activity or without a strength repo. */
+    val muscleLoad: MuscleLoadState? = null,
 ) {
     val weightChipText: String? get() = weightChipLabel(latestWeight?.weightKg, goalWeightKg)
 

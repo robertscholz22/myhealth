@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.myhealth.R
+import com.myhealth.domain.engine.strength.MuscleLoadState
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.StatTile
@@ -19,7 +20,9 @@ import com.myhealth.ui.common.fmtDecimal
 import com.myhealth.ui.load.acwrZoneOf
 import com.myhealth.ui.load.color
 import com.myhealth.ui.load.flagExplanation
+import com.myhealth.ui.load.labelRes
 import com.myhealth.ui.load.recoveryBandLabel
+import com.myhealth.ui.load.todayMuscleLoadHint
 
 /**
  * Today's recovery card (§4.2 Today, P5.8): score, band chip, confidence and the top active flag,
@@ -59,7 +62,12 @@ internal fun RecoveryCard(load: DailyLoad?, topFlag: String?, onOpenLoad: () -> 
 /** Today's load card (§4.2 Today, P5.8): ACWR with its zone colour, ATL/CTL, and the last 7 days'
  * summed TRIMP. Taps through to the Load & Recovery screen for the full series. */
 @Composable
-internal fun LoadCard(load: DailyLoad?, weeklyTrimp: Double, onOpenLoad: () -> Unit) {
+internal fun LoadCard(
+    load: DailyLoad?,
+    weeklyTrimp: Double,
+    muscleLoad: MuscleLoadState?,
+    onOpenLoad: () -> Unit,
+) {
     SectionCard(
         title = stringResource(R.string.today_load_title),
         modifier = Modifier.clickable(onClick = onOpenLoad),
@@ -88,6 +96,9 @@ internal fun LoadCard(load: DailyLoad?, weeklyTrimp: Double, onOpenLoad: () -> U
                 label = stringResource(R.string.today_weekly_trimp_label),
                 value = fmtDecimal(weeklyTrimp, 0),
             )
+        }
+        muscleLoad?.let(::todayMuscleLoadHint)?.let { hint ->
+            Text(stringResource(hint.labelRes()), style = MaterialTheme.typography.bodySmall)
         }
     }
 }

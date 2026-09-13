@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myhealth.domain.engine.calendar.EventActivityLinker
 import com.myhealth.domain.engine.calendar.LinkProposal
+import com.myhealth.domain.engine.strength.MuscleLoadEngine
+import com.myhealth.domain.engine.strength.MuscleLoadState
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.model.CycleStatus
@@ -29,10 +31,12 @@ import com.myhealth.domain.repository.MealRepository
 import com.myhealth.domain.repository.NutritionRepository
 import com.myhealth.domain.repository.PlanRepository
 import com.myhealth.domain.repository.ProfileRepository
+import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.repository.SyncStateRepository
 import com.myhealth.sync.SyncScheduler
 import com.myhealth.sync.SyncWorkState
+import com.myhealth.ui.load.resolveMuscleLoadState
 import com.myhealth.ui.zones.lightweightHrZoneModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -41,6 +45,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -119,6 +124,7 @@ class TodayViewModel(
     private val planRepo: PlanRepository,
     private val suggestionRepo: SuggestionRepository,
     private val cycleRepo: CycleRepository,
+    private val strengthRepo: StrengthRepository,
     clock: Clock,
 ) : ViewModel() {
 
@@ -189,11 +195,23 @@ class TodayViewModel(
         suggestionRepo.observeStale(),
     ) { planned, suggested, stale -> TodayPlan(planned, suggested, stale) }
 
+    /** Today's [com.myhealth.domain.engine.strength.MuscleLoadState] (P14.8) — resolved the same
+     * way [LoadViewModel] resolves it, since `ui/` may not import `data/repository`'s own
+     * assembly (`ArchitectureTest`). */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val muscleLoad = combine(
+        activityRepo.observeRange(today - MuscleLoadEngine.WINDOW_DAYS, today),
+        loadRepo.observeLatest(),
+    ) { activities, latest -> activities to (latest?.ctl ?: 0.0) }
+        .flatMapLatest { (activities, ctl) ->
+            flow { emit(resolveMuscleLoadState(activities, ctl, today, planRepo, strengthRepo)) }
+        }
+
     private val coreAndSync = combine(core, syncData, linkSuggestions, nutrition, cycle) { c, s, links, food, cyc ->
         CoreAndSync(c, s, links, food, cyc)
     }
 
-    val state: StateFlow<TodayUiState> = combine(coreAndSync, load, plan) { cs, l, p ->
+    val state: StateFlow<TodayUiState> = combine(coreAndSync, load, plan, muscleLoad) { cs, l, p, m ->
         TodayUiState(
             isLoading = false,
             day = today,
@@ -218,6 +236,7 @@ class TodayViewModel(
             cycleTrackingEnabled = cs.cycle.trackingEnabled,
             cycleStatus = cs.cycle.status,
             hrZoneModel = lightweightHrZoneModel(cs.core.profile, LocalDate.ofEpochDay(today)),
+            muscleLoad = m,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TodayUiState())
 

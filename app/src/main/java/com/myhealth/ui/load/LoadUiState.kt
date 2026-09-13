@@ -8,6 +8,7 @@ import com.myhealth.domain.engine.load.AcwrZone
 import com.myhealth.domain.engine.load.LoadFlags
 import com.myhealth.domain.engine.load.LoadSeriesEngine
 import com.myhealth.domain.engine.load.RecoveryFlags
+import com.myhealth.domain.engine.strength.MuscleLoadState
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.RecoveryBand
 import com.myhealth.domain.model.RecoveryComponent
@@ -33,6 +34,10 @@ data class LoadUiState(
     /** Recomputed live from the same inputs `LoadRecomputeService` used, so the score's component
      * breakdown is available even though `daily_load` only caches the totals (§2.2.6). */
     val recovery: RecoveryState? = null,
+    /** Today's per-muscle-group load (§3.12.4, P14.8), resolved the same way
+     * `SuggestionMuscleResolver` assembles it for the suggester — but directly against the domain
+     * repositories, since `ui/` may not import `data/` (`ArchitectureTest`). */
+    val muscleLoad: MuscleLoadState? = null,
 ) {
     val hasData: Boolean get() = series.any { it.sessionCount > 0 }
 }

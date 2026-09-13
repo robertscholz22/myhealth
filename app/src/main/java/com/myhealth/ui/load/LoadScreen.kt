@@ -24,17 +24,26 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.load.AcwrZone
+import com.myhealth.domain.engine.strength.MuscleLoadEngine
+import com.myhealth.domain.engine.strength.MuscleLoadInput
+import com.myhealth.domain.engine.strength.MuscleLoadState
+import com.myhealth.domain.engine.strength.MuscleSession
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.RecoveryState
+import com.myhealth.domain.model.SportGroup
 import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.StatTile
+import com.myhealth.ui.common.body.BodyFigure
+import com.myhealth.ui.common.body.BodyFigureLegend
+import com.myhealth.ui.common.body.BodyFigureLegendKind
 import com.myhealth.ui.common.fmtDecimal
 import com.myhealth.ui.common.charts.BarChartCard
 import com.myhealth.ui.common.charts.ChartBand
 import com.myhealth.ui.common.charts.ChartSeries
 import com.myhealth.ui.common.charts.LineChartCard
+import com.myhealth.ui.strength.label
 import com.myhealth.ui.theme.MyHealthTheme
 import com.myhealth.ui.theme.PositiveGreen
 import com.myhealth.ui.theme.WarningAmber
@@ -42,7 +51,15 @@ import com.myhealth.ui.theme.WarningAmber
 @Composable
 fun LoadScreen(modifier: Modifier = Modifier) {
     val vm = rememberVm { graph ->
-        LoadViewModel(graph.loadRepo, graph.healthRepo, graph.profileRepo, graph.clock)
+        LoadViewModel(
+            graph.loadRepo,
+            graph.healthRepo,
+            graph.profileRepo,
+            graph.activityRepo,
+            graph.planRepo,
+            graph.strengthRepo,
+            graph.clock,
+        )
     }
     val state by vm.state.collectAsStateWithLifecycle()
 
@@ -76,6 +93,7 @@ private fun LoadContent(
             item { RecoveryTrendCard(state.series) }
         }
         item { RecoveryCard(state.recovery) }
+        item { MuscleLoadCard(state.muscleLoad) }
     }
 }
 
@@ -241,6 +259,35 @@ private fun RecoveryCard(recovery: RecoveryState?) {
     }
 }
 
+/**
+ * The "Muscle load" card (§3.12.2/§3.12.4/§4.2 Load & recovery, P14.8): [BodyFigure] as a
+ * fresh/loaded/fatigued heat map, its legend, the three most-loaded groups with their AU and band,
+ * and a one-line hint — or the empty state when nothing has loaded a muscle in the last 14 days.
+ */
+@Composable
+private fun MuscleLoadCard(muscleLoad: MuscleLoadState?) {
+    SectionCard(title = stringResource(R.string.load_muscle_title)) {
+        if (muscleLoad == null || !hasMuscleLoadActivity(muscleLoad)) {
+            Text(stringResource(R.string.load_muscle_empty), style = MaterialTheme.typography.bodyMedium)
+            return@SectionCard
+        }
+        BodyFigure(highlight = muscleLoadHeatMap(muscleLoad), modifier = Modifier.fillMaxWidth())
+        BodyFigureLegend(kind = BodyFigureLegendKind.LOAD_BAND)
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            topMuscleLoadRows(muscleLoad).forEach { row ->
+                val bandLabel = stringResource(muscleLoadBandLabelRes(row.band))
+                Text(
+                    stringResource(R.string.load_muscle_row, row.group.label(), row.au, bandLabel),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+        muscleLoadHint(muscleLoad)?.let { hint ->
+            Text(stringResource(hint.labelRes()), style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
 @Composable
 private fun AcwrZone.label(): String = when (this) {
     AcwrZone.DETRAINING -> stringResource(R.string.load_acwr_zone_detraining)
@@ -262,8 +309,17 @@ internal fun AcwrZone.color(): Color = when (this) {
 private fun LoadContentPreview() {
     MyHealthTheme(dynamicColor = false) {
         LoadContent(
-            state = LoadUiState(isLoading = false),
+            state = LoadUiState(isLoading = false, muscleLoad = previewMuscleLoad()),
             onRangeSelect = {},
         )
     }
 }
+
+/** A hard-legs, fresh-arms sample so the preview shows the heat map and the "upper day" hint. */
+private fun previewMuscleLoad(): MuscleLoadState = MuscleLoadEngine.compute(
+    MuscleLoadInput(
+        today = 0L,
+        ctl = 45.0,
+        sessions = listOf(MuscleSession(day = -1L, sportGroup = SportGroup.RUN, trimp = 180.0)),
+    ),
+)

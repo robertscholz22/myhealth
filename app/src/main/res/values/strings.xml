@@ -469,6 +469,12 @@
     <string name="load_acwr_zone_optimal">Optimal</string>
     <string name="load_acwr_zone_caution">Caution</string>
     <string name="load_acwr_zone_high_risk">High risk</string>
+    <!-- Muscle load card (ui/load/LoadScreen.kt, P14.8) -->
+    <string name="load_muscle_title">Muscle load</string>
+    <string name="load_muscle_empty">No strength or endurance sessions in the last 14 days yet.</string>
+    <string name="load_muscle_row">%1$s — %2$d AU · %3$s</string>
+    <string name="load_muscle_hint_upper">Legs are loaded — an upper-body day fits today</string>
+    <string name="load_muscle_hint_lower">Legs are fresh — a lower-body day fits</string>
     <!-- Running PRs screen (ui/running/RunningPrsScreen.kt) -->
     <string name="running_add_manual_pr">Add manual PR</string>
     <string name="running_empty_title">No personal bests yet</string>

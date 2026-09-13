@@ -4,20 +4,30 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myhealth.domain.engine.load.RecoveryEngine
 import com.myhealth.domain.engine.load.RecoveryInput
+import com.myhealth.domain.engine.strength.MuscleLoadEngine
+import com.myhealth.domain.engine.strength.MuscleLoadInput
+import com.myhealth.domain.engine.strength.MuscleLoadState
+import com.myhealth.domain.engine.strength.MuscleSession
+import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.DailyHealthSummary
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.Profile
 import com.myhealth.domain.model.RecoveryState
 import com.myhealth.domain.model.SleepRecord
+import com.myhealth.domain.model.StrengthWorkout
+import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.repository.HealthRepository
 import com.myhealth.domain.repository.LoadRepository
+import com.myhealth.domain.repository.PlanRepository
 import com.myhealth.domain.repository.ProfileRepository
+import com.myhealth.domain.repository.StrengthRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import java.time.Clock
 import java.time.Instant
@@ -34,20 +44,29 @@ private data class LoadCore(
     val series: List<DailyLoad>,
     val latest: DailyLoad?,
     val recovery: RecoveryState?,
+    val muscleLoad: MuscleLoadState,
 )
 
 /**
- * Backs [LoadScreen] (PLAN §4.2 Load & recovery, P5.6): the range-selected daily-load series, the
- * latest cached row for the ATL/CTL/ACWR/TSB tiles, and a live [RecoveryState] recomputed from the
+ * Backs [LoadScreen] (PLAN §4.2 Load & recovery, P5.6/P14.8): the range-selected daily-load series,
+ * the latest cached row for the ATL/CTL/ACWR/TSB tiles, a live [RecoveryState] recomputed from the
  * same inputs [com.myhealth.data.repository.LoadRecomputeService] uses — `daily_load` only caches
  * the score/band/confidence/flags totals, not the per-component breakdown (§2.2.6), so the
- * component list (name, points/max) is rebuilt here rather than read from the cache.
+ * component list (name, points/max) is rebuilt here rather than read from the cache — and today's
+ * [MuscleLoadState] for the "Muscle load" card, resolved the way
+ * [com.myhealth.data.repository.SuggestionMuscleResolver] assembles it for the suggester (P14.5),
+ * but re-derived directly against the domain repositories since `ui/` may not import `data/`
+ * (`ArchitectureTest`) — the same seam [com.myhealth.ui.zones.ZonesViewModel] uses for pace bands
+ * (P14.6).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class LoadViewModel(
     private val loadRepo: LoadRepository,
     private val healthRepo: HealthRepository,
     private val profileRepo: ProfileRepository,
+    private val activityRepo: ActivityRepository,
+    private val planRepo: PlanRepository,
+    private val strengthRepo: StrengthRepository,
     private val clock: Clock,
 ) : ViewModel() {
 
@@ -68,17 +87,63 @@ class LoadViewModel(
         recoveryStateFor(latest, profile, health, sleep, today(), clock.zone)
     }
 
-    private val core = combine(series, loadRepo.observeLatest(), recovery) { s, latest, r ->
-        LoadCore(series = s, latest = latest, recovery = r)
+    private val muscleLoad = combine(
+        activityRepo.observeRange(today() - MuscleLoadEngine.WINDOW_DAYS, today()),
+        loadRepo.observeLatest(),
+    ) { activities, latest -> activities to (latest?.ctl ?: 0.0) }
+        .flatMapLatest { (activities, ctl) ->
+            flow { emit(resolveMuscleLoadState(activities, ctl, today(), planRepo, strengthRepo)) }
+        }
+
+    private val core = combine(series, loadRepo.observeLatest(), recovery, muscleLoad) { s, latest, r, m ->
+        LoadCore(series = s, latest = latest, recovery = r, muscleLoad = m)
     }
 
     val state: StateFlow<LoadUiState> = combine(range, core) { r, c ->
-        LoadUiState(isLoading = false, range = r, series = c.series, latest = c.latest, recovery = c.recovery)
+        LoadUiState(
+            isLoading = false,
+            range = r,
+            series = c.series,
+            latest = c.latest,
+            recovery = c.recovery,
+            muscleLoad = c.muscleLoad,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LoadUiState())
 
     fun setRange(newRange: LoadRange) {
         range.value = newRange
     }
+}
+
+/**
+ * Assembles a [MuscleLoadState] from [activities] over the last [MuscleLoadEngine.WINDOW_DAYS]
+ * days plus [ctl] — the same join [com.myhealth.data.repository.SuggestionMuscleResolver] performs
+ * (activity → the planned session that claimed it via `linkedActivityId`, for its `sessionType`,
+ * and, through `plannedSession.workoutId`, its actual exercise list), shared by [LoadViewModel] and
+ * `TodayViewModel` so both cards agree.
+ */
+internal suspend fun resolveMuscleLoadState(
+    activities: List<ActivitySummary>,
+    ctl: Double,
+    todayDay: Long,
+    planRepo: PlanRepository,
+    strengthRepo: StrengthRepository,
+): MuscleLoadState {
+    val fromDay = todayDay - MuscleLoadEngine.WINDOW_DAYS
+    val planned = planRepo.getSessions(fromDay, todayDay)
+    val linked = planned.filter { it.linkedActivityId != null }.associateBy { it.linkedActivityId!! }
+    val workouts = mutableMapOf<Long, StrengthWorkout?>()
+    val sessions = activities.map { activity ->
+        val link = linked[activity.id]
+        MuscleSession(
+            day = activity.day,
+            sportGroup = activity.sportGroup,
+            sessionType = link?.sessionType,
+            trimp = activity.trimp ?: 0.0,
+            workout = link?.workoutId?.let { id -> workouts.getOrPut(id) { strengthRepo.getById(id) } },
+        )
+    }
+    return MuscleLoadEngine.compute(MuscleLoadInput(today = todayDay, ctl = ctl, sessions = sessions))
 }
 
 /** Rebuilds a [RecoveryInput] for `today` from bulk-fetched history, mirroring
