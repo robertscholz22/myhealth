@@ -8,8 +8,9 @@ Native Android app (Kotlin, Jetpack Compose, Room) for a Google Pixel 7A: a pers
 - **Activities** — list and detail with HR zones, laps, TRIMP; **training load** (ATL/CTL/ACWR, monotony, strain), **recovery score** (sleep, resting HR, load, HRV), **running PRs** with best-split detection, Riegel predictions and VDOT.
 - **Calendar** — soccer matches, trainings, races and other events (with weekly recurrence), linked to the matching Garmin activity automatically or by hand.
 - **Nutrition** — ingredients entered by hand, scanned from a nutrition label (camera OCR, German + English), from a photo, or looked up by barcode (Open Food Facts); meal templates; a diary with per-slot logging and water; **adaptive daily targets** (calories and protein/carb/fat split) from weight, goal weight, activity level, measured expenditure and the day's context (rest, training, pre-match, match day).
-- **Training plans** — goals (race time, weight, consistency), a week board, and rule-based **session suggestions** with rationale, driven by goals, load, recovery and the calendar (no hard sessions before a match, taper before races, rest days, sport caps).
+- **Training plans** — goals (race time, weight, consistency, bike FTP / volume / event), a week board, and rule-based **session suggestions** with rationale, driven by goals, load, recovery and the calendar (no hard sessions before a match, taper before races, rest days, sport caps).
 - **Import / backup** — Garmin `.fit`, activity `.csv` and full export `.zip`; JSON backup export/import.
+- **Cycling** — rides from Health Connect, FIT or CSV carry average/normalized/max power and cadence; FTP is estimated (best 20-minute power × 0.95 over 90 days, or session normalized power, with a manual override in Settings); ride bests (5/20/60-minute power, fastest 10/20/40/100 km) on the Bike & power screen; training load from power (TSS) when a ride has no heart rate; bike goals (FTP target, weekly ride hours, event with distance/time/date) and ride sessions in the suggested week (endurance ride, bike intervals, trainer session, recovery spin — indoor variants in November–March when an indoor trainer is available).
 - **Cycle tracker** (female users, or anyone who enables it) — log period starts and ends, get averages-based forecasts of the next periods, ovulation and fertile windows on the calendar and Today, and cycle-aware training suggestions (moderate intensity on the first period days, strength/intervals favoured in the follicular phase, warm-up note around ovulation, recovery focus in the late luteal phase).
 - Green Material 3 theme (wallpaper colours optional).
 
@@ -31,7 +32,7 @@ On first launch complete onboarding, then More → Integrations → Grant permis
 Stable releases are annotated git tags `vX.Y.Z` on `main` (the phone is only ever installed from a tag, never from main):
 
 ```bash
-git checkout v1.0.0 && bash tools/verify.sh
+git checkout v1.1.0 && bash tools/verify.sh
 adb install -r app/build/outputs/apk/release/app-release.apk
 git checkout main
 ```

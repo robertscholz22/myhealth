@@ -2268,6 +2268,30 @@ Total: **83 tasks** across 10 phases.
 - **Cycle screen** (More → "Cycle", visible when tracking is enabled): current status card (phase badge, day N of ~C, next period in X days, ovulation date, confidence), "Log period start" (date, default today) and "Period ended" actions, history list (start, length, period days, delete), forecast list (next 6 cycles). **Today** card: phase + day of cycle + next period; **Calendar**: period days (logged and predicted, distinct tint), ovulation day marker, fertile window dots; **Day detail**: cycle line; **Settings**: "Track menstrual cycle" switch; **Onboarding** step 3: the switch appears for FEMALE (on by default). Suggestion review/Today show the cycle rationale lines like any other rule.
 - Tests: pure `CycleUiStateTest` (labels: "Day 12 of ~28", countdown), instrumented `CycleScreenTest` (log a period start → status card shows MENSTRUAL day 1; Calendar shows the marker).
 
+### P12 — Cycling workouts (owner request, 2026-09-13; approved plan → release 1.1.0)
+
+> "Please plan cycling workouts as a separate feature … When the feature is tested and ready for release, bump version to 1.1.0 and roll out." Owner decisions: goals = FTP target, cycling event by date, weekly ride volume, fastest time over a distance; FTP **estimated** (best 20-minute normalized power × 0.95 over 90 days, manual override wins); trainer rides arrive via Garmin/Health Connect; the planner prefers indoor sessions November–March when an indoor trainer is available. Power was to be read from the CSV **and** from Health Connect (`PowerRecord`, `CyclingPedalingCadenceRecord`) so it works once Garmin Connect writes it.
+
+**Naming.** Menstrual code owns `Cycle*`; bicycle code uses **Bike/Ride** (`domain/engine/bike/*`, `suggest/BikeRules.kt`, table `ride_best`, `ui/bike/*`, `BikeRoute`, strings `bike_*`, rationale ids `BIKE_*`). `SportGroup.CYCLE` / `SportType.CYCLING*` unchanged.
+
+#### P12.1 — Data + sources (opus) — DONE (c9a7b23)
+DB 4 → 5 (`MIGRATION_4_5`): `activity_session.{avgPowerW,maxPowerW,normalizedPowerW}`, `activity_stream.powerWJson`, `profile.{ftpWattsManual,indoorTrainerAvailable}`, table `ride_best` (§2.2); enums appended (§2.1); merge precedence for power in `MOTION` (§2.4); backup schema 3 → 5 with `rideBest`; CSV EN/DE power + cadence columns (`Ø Trittfrequenz` appears twice in the German export — the parser keeps all indices per name), FIT power stream + session fields, Health Connect `PowerRecord`/pedal cadence per session (`HcPermissions.OPTIONAL_DETAIL` = `READ_POWER` only — pedalling cadence rides on `READ_EXERCISE`; reads degrade to empty on `SecurityException`); `PowerMath.normalizedPower`. Tests `bike01…bike08`, `np01…np03`, `migration_4_to_5_…`.
+
+#### P12.2 — Engines (opus) — DONE (7095a77)
+`SplitFinder` (shared with §3.4), `FtpEstimator`, `BikeBestEngine`, `BikeDefaults` (§3.8); `POWER_TSS` rung (§3.2.2, `TSS_TO_TRIMP = 1.5`); `LoadRecomputeService` refreshes `ride_best` and resolves the FTP once per run before TRIMP; `GoalProgress` for `BIKE_FTP` / `BIKE_VOLUME` / `BIKE_EVENT`; `completedKcal` uses `avgPowerW × durationSec / 1000` before the MET table. Tests `pw01…pw06`, `ftp01…ftp05`, `rb01…rb07`, `goal09…goal12`, `nut22`.
+
+#### P12.3 — Suggestions (opus) — DONE (931aed9)
+Four catalog rows gated by `SessionCatalog.suggestableFor(bikeEnabled)`; `BikeRules` (gate, `isIndoorSeason` Nov–Mar, trainer transform, `C14` spacing); second phase table for cycling goals (§3.5.6); `primaryRaceGoal` accepts `BIKE_EVENT`; rationale ids `BIKE_FTP_GOAL`, `BIKE_VOLUME_GOAL`, `BIKE_EVENT_PREP`, `BIKE_INDOOR_SEASON`; `SuggestionInputsHash` adds the two profile fields only when set; `ONBOARDING_SPORT_GROUPS += CYCLE` (cap default 0, honoured by `C10`). Tests `sug27…sug33` (`sug28` = byte-identical baseline for bike-free inputs), `c14…c16`, `BikeRulesTest`.
+
+#### P12.4 — UI (sonnet) — DONE (791e461)
+Settings: Cycling section (FTP override with the estimate as hint, "Indoor trainer available"), "Ride sessions / week cap" (the caps iterate `ONBOARDING_SPORT_GROUPS`); onboarding step 3 gets the same field. Activity detail: power card (avg / NP / max, IF + TSS when an FTP exists), power-over-time chart, cadence in rpm for rides, load-method label "from power (TSS)". New **Bike & power** screen (More): FTP card with source and basis ride, power bests and time bests (estimated marker, tap → activity). Goals editor: `BIKE_FTP` (watts), `BIKE_VOLUME` (h/week), `BIKE_EVENT` (10/20/40/100 km, optional time and date); Goals list shows a hint when a bike goal is active but the ride cap is 0. Tests `bikeui01/02`, `goaldraft_bike_*`.
+
+#### P12.5 — Instrumented + emulator (sonnet + lead) — DONE (VERIFICATION.md session 10)
+Seeder rides with `PowerRecord` + pedal cadence (Tuesday trainer ride, no HR) and a 40.2 km Saturday ride; upgrade path 1.0.3 → 1.1.0 on populated data without re-granting; grant `READ_POWER` → power present. Found and fixed **BUG-13**: a newly granted per-session permission never re-read already-synced sessions (changes token + backfill watermark) → `SyncScheduler.rereadExerciseDetail(90)` from `IntegrationsViewModel.onPermissionsResult`. Instrumented `BikeScreenTest`.
+
+#### P12.6 — Release 1.1.0 (lead)
+`versionCode 110 / 1.1.0`, tag `v1.1.0`, GitHub release with the APK, install on the Pixel from the tag after a JSON backup; owner checklist: Settings → indoor trainer on + ride cap, Bike & power shows the FTP estimate from the CSV rides' NP (set the override if it looks wrong), a generated week contains a ride, Integrations lists "Power" (not granted until Garmin writes it).
+
 ---
 
 ## 6. Verification strategy

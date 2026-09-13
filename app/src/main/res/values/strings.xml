@@ -111,7 +111,7 @@
     <string name="onboarding_recovery_section_title">Recovery</string>
     <string name="onboarding_goal_pace_hint">Negative to lose weight, positive to gain.</string>
     <string name="onboarding_sport_sessions_label">%1$s sessions / week</string>
-    <string name="onboarding_ride_sessions_label">Rides / week</string>
+    <string name="onboarding_ride_sessions_label">Ride sessions / week</string>
     <string name="onboarding_neat_desk">Desk job, mostly sitting</string>
     <string name="onboarding_neat_light_active">Light activity, on your feet sometimes</string>
     <string name="onboarding_neat_active">Active, on your feet most of the day</string>
@@ -519,7 +519,7 @@
     <string name="goals_empty_title">No goals yet</string>
     <string name="goals_empty_message">Add a race time, a target weight or a weekly session count to steer the plan.</string>
     <string name="goals_archived_header">Archived</string>
-    <string name="goals_cycle_cap_hint">Set Rides / week in Settings to get ride suggestions.</string>
+    <string name="goals_cycle_cap_hint">Set the ride sessions / week cap in Settings to get ride suggestions.</string>
     <string name="goals_primary_chip">Primary</string>
     <string name="goals_action_make_primary">Make primary</string>
     <string name="goals_action_achieved">Achieved</string>
@@ -719,7 +719,7 @@
     <string name="settings_profile_sleep_target_label">Sleep target</string>
     <string name="settings_profile_mobility_rest_days_label">Mobility on rest days</string>
     <string name="settings_profile_sport_sessions_cap_format">%1$s sessions / week cap</string>
-    <string name="settings_profile_ride_sessions_label">Rides / week</string>
+    <string name="settings_profile_ride_sessions_label">Ride sessions / week cap</string>
     <string name="settings_unit_cm">cm</string>
     <string name="settings_unit_kg">kg</string>
     <string name="settings_unit_kg_per_week">kg/week</string>

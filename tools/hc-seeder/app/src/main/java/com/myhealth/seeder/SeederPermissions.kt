@@ -24,6 +24,7 @@ object SeederPermissions {
         "android.permission.health.WRITE_OXYGEN_SATURATION",
         "android.permission.health.WRITE_RESPIRATORY_RATE",
         "android.permission.health.WRITE_VO2_MAX",
+        "android.permission.health.WRITE_POWER",
         "android.permission.health.READ_EXERCISE",
         "android.permission.health.READ_STEPS",
         "android.permission.health.READ_DISTANCE",
@@ -41,5 +42,6 @@ object SeederPermissions {
         "android.permission.health.READ_OXYGEN_SATURATION",
         "android.permission.health.READ_RESPIRATORY_RATE",
         "android.permission.health.READ_VO2_MAX",
+        "android.permission.health.READ_POWER",
     )
 }

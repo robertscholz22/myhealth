@@ -174,8 +174,8 @@ fun goalHeadline(goal: Goal): String {
             "$distance$time$by"
         }
         GoalType.BODY_WEIGHT -> "${goal.targetWeightKg ?: 0.0} kg$by"
-        GoalType.CONSISTENCY -> "${goal.targetValue ?: 0.0} sessions/week$by"
-        GoalType.BIKE_FTP -> "${goal.targetValue ?: 0.0} W FTP$by"
+        GoalType.CONSISTENCY -> "${wholeNumber(goal.targetValue)} sessions/week$by"
+        GoalType.BIKE_FTP -> "${wholeNumber(goal.targetValue)} W FTP$by"
         GoalType.BIKE_VOLUME -> "${goal.targetValue ?: 0.0} h/week riding$by"
         GoalType.BIKE_EVENT -> {
             val distance = goal.targetDistanceMeters?.let { GoalProgress.distanceLabel(it) } ?: "ride"
@@ -186,3 +186,6 @@ fun goalHeadline(goal: Goal): String {
             "${goalTypeLabel(goal.type)}: ${goal.targetValue ?: 0.0}$by"
     }
 }
+
+/** Watts and session counts are whole numbers; `300.0 W` reads wrong. */
+private fun wholeNumber(value: Double?): String = Math.round(value ?: 0.0).toString()

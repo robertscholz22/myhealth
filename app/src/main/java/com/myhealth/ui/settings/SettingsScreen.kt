@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -228,6 +229,9 @@ private fun PreferredSportsFields(profile: Profile, onProfileChange: (Profile) -
                 val updated = sessions + (group to (v ?: 0.0).toInt().coerceIn(0, 14))
                 onProfileChange(profile.copy(preferredSportsJson = encodePreferredSports(updated)))
             },
+            // Testing hook (PLAN P10.2 convention, P12.5): the CYCLE cap is otherwise
+            // indistinguishable from the other sport caps by anything but its label text.
+            modifier = if (group == SportGroup.CYCLE) Modifier.testTag("settings_ride_sessions_field") else Modifier,
             decimals = 0,
         )
     }
@@ -254,6 +258,8 @@ private fun CyclingSection(profile: Profile, ftpEstimate: FtpEstimate?, onProfil
             Switch(
                 checked = profile.indoorTrainerAvailable,
                 onCheckedChange = { onProfileChange(profile.copy(indoorTrainerAvailable = it)) },
+                // Testing hook (PLAN P10.2 convention, P12.5), matching `settings_dynamic_color_switch`.
+                modifier = Modifier.testTag("settings_indoor_trainer_switch"),
             )
         }
     }

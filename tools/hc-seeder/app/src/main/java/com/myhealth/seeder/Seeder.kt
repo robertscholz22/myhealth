@@ -17,6 +17,8 @@ import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.SpeedRecord
 import androidx.health.connect.client.records.StepsCadenceRecord
+import androidx.health.connect.client.records.PowerRecord
+import androidx.health.connect.client.records.CyclingPedalingCadenceRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.records.Vo2MaxRecord
@@ -61,6 +63,8 @@ class Seeder(context: Context) {
         ActiveCaloriesBurnedRecord::class,
         TotalCaloriesBurnedRecord::class,
         StepsCadenceRecord::class,
+        PowerRecord::class,
+        CyclingPedalingCadenceRecord::class,
         StepsRecord::class,
         RestingHeartRateRecord::class,
         FloorsClimbedRecord::class,
@@ -115,6 +119,7 @@ class Seeder(context: Context) {
         val weight = mutableListOf<WeightRecord>()
         val bodyFat = mutableListOf<BodyFatRecord>()
         val vo2max = mutableListOf<Vo2MaxRecord>()
+        val rides = RideLists()
 
         // Pick which Saturday runs are 5k PRs (every 3rd Saturday in range) and which run day is
         // the single 10k in the middle of the range.
@@ -165,6 +170,17 @@ class Seeder(context: Context) {
                     dayActiveKcal += activeKcalFor(durationMin, 11.5)
                 }
                 else -> {}
+            }
+            if (date.dayOfWeek == DayOfWeek.TUESDAY) {
+                addTrainerRide(BERLIN, rnd, meta, zdt(date, LocalTime.of(6, 30)), exercises, activeCal, totalCal, rides)
+                dayActiveKcal += 888.0
+            }
+            if (date.dayOfWeek == DayOfWeek.SATURDAY) {
+                addOutdoorRide(
+                    BERLIN, rnd, meta, zdt(date, LocalTime.of(10, 0)),
+                    exercises, heartRate, distance, speed, activeCal, totalCal,
+                )
+                dayActiveKcal += activeKcalFor(75.0, 10.0)
             }
             if (date.dayOfWeek == DayOfWeek.TUESDAY) {
                 val startTime = zdt(date, LocalTime.of(19, 0))
@@ -270,6 +286,8 @@ class Seeder(context: Context) {
         counts["ActiveCalories"] = insertType(activeCal)
         counts["TotalCalories"] = insertType(totalCal)
         counts["StepsCadence"] = insertType(cadence)
+        counts["Power"] = insertType(rides.power)
+        counts["PedalCadence"] = insertType(rides.pedalCadence)
         counts["Steps"] = insertType(steps)
         counts["RestingHeartRate"] = insertType(restingHr)
         counts["FloorsClimbed"] = insertType(floors)
