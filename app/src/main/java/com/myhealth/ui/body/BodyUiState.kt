@@ -6,8 +6,9 @@ import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.model.DailyHealthSummary
 import com.myhealth.domain.model.SleepRecord
 import com.myhealth.domain.util.toLocalDate
+import com.myhealth.ui.common.fmtKg
+import com.myhealth.ui.common.fmtPercent
 import java.time.LocalDate
-import java.util.Locale
 
 /** The three history windows the Body charts offer (PLAN P8.3). */
 enum class BodyRange(val days: Long, @StringRes val labelRes: Int) {
@@ -68,8 +69,8 @@ fun List<BodyMeasurement>.withinLastDays(days: Long, today: LocalDate): List<Bod
  */
 fun measurementValueLabel(weightKg: Double?, bodyFatPercent: Double?): String = when {
     weightKg != null && bodyFatPercent != null ->
-        "%.1f kg, %.1f %% fat".format(Locale.US, weightKg, bodyFatPercent)
-    weightKg != null -> "%.1f kg".format(Locale.US, weightKg)
-    bodyFatPercent != null -> "Body fat %.1f %%".format(Locale.US, bodyFatPercent)
+        "${fmtKg(weightKg)}, ${fmtPercent(bodyFatPercent)} fat"
+    weightKg != null -> fmtKg(weightKg)
+    bodyFatPercent != null -> "Body fat ${fmtPercent(bodyFatPercent)}"
     else -> "\u2014"
 }

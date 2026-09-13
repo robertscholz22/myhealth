@@ -9,6 +9,7 @@ import com.myhealth.domain.model.ParsedValue
 import com.myhealth.domain.util.EngineWarning
 import com.myhealth.ui.common.ConfidenceLevel
 import com.myhealth.ui.common.confidenceLevelOf
+import com.myhealth.ui.common.fmtDecimal
 
 /** The nine editable rows of the review form, in the order a label prints them (§3.6). */
 enum class OcrField(@StringRes val labelRes: Int, @StringRes val suffixRes: Int, val decimals: Int) {
@@ -176,4 +177,4 @@ private fun NutritionFacts.valueOf(field: OcrField): Double? = when (field) {
 }
 
 private fun Double.trimZeros(): String =
-    if (this == toLong().toDouble()) toLong().toString() else toString()
+    if (this == toLong().toDouble()) toLong().toString() else fmtDecimal(this, 1)

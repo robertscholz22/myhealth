@@ -45,4 +45,8 @@ class RoomLoadRepository(
     override suspend fun upsertAll(days: List<DailyLoad>): Outcome<Unit> = withContext(ioDispatcher) {
         runCatchingApp { loadDao.upsertAll(days.map { it.toEntity() }) }
     }
+
+    override suspend fun deleteBefore(beforeDay: Long): Outcome<Unit> = withContext(ioDispatcher) {
+        runCatchingApp { loadDao.deleteBefore(beforeDay) }
+    }
 }

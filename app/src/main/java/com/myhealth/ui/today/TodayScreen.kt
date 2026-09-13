@@ -49,6 +49,7 @@ import com.myhealth.ui.common.SportIcon
 import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.StatTile
 import com.myhealth.ui.common.displayName
+import com.myhealth.ui.common.fmtDecimal
 import com.myhealth.ui.theme.MyHealthTheme
 import java.time.ZoneId
 
@@ -345,7 +346,7 @@ private fun SleepTile(sleep: SleepRecord?) {
             Text(stringResource(R.string.today_no_sleep), style = MaterialTheme.typography.bodyMedium)
         } else {
             val hours = sleep.totalSleepMin / 60.0
-            StatTile(label = stringResource(R.string.today_last_night_label), value = "%.1f".format(hours), unit = "h")
+            StatTile(label = stringResource(R.string.today_last_night_label), value = fmtDecimal(hours, 1), unit = "h")
         }
     }
 }

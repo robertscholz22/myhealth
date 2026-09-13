@@ -49,10 +49,11 @@ import com.myhealth.ui.common.charts.BarChartCard
 import com.myhealth.ui.common.charts.ChartSeries
 import com.myhealth.ui.common.charts.LineChartCard
 import com.myhealth.ui.common.charts.dropGaps
+import com.myhealth.ui.common.fmtDecimal
+import com.myhealth.ui.common.fmtKg
 import com.myhealth.ui.theme.MyHealthTheme
 import com.myhealth.domain.util.toLocalDate
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 fun BodyScreen(modifier: Modifier = Modifier) {
@@ -166,7 +167,7 @@ private fun WeightChartCard(state: BodyUiState) {
             ),
         ),
         xLabels = dayAxisLabels(state.fromDay, state.today),
-        yFormatter = { "%.1f".format(Locale.US, it) },
+        yFormatter = { fmtDecimal(it, 1) },
         goalLine = state.goalWeightKg,
         emptyMessage = stringResource(R.string.body_chart_weight_empty),
     )
@@ -183,7 +184,7 @@ private fun BodyFatChartCard(state: BodyUiState) {
             ),
         ),
         xLabels = dayAxisLabels(state.fromDay, state.today),
-        yFormatter = { "%.1f".format(Locale.US, it) },
+        yFormatter = { fmtDecimal(it, 1) },
         emptyMessage = stringResource(R.string.body_chart_body_fat_empty),
     )
 }
@@ -199,7 +200,7 @@ private fun RestingHrChartCard(state: BodyUiState) {
             ),
         ),
         xLabels = dayAxisLabels(state.fromDay, state.today),
-        yFormatter = { "%.0f".format(Locale.US, it) },
+        yFormatter = { fmtDecimal(it, 0) },
         emptyMessage = stringResource(R.string.body_chart_resting_hr_empty),
     )
 }
@@ -211,7 +212,7 @@ private fun SleepChartCard(state: BodyUiState) {
         title = stringResource(R.string.body_chart_sleep_title, SLEEP_BAR_NIGHTS),
         values = if (hours.all { it == 0.0 }) emptyList() else hours,
         xLabels = nightAxisLabels(state.sleepFromNight, state.today),
-        yFormatter = { "%.1f".format(Locale.US, it) },
+        yFormatter = { fmtDecimal(it, 1) },
         highlightIndex = hours.lastIndex.takeIf { it >= 0 },
         emptyMessage = stringResource(R.string.body_chart_sleep_empty, SLEEP_BAR_NIGHTS),
     )
@@ -224,11 +225,11 @@ private fun CurrentWeightCard(latest: BodyMeasurement?, goalWeightKg: Double?, d
             Text(stringResource(R.string.body_no_weight_yet))
         } else {
             Text(
-                text = "%.1f kg".format(Locale.US, latest.weightKg),
+                text = fmtKg(latest.weightKg),
                 style = MaterialTheme.typography.headlineMedium,
             )
             if (goalWeightKg != null && deltaToGoalKg != null) {
-                val delta = "%.1f".format(Locale.US, kotlin.math.abs(deltaToGoalKg))
+                val delta = fmtDecimal(kotlin.math.abs(deltaToGoalKg), 1)
                 val message = when {
                     kotlin.math.abs(deltaToGoalKg) < 0.05 -> stringResource(R.string.body_goal_reached_message)
                     deltaToGoalKg > 0 -> stringResource(R.string.body_above_goal_message, delta, goalWeightKg)

@@ -9,8 +9,8 @@ import com.myhealth.domain.model.QuantityUnit
 import com.myhealth.domain.model.WaterLog
 import com.myhealth.domain.util.toLocalDate
 import com.myhealth.ui.common.UiMessage
+import com.myhealth.ui.common.fmtDecimal
 import java.time.LocalDate
-import java.util.Locale
 
 /**
  * Message shown in place of the target header when the day has no snapshot. With a profile in
@@ -112,7 +112,7 @@ fun quantityLabel(quantity: Double, unit: QuantityUnit): String {
     val amount = if (quantity == quantity.toLong().toDouble()) {
         quantity.toLong().toString()
     } else {
-        String.format(Locale.US, "%.1f", quantity)
+        fmtDecimal(quantity, 1)
     }
     return "$amount ${unit.label()}"
 }
@@ -136,7 +136,7 @@ private const val ML_PER_LITRE: Int = 1000
 
 /** "750 ml" under a litre, "2.7 l" from a litre up. */
 fun waterAmountLabel(ml: Int): String =
-    if (ml < ML_PER_LITRE) "$ml ml" else String.format(Locale.US, "%.1f l", ml / 1000.0)
+    if (ml < ML_PER_LITRE) "$ml ml" else "${fmtDecimal(ml / 1000.0, 1)} l"
 
 /**
  * "1.5 / 2.8 l" for the water card, or "750 ml / 2.7 l" while either side is under a litre —
@@ -145,8 +145,7 @@ fun waterAmountLabel(ml: Int): String =
 fun waterLabel(target: NutritionTarget?, totalMl: Int): String {
     val goal = target?.waterMl ?: return waterAmountLabel(totalMl)
     if (totalMl >= ML_PER_LITRE && goal >= ML_PER_LITRE) {
-        return "${String.format(Locale.US, "%.1f", totalMl / 1000.0)} / " +
-            "${String.format(Locale.US, "%.1f", goal / 1000.0)} l"
+        return "${fmtDecimal(totalMl / 1000.0, 1)} / ${fmtDecimal(goal / 1000.0, 1)} l"
     }
     return "${waterAmountLabel(totalMl)} / ${waterAmountLabel(goal)}"
 }

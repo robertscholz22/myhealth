@@ -59,6 +59,11 @@ interface ActivityDao {
     )
     fun observeBySportGroup(group: SportGroup, fromDay: Long): Flow<List<ActivitySessionEntity>>
 
+    /** Earliest `activity_session.day` across all activities, or `null` when there are none
+     * (POLISH-13): the load series must never start before this day. */
+    @Query("SELECT MIN(day) FROM activity_session")
+    suspend fun getFirstActivityDay(): Long?
+
     /** Daily TRIMP totals feeding the ATL/CTL series (§3.2.3). Days without activities are absent. */
     @Query(
         "SELECT day AS day, SUM(trimp) AS trimp FROM activity_session " +

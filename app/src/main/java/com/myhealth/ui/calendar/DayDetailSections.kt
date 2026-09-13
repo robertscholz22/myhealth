@@ -44,10 +44,10 @@ import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.SourceBadgeRow
 import com.myhealth.ui.common.SportIcon
 import com.myhealth.ui.common.displayName
+import com.myhealth.ui.common.fmtDecimal
 import com.myhealth.ui.common.resolve
 import com.myhealth.ui.cycle.dayOfCycleLabel
 import com.myhealth.ui.cycle.phaseLabelRes
-import java.util.Locale
 
 /** The per-item overflow menu shared by the event and planned-session rows (§4.2 Day detail). */
 @Composable
@@ -323,7 +323,7 @@ internal fun LoadSection(load: DailyLoad?) {
             text = stringResource(
                 R.string.daydetail_load_trimp_acwr,
                 load.trimp,
-                load.acwr?.let { "%.2f".format(Locale.US, it) } ?: "—",
+                load.acwr?.let { fmtDecimal(it, 2) } ?: "—",
             ),
             style = MaterialTheme.typography.bodyLarge,
         )

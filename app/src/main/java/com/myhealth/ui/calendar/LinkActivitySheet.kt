@@ -27,6 +27,7 @@ import com.myhealth.domain.model.EventOccurrence
 import com.myhealth.ui.activities.formatDistanceKm
 import com.myhealth.ui.activities.formatDuration
 import com.myhealth.ui.common.displayName
+import com.myhealth.ui.common.fmtInt
 import kotlin.math.roundToInt
 
 /** One row of the [LinkActivitySheet] list: a scored suggestion, or a plain manual-fallback row
@@ -43,7 +44,7 @@ data class LinkCandidate(
  * `EventActivityLinker`'s 6-dp threshold rounding, nothing downstream compares this string to a
  * boundary.
  */
-fun confidenceLabel(confidence: Double): String = "${(confidence * 100).roundToInt()}%"
+fun confidenceLabel(confidence: Double): String = "${fmtInt((confidence * 100).roundToInt())}%"
 
 /**
  * Candidate rows for one event occurrence (PLAN §4.2 Day detail / P3.7): the linker's [proposals]

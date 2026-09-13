@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.myhealth.R
 import com.myhealth.ui.common.SectionCard
+import com.myhealth.ui.common.fmtDecimal
 import com.myhealth.ui.theme.MyHealthTheme
 import kotlin.math.max
 import kotlin.math.min
@@ -153,7 +154,7 @@ private fun BarChartCardPreview() {
             title = "Sleep",
             values = listOf(7.2, 6.4, 8.1, 5.9, 7.7, 6.8, 7.0),
             xLabels = listOf("Mon", "Thu", "Sun"),
-            yFormatter = { "%.1f".format(it) },
+            yFormatter = { fmtDecimal(it, 1) },
             highlightIndex = 6,
             modifier = Modifier.padding(16.dp),
         )
@@ -168,7 +169,7 @@ private fun BarChartCardManyPreview() {
             title = "Daily TRIMP",
             values = (0 until 28).map { (it * 13 % 90).toDouble() },
             xLabels = listOf("Aug 1", "Aug 14", "Aug 28"),
-            yFormatter = { "%.0f".format(it) },
+            yFormatter = { fmtDecimal(it, 0) },
             modifier = Modifier.padding(16.dp),
         )
     }
@@ -182,7 +183,7 @@ private fun BarChartCardEmptyPreview() {
             title = "Daily TRIMP",
             values = emptyList(),
             xLabels = emptyList(),
-            yFormatter = { "%.0f".format(it) },
+            yFormatter = { fmtDecimal(it, 0) },
             modifier = Modifier.padding(16.dp),
         )
     }

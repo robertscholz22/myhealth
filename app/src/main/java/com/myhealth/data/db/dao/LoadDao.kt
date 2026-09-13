@@ -38,4 +38,9 @@ interface LoadDao {
 
     @Query("DELETE FROM daily_load WHERE day >= :fromDay")
     suspend fun deleteFrom(fromDay: Long)
+
+    /** POLISH-13: prunes cached rows that precede the earliest activity (or all rows, when
+     * there are no activities and the caller passes `Long.MAX_VALUE`). */
+    @Query("DELETE FROM daily_load WHERE day < :beforeDay")
+    suspend fun deleteBefore(beforeDay: Long)
 }

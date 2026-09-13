@@ -4,6 +4,8 @@ import com.myhealth.domain.engine.running.CanonicalDistances
 import com.myhealth.domain.engine.running.RacePrediction
 import com.myhealth.domain.model.RunningBest
 import com.myhealth.ui.common.charts.ChartSeries
+import com.myhealth.ui.common.fmtDecimal
+import com.myhealth.ui.common.fmtKm
 import java.util.Locale
 import kotlin.math.abs
 
@@ -51,13 +53,13 @@ fun distanceLabel(distanceMeters: Double): String = when {
     isClose(distanceMeters, CanonicalDistances.FIFTEEN_KM) -> "15 km"
     isClose(distanceMeters, CanonicalDistances.HALF_MARATHON) -> "Half marathon"
     isClose(distanceMeters, CanonicalDistances.MARATHON) -> "Marathon"
-    else -> "%.1f km".format(Locale.US, distanceMeters / 1000.0)
+    else -> fmtKm(distanceMeters / 1000.0, 1)
 }
 
 private fun isClose(a: Double, b: Double): Boolean = abs(a - b) < 1.0
 
 /** "VDOT 49.8" for the header stat, or a placeholder before any qualifying effort exists. */
-fun vdotLabel(vdot: Double?): String = vdot?.let { "VDOT %.1f".format(Locale.US, it) } ?: "VDOT —"
+fun vdotLabel(vdot: Double?): String = vdot?.let { "VDOT ${fmtDecimal(it, 1)}" } ?: "VDOT —"
 
 fun roundHalfUpToInt(value: Double): Int = kotlin.math.floor(value + 0.5).toInt()
 

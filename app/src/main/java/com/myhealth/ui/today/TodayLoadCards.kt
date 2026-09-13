@@ -15,11 +15,11 @@ import com.myhealth.R
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.StatTile
+import com.myhealth.ui.common.fmtDecimal
 import com.myhealth.ui.load.acwrZoneOf
 import com.myhealth.ui.load.color
 import com.myhealth.ui.load.flagExplanation
 import com.myhealth.ui.load.recoveryBandLabel
-import java.util.Locale
 
 /**
  * Today's recovery card (§4.2 Today, P5.8): score, band chip, confidence and the top active flag,
@@ -44,7 +44,7 @@ internal fun RecoveryCard(load: DailyLoad?, topFlag: String?, onOpenLoad: () -> 
                 Text(
                     stringResource(
                         R.string.today_confidence_label,
-                        (load.recoveryConfidence * 100).let { "%.0f".format(Locale.US, it) },
+                        fmtDecimal(load.recoveryConfidence * 100, 0),
                     ),
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -77,16 +77,16 @@ internal fun LoadCard(load: DailyLoad?, weeklyTrimp: Double, onOpenLoad: () -> U
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    text = load.acwr?.let { "%.2f".format(Locale.US, it) } ?: "—",
+                    text = load.acwr?.let { fmtDecimal(it, 2) } ?: "—",
                     style = MaterialTheme.typography.titleLarge,
                     color = zone?.color() ?: MaterialTheme.colorScheme.onSurface,
                 )
             }
-            StatTile(label = stringResource(R.string.today_atl_label), value = "%.0f".format(Locale.US, load.atl))
-            StatTile(label = stringResource(R.string.today_ctl_label), value = "%.0f".format(Locale.US, load.ctl))
+            StatTile(label = stringResource(R.string.today_atl_label), value = fmtDecimal(load.atl, 0))
+            StatTile(label = stringResource(R.string.today_ctl_label), value = fmtDecimal(load.ctl, 0))
             StatTile(
                 label = stringResource(R.string.today_weekly_trimp_label),
-                value = "%.0f".format(Locale.US, weeklyTrimp),
+                value = fmtDecimal(weeklyTrimp, 0),
             )
         }
     }

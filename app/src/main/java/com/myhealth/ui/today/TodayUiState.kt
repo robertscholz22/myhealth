@@ -12,10 +12,11 @@ import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.SleepRecord
 import com.myhealth.domain.model.SuggestedSession
 import com.myhealth.ui.body.weightDeltaToGoalKg
+import com.myhealth.ui.common.fmtDecimal
+import com.myhealth.ui.common.fmtKg
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 import kotlin.math.abs
 
 /** ViewModel state for [TodayScreen] (PLAN §4.2 Today (Home), P2.10/P3.7). */
@@ -87,10 +88,10 @@ fun lastSyncedLabel(lastSuccessAtMillis: Long?, zone: ZoneId): String {
  */
 fun weightChipLabel(latestWeightKg: Double?, goalWeightKg: Double?): String? {
     if (latestWeightKg == null) return null
-    val base = "%.1f kg".format(Locale.US, latestWeightKg)
+    val base = fmtKg(latestWeightKg)
     val delta = weightDeltaToGoalKg(latestWeightKg, goalWeightKg) ?: return base
     if (abs(delta) < 0.05) return "$base (at goal)"
     val sign = if (delta > 0) "+" else "-"
-    val magnitude = "%.1f".format(Locale.US, abs(delta))
+    val magnitude = fmtDecimal(abs(delta), 1)
     return "$base ($sign$magnitude kg to goal)"
 }

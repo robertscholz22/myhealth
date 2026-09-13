@@ -12,6 +12,7 @@ import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.RecoveryBand
 import com.myhealth.domain.model.RecoveryComponent
 import com.myhealth.domain.model.RecoveryState
+import com.myhealth.ui.common.fmtInt
 import kotlin.math.roundToInt
 
 /** The three history windows the range selector offers (§4.2 Load & recovery, P5.6). */
@@ -67,7 +68,7 @@ fun recoveryBandLabel(band: RecoveryBand?): String = when (band) {
 /** "Sleep 32/40" — one recovery-component row (§3.3). */
 fun componentLabel(component: RecoveryComponent): String =
     "${component.name.lowercase().replaceFirstChar { it.uppercase() }} " +
-        "${component.points.roundToInt()}/${component.maxPoints.roundToInt()}"
+        "${fmtInt(component.points.roundToInt())}/${fmtInt(component.maxPoints.roundToInt())}"
 
 /** "62% confidence" for the recovery card's footnote. */
 @Composable

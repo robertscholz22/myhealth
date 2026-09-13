@@ -6,6 +6,7 @@ import com.myhealth.data.db.entity.SuggestionBatchEntity
 import com.myhealth.domain.engine.suggest.SuggestFixtures
 import com.myhealth.domain.engine.suggest.SuggestionEngine
 import com.myhealth.domain.model.Intensity
+import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.PlanStatus
 import com.myhealth.domain.model.PlannedStatus
 import com.myhealth.domain.model.SessionType
@@ -132,6 +133,50 @@ class RoomSuggestionRepositoryTest {
 
         // POLISH-9: the batch is closed once nothing in it is `PROPOSED` any more.
         assertThat(suggestionDao.getById(batchId)?.status).isEqualTo(SuggestionStatus.ACCEPTED)
+    }
+
+    @Test
+    fun accept_replaces_unlocked_planned_sessions_in_the_horizon_and_keeps_locked_and_completed_ones() = runTest {
+        val batchId = suggestionDao.upsert(
+            SuggestionBatchEntity(
+                id = 0L,
+                generatedAtMillis = clock.millis(),
+                horizonStartDay = today,
+                horizonEndDay = today + 6,
+                phase = TrainingPhase.BASE,
+                weeklyLoadTarget = 400.0,
+                inputsHash = "hash",
+            ),
+        )
+        suggestionDao.upsertSessions(listOf(suggested(batchId, day = today + 2, sessionType = SessionType.EASY_RUN)))
+        val proposed = suggestionDao.getSessionsForBatch(batchId).map { it.id }
+
+        // Existing week: an unlocked planned session (replaceable), a locked one and a completed one
+        // inside the horizon, plus an unlocked one outside it.
+        fun existing(day: Long, locked: Boolean = false, status: PlannedStatus = PlannedStatus.PLANNED) = PlannedSession(
+            id = 0L, planId = null, day = day, startMinuteOfDay = null,
+            sportType = SportType.RUN_OUTDOOR, sessionType = SessionType.EASY_RUN, intensity = Intensity.LOW,
+            targetDurationMin = 40, targetDistanceMeters = null, targetPaceSecPerKm = null, estimatedTrimp = 50.0,
+            description = null, rationale = null, status = status, locked = locked, linkedActivityId = null,
+            sourceSuggestionId = null, createdAtMillis = clock.millis(), updatedAtMillis = clock.millis(),
+        )
+        planRepo.upsertSession(existing(today + 1))
+        planRepo.upsertSession(existing(today + 3, locked = true))
+        planRepo.upsertSession(existing(today + 4, status = PlannedStatus.COMPLETED))
+        planRepo.upsertSession(existing(today + 10))
+        assertThat(repo.countReplaceableSessions(batchId)).isEqualTo(1)
+
+        assertThat(repo.accept(proposed)).isInstanceOf(Outcome.Ok::class.java)
+
+        val inHorizon = planRepo.getSessions(today, today + 6)
+        assertThat(inHorizon.map { it.day to it.locked }).containsExactly(
+            (today + 2) to false, // the accepted suggestion
+            (today + 3) to true,  // locked stays
+            (today + 4) to false, // completed stays
+        )
+        assertThat(inHorizon.single { it.day == today + 4 }.status).isEqualTo(PlannedStatus.COMPLETED)
+        assertThat(planRepo.getSessions(today + 7, today + 14)).hasSize(1) // outside the horizon untouched
+        assertThat(repo.countReplaceableSessions(batchId)).isEqualTo(1) // only the newly accepted one is now replaceable
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.myhealth.ui.activities
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.util.toLocalDate
+import com.myhealth.ui.common.fmtKm
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -54,7 +55,7 @@ fun formatPaceMinPerKm(avgSpeedMps: Double?): String? {
 
 /** Distance in km, 2 decimals (§4.2 Activities row spec); `null` when the activity has no distance. */
 fun formatDistanceKm(distanceMeters: Double?): String? =
-    distanceMeters?.let { "%.2f km".format(Locale.US, it / 1000.0) }
+    distanceMeters?.let { fmtKm(it / 1000.0) }
 
 /** `"1h 05m"` / `"45 min"` — used on both the list row and the detail header. */
 fun formatDuration(seconds: Int): String {

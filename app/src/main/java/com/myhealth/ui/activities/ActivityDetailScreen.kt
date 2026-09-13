@@ -51,6 +51,7 @@ import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.SourceBadgeRow
 import com.myhealth.ui.common.displayName
+import com.myhealth.ui.common.fmtDecimal
 import com.myhealth.ui.theme.MyHealthTheme
 import java.time.Instant
 import java.time.ZoneId
@@ -179,19 +180,19 @@ private fun HeaderStatsCard(activity: ActivitySession) {
         } else {
             val avgLabel = stringResource(R.string.activity_detail_avg_speed_label)
             val maxLabel = stringResource(R.string.activity_detail_max_speed_label)
-            activity.avgSpeedMps?.let { StatLine(avgLabel, "%.1f km/h".format(Locale.US, it * 3.6)) }
-            activity.maxSpeedMps?.let { StatLine(maxLabel, "%.1f km/h".format(Locale.US, it * 3.6)) }
+            activity.avgSpeedMps?.let { StatLine(avgLabel, "${fmtDecimal(it * 3.6, 1)} km/h") }
+            activity.maxSpeedMps?.let { StatLine(maxLabel, "${fmtDecimal(it * 3.6, 1)} km/h") }
         }
-        activity.avgCadenceSpm?.let { StatLine(stringResource(R.string.activity_detail_cadence_label), "%.0f spm".format(Locale.US, it)) }
+        activity.avgCadenceSpm?.let { StatLine(stringResource(R.string.activity_detail_cadence_label), "${fmtDecimal(it, 0)} spm") }
         val elevationLabel = stringResource(R.string.activity_detail_elevation_gain_label)
-        activity.elevationGainM?.let { StatLine(elevationLabel, "%.0f m".format(Locale.US, it)) }
+        activity.elevationGainM?.let { StatLine(elevationLabel, "${fmtDecimal(it, 0)} m") }
         val activeCaloriesLabel = stringResource(R.string.activity_detail_active_calories_label)
-        activity.activeEnergyKcal?.let { StatLine(activeCaloriesLabel, "%.0f kcal".format(Locale.US, it)) }
+        activity.activeEnergyKcal?.let { StatLine(activeCaloriesLabel, "${fmtDecimal(it, 0)} kcal") }
         val totalCaloriesLabel = stringResource(R.string.activity_detail_total_calories_label)
-        activity.totalEnergyKcal?.let { StatLine(totalCaloriesLabel, "%.0f kcal".format(Locale.US, it)) }
+        activity.totalEnergyKcal?.let { StatLine(totalCaloriesLabel, "${fmtDecimal(it, 0)} kcal") }
         activity.trimp?.let { trimp ->
             val method = activity.loadMethod?.let { " (${it.label()})" } ?: ""
-            StatLine(stringResource(R.string.activity_detail_trimp_label), "%.1f%s".format(Locale.US, trimp, method))
+            StatLine(stringResource(R.string.activity_detail_trimp_label), "${fmtDecimal(trimp, 1)}$method")
         }
     }
 }
@@ -248,7 +249,7 @@ private fun HrSummaryCard(state: ActivityDetailUiState) {
         state.maxHrFromStream?.let { StatLine(stringResource(R.string.activity_detail_hr_max_label), "$it bpm") }
         Text(stringResource(R.string.activity_detail_hr_time_in_zone_label), style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 8.dp))
         HR_ZONE_LABELS.forEachIndexed { index, label ->
-            StatLine(label, "%.1f min".format(Locale.US, state.hrZoneMinutes.getOrElse(index) { 0.0 }))
+            StatLine(label, "${fmtDecimal(state.hrZoneMinutes.getOrElse(index) { 0.0 }, 1)} min")
         }
     }
 }

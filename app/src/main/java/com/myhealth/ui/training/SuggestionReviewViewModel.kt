@@ -61,13 +61,19 @@ class SuggestionReviewViewModel(
         if (current == null) flowOf(emptyList()) else suggestionRepo.observeSessions(current.id)
     }
 
+    /** BUG-10: how many unlocked planned sessions in the horizon accepting would replace. */
+    private val replaceable: Flow<Int> = batch.map { current ->
+        current?.let { suggestionRepo.countReplaceableSessions(it.id) } ?: 0
+    }
+
     val state: StateFlow<SuggestionReviewUiState> =
-        combine(batch, sessions, action) { current, rows, act ->
+        combine(batch, sessions, action, replaceable) { current, rows, act, count ->
             SuggestionReviewUiState(
                 isLoading = false,
                 batch = current,
                 rows = suggestionRows(current, rows),
                 accepted = act.accepted,
+                replaceableCount = count,
                 isWorking = act.isWorking,
                 message = act.message,
                 done = act.done,
@@ -146,11 +152,16 @@ internal fun SuggestionReviewUiState.headerLine(
     suggestedLabel: String,
     restDaySingular: String,
     restDayPlural: String,
+    replacesSingular: String = "",
+    replacesPlural: String = "",
 ): String = buildList {
     phase?.let { add(it.label()) }
     if (weeklyTarget > 0.0) add("$targetLabel ${Math.round(weeklyTarget)} AU")
     add("${Math.round(totalSuggestedLoad)} AU $suggestedLabel")
     if (restDayCount > 0) {
         add("$restDayCount ${if (restDayCount == 1) restDaySingular else restDayPlural}")
+    }
+    if (replaceableCount > 0 && replacesPlural.isNotEmpty()) {
+        add("$replaceableCount ${if (replaceableCount == 1) replacesSingular else replacesPlural}")
     }
 }.joinToString(" · ")

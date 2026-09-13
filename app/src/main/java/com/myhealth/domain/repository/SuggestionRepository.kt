@@ -31,6 +31,12 @@ interface SuggestionRepository {
 
     suspend fun generate(horizonDays: Int): Outcome<SuggestionBatch>
 
+    /**
+     * How many unlocked, still-`PLANNED` sessions inside the batch's horizon would be replaced by
+     * accepting it (BUG-10): a proposal replaces the week, locked and completed sessions stay.
+     */
+    suspend fun countReplaceableSessions(batchId: Long): Int
+
     suspend fun accept(sessionIds: List<Long>): Outcome<Unit>
 
     suspend fun reject(sessionIds: List<Long>): Outcome<Unit>

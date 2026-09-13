@@ -110,12 +110,25 @@ class RoomSuggestionRepository(
             }
         }
 
+    override suspend fun countReplaceableSessions(batchId: Long): Int = withContext(ioDispatcher) {
+        val batch = suggestionDao.getById(batchId) ?: return@withContext 0
+        planRepo.getReplaceableSessions(batch.horizonStartDay, batch.horizonEndDay).size
+    }
+
     override suspend fun accept(sessionIds: List<Long>): Outcome<Unit> = withContext(ioDispatcher) {
         if (sessionIds.isEmpty()) return@withContext Outcome.Ok(Unit)
         val outcome = runCatchingApp {
             val rows = suggestionDao.getSessionsByIds(sessionIds).map { it.toDomain() }
             if (rows.isNotEmpty()) {
                 val planId = activePlanId()
+                // BUG-10: a proposal replaces the week — drop the unlocked PLANNED sessions inside
+                // each accepted batch's horizon (locked / COMPLETED / SKIPPED sessions stay).
+                rows.map { it.batchId }.distinct().forEach { batchId ->
+                    suggestionDao.getById(batchId)?.let { batch ->
+                        planRepo.getReplaceableSessions(batch.horizonStartDay, batch.horizonEndDay)
+                            .forEach { planRepo.deleteSession(it.id) }
+                    }
+                }
                 planRepo.upsertSessions(rows.map { it.toPlannedSession(planId) })
                 suggestionDao.updateSessionStatuses(rows.map { it.id }, SuggestionStatus.ACCEPTED)
                 closeBatches(rows.map { it.batchId }.distinct())

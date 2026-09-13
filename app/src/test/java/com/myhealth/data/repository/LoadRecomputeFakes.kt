@@ -35,6 +35,11 @@ internal class FakeLoadRepository : LoadRepository {
         days.forEach { rows[it.day] = it }
         return Outcome.Ok(Unit)
     }
+
+    override suspend fun deleteBefore(beforeDay: Long): Outcome<Unit> {
+        rows.keys.filter { it < beforeDay }.forEach { rows.remove(it) }
+        return Outcome.Ok(Unit)
+    }
 }
 
 internal class FakeRunningBestRepository : RunningBestRepository {

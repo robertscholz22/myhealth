@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.myhealth.data.healthconnect.FakeHealthRepository
 import com.myhealth.domain.model.ActivitySession
 import com.myhealth.domain.model.ActivitySource
+import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.LoadMethod
 import com.myhealth.domain.model.Profile
 import com.myhealth.domain.model.Sex
@@ -81,6 +82,40 @@ class LoadRecomputeTest {
     }
 
     @Test
+    fun backfill_starts_at_the_first_activity_day_not_fromDay_minus_28() = runTest {
+        val firstActivityDay = today - 10
+        seedActivity(day = firstActivityDay, avgHr = 150, durationSec = 3600)
+
+        service.recompute(today - 1_000)
+
+        assertThat(loadRepo.rows.keys).isNotEmpty()
+        assertThat(loadRepo.rows.keys.min()).isEqualTo(firstActivityDay)
+        assertThat(loadRepo.rows.keys.all { it >= firstActivityDay }).isTrue()
+    }
+
+    @Test
+    fun rows_before_the_first_activity_are_deleted_on_recompute() = runTest {
+        val firstActivityDay = today - 10
+        loadRepo.rows[today - 500] = staleRow(today - 500)
+        loadRepo.rows[firstActivityDay - 1] = staleRow(firstActivityDay - 1)
+        seedActivity(day = firstActivityDay, avgHr = 150, durationSec = 3600)
+
+        service.recompute(today - 1_000)
+
+        assertThat(loadRepo.rows).doesNotContainKey(today - 500)
+        assertThat(loadRepo.rows).doesNotContainKey(firstActivityDay - 1)
+    }
+
+    @Test
+    fun no_activities_means_no_rows() = runTest {
+        loadRepo.rows[today - 5] = staleRow(today - 5)
+
+        service.recompute(today)
+
+        assertThat(loadRepo.rows).isEmpty()
+    }
+
+    @Test
     fun four_hundred_days_of_history_recomputes_quickly() = runTest {
         for (offset in 0 until 400) {
             seedActivity(day = today - offset.toLong(), avgHr = 130 + offset % 20, durationSec = 2_400)
@@ -138,6 +173,25 @@ class LoadRecomputeTest {
         )
         return (activityRepo.upsert(session) as Outcome.Ok).value
     }
+
+    /** A minimal cached row for pre-populating [FakeLoadRepository] in the POLISH-13 tests below;
+     * the values themselves are never asserted on, only whether the row survives a recompute. */
+    private fun staleRow(day: Long): DailyLoad = DailyLoad(
+        day = day,
+        trimp = 0.0,
+        sessionCount = 0,
+        atl = 0.0,
+        ctl = 0.0,
+        acwr = null,
+        tsb = 0.0,
+        monotony = null,
+        strain = null,
+        recoveryScore = null,
+        recoveryBand = null,
+        recoveryConfidence = 0.0,
+        flags = emptyList(),
+        computedAtMillis = 0L,
+    )
 
     private fun testProfile(): Profile = Profile(
         displayName = "Test",

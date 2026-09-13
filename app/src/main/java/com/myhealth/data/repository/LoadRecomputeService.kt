@@ -77,7 +77,17 @@ class LoadRecomputeService(
     private suspend fun recomputeInternal(fromDay: Long) {
         val profile = profileRepo.getProfile() ?: return
         val today = LocalDate.now(clock).toEpochDay()
-        val windowStart = minOf(fromDay, today) - TrimpDefaults.CHRONIC_WINDOW_DAYS
+
+        // POLISH-13: the series (and the cached `daily_load` rows) must never start before the
+        // first activity. No activities at all means no series and no cached rows.
+        val firstActivityDay = activityDao.getFirstActivityDay()
+        if (firstActivityDay == null) {
+            loadRepo.deleteBefore(Long.MAX_VALUE)
+            return
+        }
+
+        val rawWindowStart = minOf(fromDay, today) - TrimpDefaults.CHRONIC_WINDOW_DAYS
+        val windowStart = maxOf(rawWindowStart, firstActivityDay)
         val maxHrWindowStart = today - TrimpDefaults.OBSERVED_MAX_HR_WINDOW_DAYS + 1
         val unionStart = minOf(windowStart, maxHrWindowStart)
 
@@ -113,6 +123,7 @@ class LoadRecomputeService(
             withRecovery(detail, profile, healthByDay, sleepByNight, zone)
         }
         loadRepo.upsertAll(rows)
+        loadRepo.deleteBefore(firstActivityDay)
         autoCompletePlanned(today)
     }
 

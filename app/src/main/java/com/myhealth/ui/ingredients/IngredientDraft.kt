@@ -7,6 +7,7 @@ import com.myhealth.domain.model.MeasureBasis
 import com.myhealth.domain.model.NutritionFacts
 import com.myhealth.ui.camera.ScanDraft
 import com.myhealth.ui.common.UiMessage
+import com.myhealth.ui.common.fmtDecimal
 import java.time.Clock
 
 /** Field identity for [validate] errors (mirrors `EventField`'s pattern, §1.4/P3.6). */
@@ -64,7 +65,7 @@ fun Ingredient.basisLabel(context: Context): String = when (basis) {
 }
 
 private fun Double.trimZeros(): String =
-    if (this == this.toLong().toDouble()) this.toLong().toString() else this.toString()
+    if (this == this.toLong().toDouble()) this.toLong().toString() else fmtDecimal(this, 1)
 
 /**
  * Pure validation (unit-tested in `IngredientDraftTest`, P4.3): name required; kcal, protein,

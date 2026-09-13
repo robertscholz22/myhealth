@@ -27,6 +27,7 @@ import com.myhealth.domain.model.SportType
 import com.myhealth.domain.util.toLocalDate
 import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.common.displayName
+import com.myhealth.ui.common.fmtDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -92,7 +93,7 @@ fun targetProgressRows(target: NutritionTarget?, intake: MacroTotals): List<Macr
 
 private fun progressRow(label: String, current: Double, target: Double, unit: String) = MacroProgressRow(
     label = label,
-    valueLabel = "%.0f / %.0f %s".format(Locale.US, current, target, unit),
+    valueLabel = "${fmtDecimal(current, 0)} / ${fmtDecimal(target, 0)} $unit",
     fraction = progressFraction(current, target),
 )
 

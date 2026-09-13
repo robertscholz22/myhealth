@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import com.myhealth.ui.theme.MyHealthTheme
-import java.util.Locale
 
 /**
  * Numeric text field (§4.3): `NumberField(label, value, onValueChange, suffix, decimals)`.
@@ -42,7 +41,7 @@ fun NumberField(
         onValueChange = { candidate ->
             if (candidate.isValidNumberInput(allowNegative)) {
                 text = candidate
-                onValueChange(candidate.toDoubleOrNull())
+                onValueChange(parseDecimal(candidate))
             }
         },
         modifier = modifier.fillMaxWidth(),
@@ -57,10 +56,12 @@ fun NumberField(
 }
 
 private fun Double?.toDisplayText(decimals: Int): String =
-    this?.let { String.format(Locale.US, "%.${decimals}f", it) } ?: ""
+    this?.let { fmtDecimal(it, decimals) } ?: ""
 
+/** Accepts either decimal separator as the user types — [parseDecimal] then normalizes whichever
+ * one they used (POLISH-12: a German keyboard's numeric row inserts "," not "."). */
 private fun String.isValidNumberInput(allowNegative: Boolean): Boolean {
-    val pattern = if (allowNegative) "-?\\d*\\.?\\d*" else "\\d*\\.?\\d*"
+    val pattern = if (allowNegative) "-?\\d*[.,]?\\d*" else "\\d*[.,]?\\d*"
     return this.matches(Regex(pattern))
 }
 

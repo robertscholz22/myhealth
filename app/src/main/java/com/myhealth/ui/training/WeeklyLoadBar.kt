@@ -20,6 +20,7 @@ import com.myhealth.R
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.PlannedStatus
+import com.myhealth.ui.common.fmtInt
 import com.myhealth.ui.theme.MyHealthTheme
 import kotlin.math.roundToInt
 
@@ -122,7 +123,7 @@ private fun LoadBarRow(label: String, value: Double, fraction: Float, color: Col
             trackColor = MaterialTheme.colorScheme.surfaceVariant,
             modifier = Modifier.weight(1f).height(10.dp),
         )
-        Text(text = "${value.roundToInt()} AU", style = MaterialTheme.typography.labelMedium)
+        Text(text = "${fmtInt(value.roundToInt())} AU", style = MaterialTheme.typography.labelMedium)
     }
 }
 

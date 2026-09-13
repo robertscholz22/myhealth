@@ -22,6 +22,8 @@ data class SuggestionReviewUiState(
     val rows: List<SuggestionRow> = emptyList(),
     /** Per suggested-session id; a session not in the map is accepted (the default, §4.2). */
     val accepted: Map<Long, Boolean> = emptyMap(),
+    /** Unlocked PLANNED sessions in the horizon that accepting will replace (BUG-10). */
+    val replaceableCount: Int = 0,
     val isWorking: Boolean = false,
     val message: UiMessage? = null,
     /** One-shot: set once the batch has been accepted/rejected, so the screen can go back. */

@@ -12,7 +12,7 @@ import com.myhealth.domain.model.MealTemplate
 import com.myhealth.domain.model.MeasureBasis
 import com.myhealth.domain.model.QuantityUnit
 import com.myhealth.ui.common.UiMessage
-import java.util.Locale
+import com.myhealth.ui.common.fmtDecimal
 
 /** The Add-food tabs of §4.2 in display order; `SCAN` navigates out to `ScanRoute` (P4.8). */
 enum class AddFoodTab { RECENTS, FAVORITES, SEARCH, TEMPLATES, SCAN }
@@ -124,4 +124,4 @@ fun defaultUnitFor(ingredient: Ingredient): QuantityUnit =
     validUnitsFor(ingredient.basis, ingredient).first()
 
 private fun formatGrams(value: Double): String =
-    if (value == value.toLong().toDouble()) value.toLong().toString() else String.format(Locale.US, "%.1f", value)
+    if (value == value.toLong().toDouble()) value.toLong().toString() else fmtDecimal(value, 1)

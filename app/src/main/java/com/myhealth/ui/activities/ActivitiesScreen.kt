@@ -35,6 +35,7 @@ import com.myhealth.domain.model.LoadMethod
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
 import com.myhealth.ui.common.EmptyState
+import com.myhealth.ui.common.fmtInt
 import com.myhealth.ui.common.ErrorBanner
 import com.myhealth.ui.common.LoadingBox
 import com.myhealth.ui.common.SCREEN_PADDING
@@ -177,7 +178,7 @@ private fun activityRowStatsLine(activity: ActivitySummary): String = buildList 
     add(formatDuration(activity.durationSec))
     formatDistanceKm(activity.distanceMeters)?.let { add(it) }
     activity.avgHr?.let { add("$it bpm") }
-    activity.trimp?.let { add("TRIMP ${it.roundToDisplayInt()}") }
+    activity.trimp?.let { add("TRIMP ${fmtInt(it.roundToDisplayInt())}") }
 }.joinToString(" · ")
 
 private fun Double.roundToDisplayInt(): Int = Math.round(this).toInt()

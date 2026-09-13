@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.myhealth.R
 import com.myhealth.ui.common.SectionCard
+import com.myhealth.ui.common.fmtDecimal
 import com.myhealth.ui.theme.MyHealthTheme
 import kotlin.math.max
 import kotlin.math.min
@@ -226,7 +227,7 @@ private fun LineChartCardPreview() {
                 ),
             ),
             xLabels = listOf("Jul 1", "Jul 11", "Jul 21"),
-            yFormatter = { "%.1f".format(it) },
+            yFormatter = { fmtDecimal(it, 1) },
             goalLine = 76.0,
             modifier = Modifier.padding(16.dp),
         )
@@ -248,7 +249,7 @@ private fun LineChartCardBandsPreview() {
                 ),
             ),
             xLabels = listOf("Aug 1", "Aug 21"),
-            yFormatter = { "%.1f".format(it) },
+            yFormatter = { fmtDecimal(it, 1) },
             bands = listOf(
                 ChartBand("Optimal", 0.8, 1.3, Color(0x332E7D32)),
                 ChartBand("Caution", 1.3, 1.5, Color(0x33F9A825)),
@@ -267,7 +268,7 @@ private fun LineChartCardEmptyPreview() {
             title = "Resting heart rate",
             series = emptyList(),
             xLabels = emptyList(),
-            yFormatter = { "%.0f".format(it) },
+            yFormatter = { fmtDecimal(it, 0) },
             modifier = Modifier.padding(16.dp),
         )
     }

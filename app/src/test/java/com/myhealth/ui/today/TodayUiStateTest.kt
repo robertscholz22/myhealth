@@ -1,12 +1,30 @@
 package com.myhealth.ui.today
 
 import com.google.common.truth.Truth.assertThat
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.util.Locale
 
-/** Pure helpers of `TodayUiState.kt` (PLAN P2.10): the sync-status label and the body-chip label. */
+/** Pure helpers of `TodayUiState.kt` (PLAN P2.10): the sync-status label and the body-chip label.
+ * `weightChipLabel` formats through `fmtKg`/`fmtDecimal` (POLISH-12), which follow
+ * `Locale.getDefault()`; pinned to `Locale.US` here so the verbatim assertions below are
+ * locale-independent. */
 class TodayUiStateTest {
+
+    private val originalLocale: Locale = Locale.getDefault()
+
+    @Before
+    fun setUp() {
+        Locale.setDefault(Locale.US)
+    }
+
+    @After
+    fun tearDown() {
+        Locale.setDefault(originalLocale)
+    }
 
     @Test
     fun today01_lastSyncedLabel_formatsTimeOrReportsNeverSynced() {

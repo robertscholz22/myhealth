@@ -11,13 +11,30 @@ import com.myhealth.domain.model.EngineWarningCode
 import com.myhealth.domain.model.QuantityUnit
 import com.myhealth.domain.model.WaterLog
 import com.myhealth.domain.util.EngineWarning
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
+import java.util.Locale
 
 /**
  * The pure parts of the diary state (PLAN P4.5): slot grouping, totals, header labels, and the
- * water-card labels of P4.13.
+ * water-card labels of P4.13. The water/quantity labels format through `fmtDecimal` (POLISH-12),
+ * which follows `Locale.getDefault()`; pinned to `Locale.US` here so the verbatim assertions below
+ * are locale-independent.
  */
 class NutritionUiStateTest {
+
+    private val originalLocale: Locale = Locale.getDefault()
+
+    @Before
+    fun setUp() {
+        Locale.setDefault(Locale.US)
+    }
+
+    @After
+    fun tearDown() {
+        Locale.setDefault(originalLocale)
+    }
 
     @Test
     fun water_progress_is_the_day_total_over_the_target() {

@@ -23,4 +23,8 @@ interface LoadRepository {
     suspend fun recomputeFrom(fromDay: Long): Outcome<Unit>
 
     suspend fun upsertAll(days: List<DailyLoad>): Outcome<Unit>
+
+    /** POLISH-13: deletes cached rows before [beforeDay] (the first activity day, or
+     * `Long.MAX_VALUE` to clear everything when there are no activities). */
+    suspend fun deleteBefore(beforeDay: Long): Outcome<Unit>
 }

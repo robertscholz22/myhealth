@@ -174,6 +174,8 @@ private fun ReviewHeaderCard(
                 suggestedLabel = stringResource(R.string.review_suggested_label),
                 restDaySingular = stringResource(R.string.review_rest_day_singular),
                 restDayPlural = stringResource(R.string.review_rest_day_plural),
+                replacesSingular = stringResource(R.string.review_replaces_singular),
+                replacesPlural = stringResource(R.string.review_replaces_plural),
             ),
             style = MaterialTheme.typography.bodyMedium,
         )

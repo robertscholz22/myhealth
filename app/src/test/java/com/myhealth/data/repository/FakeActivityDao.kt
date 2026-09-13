@@ -71,6 +71,9 @@ class FakeActivityDao : ActivityDao {
             .sortedByDescending { it.startAtMillis }
     }
 
+    override suspend fun getFirstActivityDay(): Long? =
+        activities.value.values.minOfOrNull { it.day }
+
     override fun sumTrimpPerDay(fromDay: Long, toDay: Long): Flow<List<DayTrimp>> =
         activities.map { all ->
             all.values.filter { it.day in fromDay..toDay && it.trimp != null }

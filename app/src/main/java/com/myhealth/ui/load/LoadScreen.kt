@@ -30,6 +30,7 @@ import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.StatTile
+import com.myhealth.ui.common.fmtDecimal
 import com.myhealth.ui.common.charts.BarChartCard
 import com.myhealth.ui.common.charts.ChartBand
 import com.myhealth.ui.common.charts.ChartSeries
@@ -37,7 +38,6 @@ import com.myhealth.ui.common.charts.LineChartCard
 import com.myhealth.ui.theme.MyHealthTheme
 import com.myhealth.ui.theme.PositiveGreen
 import com.myhealth.ui.theme.WarningAmber
-import java.util.Locale
 
 @Composable
 fun LoadScreen(modifier: Modifier = Modifier) {
@@ -101,19 +101,19 @@ private fun LoadTilesCard(latest: DailyLoad?) {
             return@SectionCard
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            StatTile(label = stringResource(R.string.load_stat_atl), value = "%.0f".format(Locale.US, latest.atl))
-            StatTile(label = stringResource(R.string.load_stat_ctl), value = "%.0f".format(Locale.US, latest.ctl))
+            StatTile(label = stringResource(R.string.load_stat_atl), value = fmtDecimal(latest.atl, 0))
+            StatTile(label = stringResource(R.string.load_stat_ctl), value = fmtDecimal(latest.ctl, 0))
             AcwrTile(latest.acwr)
-            StatTile(label = stringResource(R.string.load_stat_tsb), value = "%.0f".format(Locale.US, latest.tsb))
+            StatTile(label = stringResource(R.string.load_stat_tsb), value = fmtDecimal(latest.tsb, 0))
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             StatTile(
                 label = stringResource(R.string.load_stat_monotony),
-                value = latest.monotony?.let { "%.2f".format(Locale.US, it) } ?: "—",
+                value = latest.monotony?.let { fmtDecimal(it, 2) } ?: "—",
             )
             StatTile(
                 label = stringResource(R.string.load_stat_strain),
-                value = latest.strain?.let { "%.0f".format(Locale.US, it) } ?: "—",
+                value = latest.strain?.let { fmtDecimal(it, 0) } ?: "—",
             )
         }
         if (latest.flags.isNotEmpty()) {
@@ -136,7 +136,7 @@ private fun AcwrTile(acwr: Double?) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = acwr?.let { "%.2f".format(Locale.US, it) } ?: "—",
+            text = acwr?.let { fmtDecimal(it, 2) } ?: "—",
             style = MaterialTheme.typography.titleLarge,
             color = zone?.color() ?: MaterialTheme.colorScheme.onSurface,
         )
@@ -156,7 +156,7 @@ private fun AtlCtlChartCard(series: List<DailyLoad>) {
             ChartSeries(name = stringResource(R.string.load_chart_ctl_series), points = ctlPoints(series)),
         ),
         xLabels = loadAxisLabels(series),
-        yFormatter = { "%.0f".format(Locale.US, it) },
+        yFormatter = { fmtDecimal(it, 0) },
         emptyMessage = stringResource(R.string.load_chart_atl_ctl_empty),
     )
 }
@@ -188,7 +188,7 @@ private fun AcwrChartCard(series: List<DailyLoad>) {
         title = stringResource(R.string.load_chart_acwr_title),
         series = listOf(ChartSeries(name = stringResource(R.string.load_chart_acwr_series), points = acwrPoints(series))),
         xLabels = loadAxisLabels(series),
-        yFormatter = { "%.1f".format(Locale.US, it) },
+        yFormatter = { fmtDecimal(it, 1) },
         bands = bands,
         emptyMessage = stringResource(R.string.load_chart_acwr_empty),
     )
@@ -201,7 +201,7 @@ private fun DailyTrimpCard(series: List<DailyLoad>) {
         title = stringResource(R.string.load_chart_trimp_title),
         values = bars,
         xLabels = loadAxisLabels(series),
-        yFormatter = { "%.0f".format(Locale.US, it) },
+        yFormatter = { fmtDecimal(it, 0) },
         highlightIndex = bars.lastIndex.takeIf { it >= 0 },
         emptyMessage = stringResource(R.string.load_chart_trimp_empty),
     )
@@ -213,7 +213,7 @@ private fun RecoveryTrendCard(series: List<DailyLoad>) {
         title = stringResource(R.string.load_chart_recovery_title),
         series = listOf(ChartSeries(name = stringResource(R.string.load_chart_recovery_series), points = recoveryPoints(series))),
         xLabels = loadAxisLabels(series),
-        yFormatter = { "%.0f".format(Locale.US, it) },
+        yFormatter = { fmtDecimal(it, 0) },
         emptyMessage = stringResource(R.string.load_chart_recovery_empty),
     )
 }

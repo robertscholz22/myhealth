@@ -8,7 +8,7 @@ import com.myhealth.domain.model.SportGroup
 import com.myhealth.ui.common.charts.ChartSeries
 import com.myhealth.ui.common.charts.LineChartCard
 import com.myhealth.ui.common.charts.invertY
-import java.util.Locale
+import com.myhealth.ui.common.fmtDecimal
 
 /** Heart rate against elapsed minutes (PLAN P8.3). */
 @Composable
@@ -17,7 +17,7 @@ internal fun HrChartCard(activity: ActivitySession) {
         title = stringResource(R.string.activity_chart_hr_title),
         series = listOf(ChartSeries(name = stringResource(R.string.activity_chart_hr_series), points = hrPoints(activity.streams))),
         xLabels = minuteAxisLabels(activity.streams),
-        yFormatter = { "%.0f".format(Locale.US, it) },
+        yFormatter = { fmtDecimal(it, 0) },
         emptyMessage = stringResource(R.string.activity_chart_hr_empty),
     )
 }
@@ -50,7 +50,7 @@ internal fun PaceOrSpeedChartCard(activity: ActivitySession) {
             title = stringResource(R.string.activity_chart_speed_title),
             series = listOf(ChartSeries(name = stringResource(R.string.activity_chart_speed_series), points = speedPoints(streams))),
             xLabels = minuteAxisLabels(streams),
-            yFormatter = { "%.1f".format(Locale.US, it) },
+            yFormatter = { fmtDecimal(it, 1) },
             emptyMessage = stringResource(R.string.activity_chart_speed_empty),
         )
     }
@@ -62,7 +62,7 @@ internal fun AltitudeChartCard(activity: ActivitySession) {
         title = stringResource(R.string.activity_chart_altitude_title),
         series = listOf(ChartSeries(name = stringResource(R.string.activity_chart_altitude_series), points = altitudePoints(activity.streams))),
         xLabels = minuteAxisLabels(activity.streams),
-        yFormatter = { "%.0f".format(Locale.US, it) },
+        yFormatter = { fmtDecimal(it, 0) },
         emptyMessage = stringResource(R.string.activity_chart_altitude_empty),
     )
 }

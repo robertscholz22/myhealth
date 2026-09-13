@@ -2,10 +2,27 @@ package com.myhealth.ui.running
 
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.domain.engine.running.CanonicalDistances
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
+import java.util.Locale
 
-/** Pure time/pace/distance formatting of `ui/running` (PLAN P5.7). */
+/** Pure time/pace/distance formatting of `ui/running` (PLAN P5.7). `distanceLabel`'s fallback
+ * branch formats through `fmtKm` (POLISH-12), which follows `Locale.getDefault()`; pinned to
+ * `Locale.US` here so the verbatim assertion below is locale-independent. */
 class RunningPrsUiStateTest {
+
+    private val originalLocale: Locale = Locale.getDefault()
+
+    @Before
+    fun setUp() {
+        Locale.setDefault(Locale.US)
+    }
+
+    @After
+    fun tearDown() {
+        Locale.setDefault(originalLocale)
+    }
 
     @Test
     fun format_race_time_switches_to_hh_mm_ss_past_an_hour() {
