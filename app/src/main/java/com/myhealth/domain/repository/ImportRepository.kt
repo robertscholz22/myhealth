@@ -30,6 +30,15 @@ interface ImportRepository {
      * again. Finally a load recompute is requested from the earliest day the undo touched.
      */
     suspend fun undo(importId: Long): Outcome<ImportUndoSummary>
+
+    /**
+     * Removes source records of a file-import kind (`CSV_IMPORT`/`FIT_IMPORT`) that were never
+     * stamped with an `import_record` (BUG-12b hotfix 1.0.3): activities imported before DB v4,
+     * which "Undo import" cannot find because it selects by `importRecordId`. Each is removed
+     * through the same re-merge/delete path [undo] uses — an activity Health Connect also knows
+     * is kept — and a load recompute is requested from the earliest day touched.
+     */
+    suspend fun removeOrphanedImportData(): Outcome<ImportUndoSummary>
 }
 
 /**

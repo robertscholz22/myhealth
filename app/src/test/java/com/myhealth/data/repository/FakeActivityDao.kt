@@ -154,6 +154,25 @@ class FakeActivityDao : ActivityDao {
     ): List<ActivitySourceRecordEntity> =
         sourceRecords.filter { it.importRecordId == importRecordId }
 
+    override suspend fun getUnstampedSourceRecordsInWindow(
+        sources: List<ActivitySource>,
+        fromMillis: Long,
+        toMillis: Long,
+    ): List<ActivitySourceRecordEntity> = sourceRecords.filter {
+        it.source in sources && it.importRecordId == null && it.receivedAtMillis in fromMillis..toMillis
+    }
+
+    override suspend fun getAllUnstampedSourceRecords(
+        sources: List<ActivitySource>,
+    ): List<ActivitySourceRecordEntity> =
+        sourceRecords.filter { it.source in sources && it.importRecordId == null }
+
+    override suspend fun stampImportRecordId(id: Long, importRecordId: Long) {
+        val index = sourceRecords.indexOfFirst { it.id == id }
+        if (index < 0) return
+        sourceRecords[index] = sourceRecords[index].copy(importRecordId = importRecordId)
+    }
+
     override suspend fun upsertStream(entity: ActivityStreamEntity) {
         streams[entity.activityId] = entity
     }

@@ -2,14 +2,20 @@ package com.myhealth.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.R
 import com.myhealth.domain.model.AppSettings
 import com.myhealth.domain.model.Profile
 import com.myhealth.domain.model.Sex
+import com.myhealth.domain.repository.ImportRepository
 import com.myhealth.domain.repository.ProfileRepository
 import com.myhealth.domain.repository.SettingsRepository
+import com.myhealth.domain.util.Outcome
 import com.myhealth.sync.SyncScheduler
+import com.myhealth.ui.common.UiMessage
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -19,9 +25,15 @@ import java.time.Clock
 class SettingsViewModel(
     private val profileRepo: ProfileRepository,
     private val settingsRepo: SettingsRepository,
+    private val importRepo: ImportRepository,
     private val syncScheduler: SyncScheduler,
     private val clock: Clock,
 ) : ViewModel() {
+
+    private val orphanCleanupMessage = MutableStateFlow<UiMessage?>(null)
+
+    /** One-shot result of [removeOrphanedImportData], resolved and shown by the screen's snackbar. */
+    val message: StateFlow<UiMessage?> = orphanCleanupMessage.asStateFlow()
 
     val state: StateFlow<SettingsUiState> = combine(
         profileRepo.observeProfile(),
@@ -46,5 +58,27 @@ class SettingsViewModel(
 
     fun onSettingsChange(settings: AppSettings) {
         viewModelScope.launch { settingsRepo.update { settings } }
+    }
+
+    /**
+     * BUG-12b (hotfix 1.0.3): removes file-import source records that were never stamped with an
+     * `import_record` (imported before DB v4) and so "Undo import" can no longer reach. The count
+     * comes back as the snackbar message.
+     */
+    fun removeOrphanedImportData() {
+        viewModelScope.launch {
+            orphanCleanupMessage.value = when (val outcome = importRepo.removeOrphanedImportData()) {
+                is Outcome.Ok -> UiMessage.of(
+                    R.string.settings_orphan_cleanup_result_format,
+                    outcome.value.activitiesDeleted,
+                    outcome.value.activitiesKept,
+                )
+                is Outcome.Err -> UiMessage.of(R.string.settings_orphan_cleanup_failed)
+            }
+        }
+    }
+
+    fun consumeMessage() {
+        orphanCleanupMessage.value = null
     }
 }
