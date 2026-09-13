@@ -38,6 +38,7 @@ object SuggestionInputsHash {
                 num(input.profile.goalPaceKgPerWeek),
             ).joinToString("|"),
         )
+        bikeLine(input)?.let { line("bike", it) }
         input.goals.sortedWith(compareBy({ it.priority }, { it.id })).forEach { goal ->
             line(
                 "goal",
@@ -105,6 +106,20 @@ object SuggestionInputsHash {
                 ).joinToString("|"),
             )
         }
+    }
+
+    /**
+     * P12.3's two profile fields (`ftpWattsManual`, `indoorTrainerAvailable`), emitted **only when
+     * one of them is set**. A profile that never touched the bike settings therefore serializes
+     * byte-for-byte as it did before P12 — so upgrading does not invalidate every stored batch and
+     * `sug01`…`sug26` keep their digests (test `sug28`), while flipping the trainer switch or
+     * setting an FTP override regenerates the week (test `sug32`).
+     */
+    private fun bikeLine(input: SuggestionInput): String? {
+        val ftp = input.profile.ftpWattsManual
+        val trainer = input.profile.indoorTrainerAvailable
+        if (ftp == null && !trainer) return null
+        return listOf(ftp?.toString() ?: "", trainer.toString()).joinToString("|")
     }
 
     fun sha256(value: String): String {

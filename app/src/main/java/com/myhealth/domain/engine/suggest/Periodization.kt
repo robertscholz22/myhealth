@@ -7,6 +7,7 @@ import com.myhealth.domain.model.Goal
 import com.myhealth.domain.model.GoalType
 import com.myhealth.domain.model.RecoveryBand
 import com.myhealth.domain.model.RecoveryState
+import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.TrainingPhase
 import kotlin.math.max
 import kotlin.math.min
@@ -74,10 +75,38 @@ object Periodization {
         TrainingPhase.RECOVERY_WEEK -> 0.65
     }
 
-    /** The primary race goal: `RACE_TIME` with a `targetDay` that has not passed, lowest priority. */
+    /** The goal types the phase table periodizes towards: a running race or a cycling event. */
+    val RACE_GOAL_TYPES: Set<GoalType> = setOf(GoalType.RACE_TIME, GoalType.BIKE_EVENT)
+
+    /**
+     * The primary race goal: a [RACE_GOAL_TYPES] goal with a `targetDay` that has not passed,
+     * lowest priority. P12.3 adds `BIKE_EVENT` — a cycling event periodizes exactly like a race,
+     * only the preferred sessions of each phase differ ([bikePreferredTypes]).
+     */
     fun primaryRaceGoal(goals: List<Goal>, todayDay: Long): Goal? = goals
-        .filter { it.type == GoalType.RACE_TIME && (it.targetDay ?: Long.MIN_VALUE) >= todayDay }
+        .filter { it.type in RACE_GOAL_TYPES && (it.targetDay ?: Long.MIN_VALUE) >= todayDay }
         .minByOrNull { it.priority }
+
+    /**
+     * The second phase table of P12.3, used instead of [Scorer.preferredTypes] when the primary
+     * goal's sport group is `CYCLE`. Same phases, bike sessions: the strength rows stay because a
+     * cyclist still needs them, and `MOBILITY` fills the phases that are about recovering.
+     */
+    fun bikePreferredTypes(phase: TrainingPhase): Set<SessionType> = when (phase) {
+        TrainingPhase.BASE ->
+            setOf(SessionType.ENDURANCE_RIDE, SessionType.TRAINER_SESSION, SessionType.STRENGTH_FULL)
+        TrainingPhase.BUILD ->
+            setOf(SessionType.BIKE_INTERVALS, SessionType.ENDURANCE_RIDE, SessionType.STRENGTH_LOWER)
+        TrainingPhase.PEAK -> setOf(SessionType.BIKE_INTERVALS, SessionType.ENDURANCE_RIDE)
+        TrainingPhase.TAPER -> setOf(SessionType.RECOVERY_SPIN, SessionType.BIKE_INTERVALS)
+        TrainingPhase.RACE_WEEK -> setOf(SessionType.RECOVERY_SPIN, SessionType.MOBILITY)
+        TrainingPhase.IN_SEASON ->
+            setOf(SessionType.ENDURANCE_RIDE, SessionType.STRENGTH_UPPER, SessionType.MOBILITY)
+        TrainingPhase.RECOVERY_WEEK ->
+            setOf(SessionType.RECOVERY_SPIN, SessionType.ENDURANCE_RIDE, SessionType.MOBILITY)
+        TrainingPhase.OFF_SEASON ->
+            setOf(SessionType.TRAINER_SESSION, SessionType.STRENGTH_FULL, SessionType.MOBILITY)
+    }
 
     /** Days from today to the primary race, or `null` when there is none to periodize towards. */
     fun daysToRace(goals: List<Goal>, todayDay: Long): Long? =

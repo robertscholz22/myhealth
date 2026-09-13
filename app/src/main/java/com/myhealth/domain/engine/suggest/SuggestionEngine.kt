@@ -55,6 +55,7 @@ class SuggestionEngine(private val clock: Clock) {
     fun generate(input: SuggestionInput): SuggestionResult {
         val periodization = Periodization.compute(input)
         val ctx = ConstraintContext.of(input)
+        val bike = BikeContext.of(input)
         var grid = SuggestionGrid.seed(input)
         var remaining = max(periodization.weeklyTarget - grid.fixedLoad, 0.0)
         val stopFloor = MIN_BUDGET_FRACTION * periodization.weeklyTarget
@@ -62,12 +63,12 @@ class SuggestionEngine(private val clock: Clock) {
         var iterations = 0
         while (iterations < MAX_ITERATIONS && remaining > 0.0 && remaining >= stopFloor) {
             iterations++
-            val best = bestCandidate(input, periodization, grid, ctx, remaining) ?: break
+            val best = bestCandidate(input, periodization, grid, ctx, bike, remaining) ?: break
             val (candidate, breakdown) = best
             if (breakdown.total < MIN_SCORE) break
             val rationale = Rationale.forSession(
                 candidate = candidate,
-                ctx = rationaleContext(input, periodization, grid, ctx, remaining, candidate),
+                ctx = rationaleContext(input, periodization, grid, ctx, bike, remaining, candidate),
             )
             grid = grid.place(candidate.day, candidate.asPlacedItem(breakdown.total, rationale))
             remaining = max(remaining - candidate.estTrimp, 0.0)
@@ -88,25 +89,35 @@ class SuggestionEngine(private val clock: Clock) {
         periodization: PeriodizationResult,
         grid: SuggestionGrid,
         ctx: ConstraintContext,
+        bike: BikeContext,
         remaining: Double,
     ): Pair<Candidate, ScoreBreakdown>? {
         val scoring = Scorer.contextOf(input, periodization, remaining)
         return grid.days
-            .flatMap { plan -> candidatesFor(plan.day, periodization.phase, grid, remaining) }
+            .flatMap { plan -> candidatesFor(plan.day, periodization.phase, grid, remaining, bike) }
             .filter { Constraints.violations(it, it.day, grid, ctx).isEmpty() }
             .map { it to Scorer.score(it, grid, scoring) }
             .minWithOrNull(candidateOrder)
     }
 
-    /** Every catalog session the day could take, at the duration the budget and phase imply. */
+    /**
+     * Every catalog session the day could take, at the duration the budget and phase imply.
+     *
+     * [bike] is where P12.3 enters: it drops the four cycling rows for an athlete who does not
+     * ride, drops `TRAINER_SESSION` without a trainer, and moves outdoor rides onto the trainer in
+     * the indoor season — all before a single constraint or score is evaluated.
+     */
     internal fun candidatesFor(
         day: Long,
         phase: TrainingPhase,
         grid: SuggestionGrid,
         remaining: Double,
-    ): List<Candidate> = SessionCatalog.SUGGESTABLE.map { entry ->
-        Candidate(entry = entry, day = day, minutes = minutesFor(entry, phase, grid, remaining))
-    }
+        bike: BikeContext = BikeContext.NONE,
+    ): List<Candidate> = SessionCatalog.suggestableFor(bike.enabled)
+        .mapNotNull { entry -> BikeRules.entryFor(entry, day, bike) }
+        .map { entry ->
+            Candidate(entry = entry, day = day, minutes = minutesFor(entry, phase, grid, remaining))
+        }
 
     /** §3.5.4's duration scaling — see the class KDoc for how `Σ(remaining defaults)` is read. */
     internal fun minutesFor(
@@ -203,6 +214,7 @@ class SuggestionEngine(private val clock: Clock) {
         periodization: PeriodizationResult,
         grid: SuggestionGrid,
         ctx: ConstraintContext,
+        bike: BikeContext,
         remaining: Double,
         candidate: Candidate,
     ): RationaleContext {
@@ -223,6 +235,8 @@ class SuggestionEngine(private val clock: Clock) {
                 Scorer.sessionsThisWeekForSport(candidate.sportGroup, candidate.day, grid)
             },
             cycleStatus = input.cycleStatusByDay[candidate.day],
+            bikeGoal = BikeRules.primaryBikeGoal(input.goals),
+            bikeIndoorSeason = bike.trainerAvailable && BikeRules.isIndoorSeason(candidate.day),
             isStarterWeek = periodization.isStarterWeek,
         )
     }

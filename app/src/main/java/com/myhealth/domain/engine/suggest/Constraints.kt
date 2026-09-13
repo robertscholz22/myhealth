@@ -14,10 +14,17 @@ import kotlin.math.abs
 /**
  * The hard constraints of PLAN §3.5.3, in the plan's order, plus `C13` — the repetition guard
  * added after runtime finding POLISH-8 (two "Strength full" days in a row, two "Soccer training"
- * days in a row) showed that C11's per-type spacing leaves the rest of the catalog unguarded.
+ * days in a row) showed that C11's per-type spacing leaves the rest of the catalog unguarded —
+ * and `C14`, P12.3's bike-interval spacing.
+ *
+ * P12.3 mints exactly one new id: the `CYCLE` weekly cap needs no rule of its own (it is `C10`
+ * reading the new `CYCLE` entry of `preferredSportsJson`) and neither does `RECOVERY_SPIN` after a
+ * match (that is `C4`'s [Constraints.RECOVERY_ONLY_TYPES] gaining a member, a relaxation rather
+ * than a constraint). The named tests still follow the task's numbering — `c14_cycle_cap_respected`
+ * pins `C10`, `c15_…` pins this `C14`, `c16_…` pins `C4` — see `ConstraintsBikeTest`.
  */
 enum class ConstraintId {
-    C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13,
+    C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14,
 
     /** P11.2: cycle days 1–2 take nothing above `MODERATE`. */
     CYCLE_MENSTRUAL,
@@ -105,6 +112,9 @@ data class ConstraintContext(
  * - A `BLOCKED` day still counts as the rest day C3 asks for — nothing is scheduled on it.
  * - The three `CYCLE_*` rules of P11.2 are hard constraints for the same reason C8 is: capping an
  *   intensity after scoring would let a capped candidate win its slot and then vanish.
+ * - C14 (P12.3) lives in [BikeRules.violatesSpacing], the way the `CYCLE_*` rules live in
+ *   `CycleRules`: `BIKE_INTERVALS` is `HIGH`, so C1/C5/C9 already treat it as hard work, and C14
+ *   only adds the spacing a bike session needs from other bike and other hard work.
  * - C13 (POLISH-8) reads "consecutive days" as adjacent grid days and "48 h between two strength
  *   sessions" as "at least one clear day between them", the same whole-day reading C11 uses.
  *   `MOBILITY` is exempt from the same-type half: it carries no stress (12 AU), post-pass 7c
@@ -129,9 +139,17 @@ object Constraints {
     /** C9: no hard work at all above this ACWR. */
     const val ACWR_NO_HARD_ABOVE: Double = 1.5
 
-    /** C4 / C8: the only sessions allowed the day after a match, race or 200 AU day. */
-    val RECOVERY_ONLY_TYPES: Set<SessionType> =
-        setOf(SessionType.RECOVERY_RUN, SessionType.MOBILITY, SessionType.REST)
+    /**
+     * C4 / C8: the only sessions allowed the day after a match, race or 200 AU day. P12.3 adds
+     * `RECOVERY_SPIN` — 30 minutes of easy spinning is the classic day-after-a-match session and
+     * costs less (18 AU) than the recovery run already on the list.
+     */
+    val RECOVERY_ONLY_TYPES: Set<SessionType> = setOf(
+        SessionType.RECOVERY_RUN,
+        SessionType.RECOVERY_SPIN,
+        SessionType.MOBILITY,
+        SessionType.REST,
+    )
 
     /** C13: the same session type needs a clear day between repeats (POLISH-8). */
     const val SAME_TYPE_SPACING_DAYS: Long = 2L
@@ -173,6 +191,7 @@ object Constraints {
         if (c11Violated(candidate, day, grid)) broken += ConstraintId.C11
         if (c12Violated(candidate, day, ctx)) broken += ConstraintId.C12
         if (c13Violated(candidate, day, grid)) broken += ConstraintId.C13
+        if (BikeRules.violatesSpacing(candidate, day, grid)) broken += ConstraintId.C14
         if (CycleRules.violatesEarlyMenstrualCap(ctx.cycleStatusByDay[day], candidate.intensity)) {
             broken += ConstraintId.CYCLE_MENSTRUAL
         }

@@ -1071,7 +1071,7 @@ data class SuggestionInput(
 
 #### 3.5.2 Periodization (`Periodization.kt`)
 
-Primary goal = `goals.firstOrNull { it.type == RACE_TIME && it.targetDay != null }` (lowest `priority`).
+Primary goal = `goals.firstOrNull { it.type in {RACE_TIME, BIKE_EVENT} && it.targetDay != null }` (lowest `priority`; `BIKE_EVENT` added by P12.3 — a cycling event periodizes exactly like a race and only changes which sessions each phase prefers).
 Let `R` = target day, `d` = days from `today` to `R`.
 
 | Condition | Phase |
@@ -1116,6 +1116,10 @@ weeklyTarget = max(weeklyTarget, 0.0)
 | `C10` | Per-sport weekly caps from `profile.preferredSportsJson` (fixed calendar sessions count toward the cap). |
 | `C11` | Minimum spacing: two `HIGH` run sessions ≥ 72 h apart; two `STRENGTH_LOWER` ≥ 72 h apart; `LONG_RUN` ≥ 5 days apart. |
 | `C12` | `LONG_RUN` only on days where `profile.preferredSportsJson.longRunWeekday` matches, or on Sat/Sun when unset. |
+| `C13` | POLISH-8: no identical `SessionType` on consecutive days (`MOBILITY` exempt), and ≥ 48 h between any two `STRENGTH_*` sessions. |
+| `C14` | P12.3: ≥ 3 days between two `BIKE_INTERVALS`, and ≥ 2 days between a `BIKE_INTERVALS` and any other hard item (symmetric). Implemented in `BikeRules.violatesSpacing`. |
+
+P12.3 also changes two existing rules without minting an id: `C4`/`C8`'s recovery-only set gains `RECOVERY_SPIN`, and `C10` reads the new `CYCLE` cap of `preferredSportsJson` (`ONBOARDING_SPORT_GROUPS`, default 0). `BIKE_INTERVALS` is a `HIGH` row, so `C1`/`C5`/`C9` treat it as hard work with no extra code.
 
 #### 3.5.4 Session catalog (`SessionCatalog.kt`)
 
@@ -1133,6 +1137,12 @@ weeklyTarget = max(weeklyTarget, 0.0)
 | `CROSS_TRAINING` | `CYCLING` | `LOW` | 60 | 4 | 72 |
 | `SOCCER_TRAINING` | `SOCCER_TRAINING` | `MODERATE` | 90 | 6.5 | 176 |
 | `SOCCER_MATCH` | `SOCCER_MATCH` | `HIGH` | 90 | 8.5 | 230 |
+| `ENDURANCE_RIDE` | `CYCLING` | `LOW` | 90 | 4 | 108 |
+| `BIKE_INTERVALS` | `CYCLING` | `HIGH` | 60 | 8 | 144 |
+| `TRAINER_SESSION` | `CYCLING_INDOOR` | `MODERATE` | 45 | 6 | 81 |
+| `RECOVERY_SPIN` | `CYCLING_INDOOR` | `RECOVERY` | 30 | 2 | 18 |
+
+The last four rows are P12.3's and are gated: `SessionCatalog.suggestableFor(bikeEnabled)` drops them unless the athlete rides (§3.5.8), so a bike-less week is byte-identical to the pre-P12 one (`sug28`).
 
 est. TRIMP = `0.30 * RPE * minutes` (same constant as §3.2.2), so the suggester's budget arithmetic is consistent with the load engine.
 Durations are scaled at placement: `actualMin = round(defaultMin * durationScale)` where `durationScale = clamp(remainingBudget / Σ(remaining planned defaults), 0.7, 1.3)`.
@@ -1171,6 +1181,20 @@ Phase → preferred session types:
 | `RACE_WEEK` | `RECOVERY_RUN`, `EASY_RUN`, `MOBILITY` |
 | `IN_SEASON` | `EASY_RUN`, `STRENGTH_UPPER`, `MOBILITY` |
 | `RECOVERY_WEEK` | `RECOVERY_RUN`, `EASY_RUN`, `MOBILITY` |
+| `OFF_SEASON` | `CROSS_TRAINING`, `STRENGTH_FULL`, `MOBILITY` (no row in the original table) |
+
+P12.3 adds a **second** table, used by `Scorer.preferredTypesFor(phase, primaryGoalGroup)` when the primary goal's sport group is `CYCLE` (`Periodization.bikePreferredTypes`):
+
+| Phase | Preferred (cycling) |
+|---|---|
+| `BASE` | `ENDURANCE_RIDE`, `TRAINER_SESSION`, `STRENGTH_FULL` |
+| `BUILD` | `BIKE_INTERVALS`, `ENDURANCE_RIDE`, `STRENGTH_LOWER` |
+| `PEAK` | `BIKE_INTERVALS`, `ENDURANCE_RIDE` |
+| `TAPER` | `RECOVERY_SPIN`, `BIKE_INTERVALS` (duration ×0.6, like `INTERVAL_RUN`) |
+| `RACE_WEEK` | `RECOVERY_SPIN`, `MOBILITY` |
+| `IN_SEASON` | `ENDURANCE_RIDE`, `STRENGTH_UPPER`, `MOBILITY` |
+| `RECOVERY_WEEK` | `RECOVERY_SPIN`, `ENDURANCE_RIDE`, `MOBILITY` |
+| `OFF_SEASON` | `TRAINER_SESSION`, `STRENGTH_FULL`, `MOBILITY` |
 
 `score = 0.35*goalFit + 0.25*loadFit + 0.20*recoveryFit + 0.10*spacingFit + 0.10*prefFit`
 
@@ -1217,6 +1241,31 @@ Phase → preferred session types:
 | `sug18_mobility_added_to_rest_days_when_enabled` | |
 | `sug19_long_run_spacing_at_least_five_days` | 14-day horizon → ≤ 3 long runs, spaced |
 | `sug20_empty_goals_still_produces_a_sane_week` | no goals → BASE phase, sessions exist, no crash |
+| `sug21`…`sug25` | P11.2's cycle rules — `SuggestionEngineCycleTest` |
+| `sug26_starter_week_rationale` | POLISH-10's 150 AU starter week |
+| `sug27_bike_goal_and_cycle_cap_yields_a_ride` | `CYCLE` cap 3 + `BIKE_FTP` goal → a ride with a `BIKE_FTP_GOAL` rationale; neither half → none |
+| `sug28_no_cap_no_bike_goal_outputs_and_hash_unchanged` | the whole output **and** `inputsHash` of all nineteen bike-free fixtures diffed against `fixtures/suggest/sug28_baseline.txt`, generated from the pre-P12.3 engine |
+| `sug29_indoor_season_with_trainer_rides_are_indoor` | today 2026-12-07, trainer on → every ride is `CYCLING_INDOOR` with `BIKE_INDOOR_SEASON` |
+| `sug30_indoor_season_without_trainer_rides_stay_outdoor` | same day, trainer off → outdoor rides, no `TRAINER_SESSION` |
+| `sug31_bike_event_in_30_days_is_peak_with_bike_intervals_preferred` | `BIKE_EVENT` +30 d → `PEAK` off the cycling table, `BIKE_INTERVALS` placed |
+| `sug32_hash_changes_when_trainer_flag_flips` | `indoorTrainerAvailable` / `ftpWattsManual` are part of the digest |
+| `sug33_bike_intervals_count_toward_two_hard_per_week` | a locked `BIKE_INTERVALS` spends one of C5's two slots |
+| `c14_cycle_cap_respected` | C10 with the new `CYCLE` cap (0 next to non-zero sports is a real cap) |
+| `c15_bike_intervals_spacing_3_days_and_2_from_any_hard` | the new C14, both directions |
+| `c16_recovery_spin_allowed_day_after_match` | C4's recovery-only set; the other three rides stay out |
+| `BikeRulesTest` | indoor months, the gate, the trainer transform, C14 spacing |
+
+#### 3.5.8 Cycling (`BikeRules.kt`, P12.3)
+
+Three rules, all inert unless the athlete rides:
+
+1. **Gate.** `BikeRules.isBikeEnabled(preferredSportsJson, goals)` = `capsOf[CYCLE] > 0` **or** an `ACTIVE` `BIKE_FTP`/`BIKE_VOLUME`/`BIKE_EVENT` goal. Only then does `SessionCatalog.suggestableFor(true)` offer the four cycling rows. An explicit `CYCLE` cap of `0` still blocks every ride through `C10` — the goal branch is what gives rides to a profile that never recorded a cycling preference.
+2. **Indoor season.** `isIndoorSeason(day)` = month ∈ Nov…Mar, evaluated **per candidate day**. With `profile.indoorTrainerAvailable`, every `CYCLING` candidate (the rides and `CROSS_TRAINING`) becomes `CYCLING_INDOOR` and carries the `BIKE_INDOOR_SEASON` rationale. `TRAINER_SESSION` is offered year-round, but only with the trainer flag.
+3. **Spacing.** `C14`, see §3.5.3.
+
+Rationale ids: `BIKE_FTP_GOAL`, `BIKE_VOLUME_GOAL`, `BIKE_EVENT_PREP` (one per `CYCLE` session, naming the highest-priority active bike goal) and `BIKE_INDOOR_SEASON`. Like every other rationale line these are English sentences built in `domain/` — `RationaleList` renders `entry.text` verbatim, so there is no `strings.xml` mapping to extend.
+
+`SuggestionInputsHash` adds `ftpWattsManual` and `indoorTrainerAvailable` as a `bike=` line that is **omitted when neither is set**, so a profile that never touched the bike settings keeps its pre-P12 digest (no forced regeneration on upgrade) while either field regenerates the week when it changes.
 
 ### 3.6 Nutrition label parser
 

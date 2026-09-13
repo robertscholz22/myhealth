@@ -4,11 +4,14 @@ import com.myhealth.domain.engine.load.TrimpDefaults
 import com.myhealth.domain.model.CycleConfidence
 import com.myhealth.domain.model.CyclePhase
 import com.myhealth.domain.model.CycleStatus
+import com.myhealth.domain.model.Goal
+import com.myhealth.domain.model.GoalType
 import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.RationaleEntry
 import com.myhealth.domain.model.RecoveryBand
 import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.SportGroup
+import com.myhealth.domain.model.SportType
 import com.myhealth.domain.model.TrainingPhase
 
 /** What [Rationale.forSession] needs to explain one placement (PLAN §3.5.6 step 8). */
@@ -27,6 +30,10 @@ data class RationaleContext(
     val sportUsed: Int = 0,
     /** P11.2: where the candidate's day sits in the cycle; `null` when tracking is off. */
     val cycleStatus: CycleStatus? = null,
+    /** P12.3: the highest-priority active `BIKE_*` goal, when there is one. */
+    val bikeGoal: Goal? = null,
+    /** P12.3: true when this day's rides were moved onto the trainer ([BikeRules.movesIndoors]). */
+    val bikeIndoorSeason: Boolean = false,
     /** POLISH-10: true when [Periodization.isStarterWeek] fired for this batch. */
     val isStarterWeek: Boolean = false,
 )
@@ -49,6 +56,12 @@ object Rationale {
     const val RULE_DOWNGRADED: String = "DOWNGRADED_BEFORE_EVENT"
     const val RULE_STARTER_WEEK: String = "STARTER_WEEK"
 
+    /** P12.3's four cycling ids (§3.5.8); only ever attached to a `CYCLE` session. */
+    const val RULE_BIKE_FTP_GOAL: String = "BIKE_FTP_GOAL"
+    const val RULE_BIKE_VOLUME_GOAL: String = "BIKE_VOLUME_GOAL"
+    const val RULE_BIKE_EVENT_PREP: String = "BIKE_EVENT_PREP"
+    const val RULE_BIKE_INDOOR_SEASON: String = "BIKE_INDOOR_SEASON"
+
     fun phaseRuleId(phase: TrainingPhase): String = "PHASE_${phase.name}"
 
     fun recoveryRuleId(band: RecoveryBand?): String = "RECOVERY_${band?.name ?: "UNKNOWN"}"
@@ -61,6 +74,8 @@ object Rationale {
         recoveryEntry(ctx)?.let { entries += it }
         capEntry(candidate.sportGroup, ctx)?.let { entries += it }
         cycleEntry(ctx)?.let { entries += it }
+        bikeGoalEntry(candidate, ctx)?.let { entries += it }
+        bikeIndoorEntry(candidate, ctx)?.let { entries += it }
         if (ctx.isStarterWeek) entries += starterWeekEntry()
         return entries
     }
@@ -98,6 +113,36 @@ object Rationale {
             else -> return null
         }
         return RationaleEntry(ruleId = ruleId, text = text + lowConfidenceSuffix(cycle))
+    }
+
+    /**
+     * P12.3: why a ride is in the week at all — the `BIKE_*` goal it serves. Only `CYCLE` sessions
+     * carry it: a strength session in a cyclist's week is not "for the FTP target".
+     */
+    fun bikeGoalEntry(candidate: Candidate, ctx: RationaleContext): RationaleEntry? {
+        if (candidate.sportGroup != SportGroup.CYCLE) return null
+        val goal = ctx.bikeGoal ?: return null
+        val (ruleId, text) = when (goal.type) {
+            GoalType.BIKE_FTP -> RULE_BIKE_FTP_GOAL to
+                "Towards your FTP target: threshold and steady riding are what raise it."
+            GoalType.BIKE_VOLUME -> RULE_BIKE_VOLUME_GOAL to
+                "Counts towards your weekly riding volume."
+            GoalType.BIKE_EVENT -> RULE_BIKE_EVENT_PREP to
+                "Preparing for your cycling event."
+            else -> return null
+        }
+        return RationaleEntry(ruleId = ruleId, text = text)
+    }
+
+    /** P12.3: the November–March trainer rule, whenever it actually moved a ride indoors. */
+    fun bikeIndoorEntry(candidate: Candidate, ctx: RationaleContext): RationaleEntry? {
+        if (!ctx.bikeIndoorSeason) return null
+        if (candidate.sportGroup != SportGroup.CYCLE) return null
+        if (candidate.entry.sportType != SportType.CYCLING_INDOOR) return null
+        return RationaleEntry(
+            ruleId = RULE_BIKE_INDOOR_SEASON,
+            text = "November to March: planned indoors on the trainer.",
+        )
     }
 
     /** P11.2: LOW confidence keeps the rule and adds the "log your period" nudge. */

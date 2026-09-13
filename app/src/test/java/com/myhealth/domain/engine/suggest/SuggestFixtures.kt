@@ -40,6 +40,8 @@ object SuggestFixtures {
     fun profile(
         preferredSportsJson: String = "{}",
         mobilityOnRestDays: Boolean = false,
+        ftpWattsManual: Int? = null,
+        indoorTrainerAvailable: Boolean = false,
     ): Profile = Profile(
         id = 1L,
         displayName = "Robert",
@@ -48,8 +50,32 @@ object SuggestFixtures {
         heightCm = 182.0,
         preferredSportsJson = preferredSportsJson,
         mobilityOnRestDays = mobilityOnRestDays,
+        ftpWattsManual = ftpWattsManual,
+        indoorTrainerAvailable = indoorTrainerAvailable,
         createdAtMillis = 0L,
         updatedAtMillis = 0L,
+    )
+
+    /** P12.3: the sport caps of an athlete who rides — the `CYCLE` cap is the suggester's gate. */
+    fun bikeSportsJson(cycleCap: Int = 3, runCap: Int = 2, strengthCap: Int = 2): String =
+        """{"RUN":$runCap,"STRENGTH":$strengthCap,"CYCLE":$cycleCap}"""
+
+    /** P12.3: an active `BIKE_*` goal, the other half of the gate. */
+    fun bikeGoal(
+        type: GoalType = GoalType.BIKE_FTP,
+        targetValue: Double? = 300.0,
+        targetDay: Long? = null,
+        targetDistanceMeters: Double? = null,
+        priority: Int = 1,
+        id: Long = 7L,
+    ): Goal = goal(
+        id = id,
+        type = type,
+        title = "Bike goal",
+        targetDay = targetDay,
+        targetDistanceMeters = targetDistanceMeters,
+        targetValue = targetValue,
+        priority = priority,
     )
 
     fun load(

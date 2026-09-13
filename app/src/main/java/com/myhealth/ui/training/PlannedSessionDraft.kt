@@ -99,7 +99,14 @@ fun validatePlannedSession(draft: PlannedSessionDraft): Map<PlannedSessionField,
     return errors
 }
 
-/** The session types that make sense for [sportType] — the editor filters the dropdown by sport. */
+/**
+ * The session types that make sense for [sportType] — the editor filters the dropdown by sport.
+ *
+ * P12.3: the four cycling rows are part of [SessionCatalog.ALL], so `CYCLING` and `CYCLING_INDOOR`
+ * both offer `ENDURANCE_RIDE`, `BIKE_INTERVALS`, `TRAINER_SESSION` and `RECOVERY_SPIN` alongside
+ * `CROSS_TRAINING` without this function knowing anything about bikes. [sportTypeFor] keeps the
+ * chosen sport when it is already in the right group, so an indoor day stays indoor.
+ */
 fun sessionTypesFor(sportType: SportType): List<SessionType> {
     val catalog = SessionCatalog.ALL
         .filter { it.sportType.group == sportType.group }
@@ -124,6 +131,7 @@ val PLANNABLE_SPORT_TYPES: List<SportType> = listOf(
     SportType.RUN_TRAIL,
     SportType.STRENGTH,
     SportType.CYCLING,
+    SportType.CYCLING_INDOOR,
     SportType.SOCCER_TRAINING,
     SportType.SOCCER_MATCH,
     SportType.MOBILITY,

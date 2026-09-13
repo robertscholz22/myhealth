@@ -11,7 +11,14 @@ import kotlinx.serialization.json.Json
  */
 private val json = Json { ignoreUnknownKeys = true }
 
-val ONBOARDING_SPORT_GROUPS: List<SportGroup> = listOf(SportGroup.RUN, SportGroup.STRENGTH, SportGroup.SOCCER)
+/**
+ * The sports onboarding and settings ask for a weekly cap. P12.3 appends [SportGroup.CYCLE]: the
+ * cap is what turns the suggester's cycling rows on (`BikeRules.isBikeEnabled`), so it defaults to
+ * 0 — an athlete who does not ride sees the field, leaves it at zero and gets exactly the week they
+ * got before.
+ */
+val ONBOARDING_SPORT_GROUPS: List<SportGroup> =
+    listOf(SportGroup.RUN, SportGroup.STRENGTH, SportGroup.SOCCER, SportGroup.CYCLE)
 
 fun encodePreferredSports(sessionsPerWeek: Map<SportGroup, Int>): String =
     json.encodeToString(sessionsPerWeek.entries.associate { (group, count) -> group.name to count })

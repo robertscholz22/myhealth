@@ -20,6 +20,8 @@ class OnboardingDraftTest {
             SportGroup.RUN, 2,
             SportGroup.STRENGTH, 2,
             SportGroup.SOCCER, 1,
+            // P12.3: cycling is offered but off by default — the cap is the suggester's bike gate.
+            SportGroup.CYCLE, 0,
         )
     }
 

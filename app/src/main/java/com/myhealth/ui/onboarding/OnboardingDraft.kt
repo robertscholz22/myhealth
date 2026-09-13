@@ -12,11 +12,16 @@ import java.time.LocalDate
  * the suggester down to cross-training/mobility only, see [com.myhealth.domain.engine.suggest.Constraints]
  * C10). Run 2 / Strength 2 / Soccer 1 is a gentle, generally-safe starting point; the user can still
  * set any value (including 0) explicitly in step 3.
+ *
+ * P12.3 adds Cycle at **0**: the cycling cap is the gate for the bike sessions of §3.5.8, so a new
+ * athlete gets rides only after asking for them (or after setting a `BIKE_*` goal). A single zero
+ * next to the non-zero rows is a real cap, not POLISH-11's "no preferences configured".
  */
 val DEFAULT_SESSIONS_PER_WEEK: Map<SportGroup, Int> = mapOf(
     SportGroup.RUN to 2,
     SportGroup.STRENGTH to 2,
     SportGroup.SOCCER to 1,
+    SportGroup.CYCLE to 0,
 )
 
 /** The 3-step onboarding form state (§4.2 Onboarding), before it becomes a [com.myhealth.domain.model.Profile]. */

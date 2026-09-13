@@ -99,12 +99,27 @@ object Scorer {
             setOf(SessionType.CROSS_TRAINING, SessionType.STRENGTH_FULL, SessionType.MOBILITY)
     }
 
+    /** The session types a taper keeps but shortens (§3.5.5's "short INTERVAL_RUN", P12.3's rides). */
+    val TAPER_SHORTENED_TYPES: Set<SessionType> =
+        setOf(SessionType.INTERVAL_RUN, SessionType.BIKE_INTERVALS)
+
     /** The duration multiplier the phase applies to a session type (§3.5.5's "short INTERVAL_RUN"). */
     fun durationFactor(phase: TrainingPhase, sessionType: SessionType): Double =
-        if (phase == TrainingPhase.TAPER && sessionType == SessionType.INTERVAL_RUN) {
+        if (phase == TrainingPhase.TAPER && sessionType in TAPER_SHORTENED_TYPES) {
             TAPER_INTERVAL_DURATION_FACTOR
         } else {
             1.0
+        }
+
+    /**
+     * The phase's preferred types for a given primary goal sport: P12.3's cycling table when the
+     * athlete is riding towards a `CYCLE` goal, §3.5.5's running table otherwise.
+     */
+    fun preferredTypesFor(phase: TrainingPhase, primaryGoalGroup: SportGroup?): Set<SessionType> =
+        if (primaryGoalGroup == SportGroup.CYCLE) {
+            Periodization.bikePreferredTypes(phase)
+        } else {
+            preferredTypes(phase)
         }
 
     /** The sport group a goal implies, or `null` for goals that are sport-agnostic. */
@@ -199,10 +214,11 @@ object Scorer {
     /** The scoring context for one run of the engine (§3.5.6 step 3). */
     fun contextOf(input: SuggestionInput, result: PeriodizationResult, remainingBudget: Double): ScoringContext {
         val groups = input.goals.sortedBy { it.priority }.mapNotNull { goalSportGroup(it) }
+        val primary = groups.firstOrNull()
         return ScoringContext(
             phase = result.phase,
-            preferredTypes = preferredTypes(result.phase),
-            primaryGoalGroup = groups.firstOrNull(),
+            preferredTypes = preferredTypesFor(result.phase, primary),
+            primaryGoalGroup = primary,
             secondaryGoalGroups = groups.drop(1).toSet(),
             remainingBudget = remainingBudget,
             recoveryBand = result.band,

@@ -337,6 +337,11 @@ class ConstraintsTest {
             SessionType.CROSS_TRAINING to 72.0,
             SessionType.SOCCER_TRAINING to 175.5,
             SessionType.SOCCER_MATCH to 229.5,
+            // P12.3's cycling rows (§3.5.4, appended).
+            SessionType.ENDURANCE_RIDE to 108.0,
+            SessionType.BIKE_INTERVALS to 144.0,
+            SessionType.TRAINER_SESSION to 81.0,
+            SessionType.RECOVERY_SPIN to 18.0,
         )
         assertThat(SessionCatalog.ALL).hasSize(expected.size)
         SessionCatalog.ALL.forEach { entry ->

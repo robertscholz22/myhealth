@@ -165,5 +165,47 @@ class ScorerTest {
             .isEqualTo(SportGroup.STRENGTH)
         assertThat(Scorer.goalSportGroup(SuggestFixtures.goal(type = GoalType.BODY_WEIGHT))).isNull()
         assertThat(Scorer.goalSportGroup(SuggestFixtures.goal(type = GoalType.CONSISTENCY))).isNull()
+        // P12.3: all three cycling goals are the same sport as far as scoring is concerned.
+        listOf(GoalType.BIKE_FTP, GoalType.BIKE_VOLUME, GoalType.BIKE_EVENT).forEach { type ->
+            assertThat(Scorer.goalSportGroup(SuggestFixtures.goal(type = type)))
+                .isEqualTo(SportGroup.CYCLE)
+        }
+    }
+
+    @Test
+    fun a_cycle_goal_switches_the_phase_table_to_the_bike_one() {
+        // P12.3's second phase table, used only when the primary goal's sport is CYCLE.
+        assertThat(Scorer.preferredTypesFor(TrainingPhase.BASE, SportGroup.CYCLE))
+            .containsExactly(SessionType.ENDURANCE_RIDE, SessionType.TRAINER_SESSION, SessionType.STRENGTH_FULL)
+        assertThat(Scorer.preferredTypesFor(TrainingPhase.BUILD, SportGroup.CYCLE))
+            .containsExactly(SessionType.BIKE_INTERVALS, SessionType.ENDURANCE_RIDE, SessionType.STRENGTH_LOWER)
+        assertThat(Scorer.preferredTypesFor(TrainingPhase.PEAK, SportGroup.CYCLE))
+            .containsExactly(SessionType.BIKE_INTERVALS, SessionType.ENDURANCE_RIDE)
+        assertThat(Scorer.preferredTypesFor(TrainingPhase.TAPER, SportGroup.CYCLE))
+            .containsExactly(SessionType.RECOVERY_SPIN, SessionType.BIKE_INTERVALS)
+        assertThat(Scorer.preferredTypesFor(TrainingPhase.RACE_WEEK, SportGroup.CYCLE))
+            .containsExactly(SessionType.RECOVERY_SPIN, SessionType.MOBILITY)
+        assertThat(Scorer.preferredTypesFor(TrainingPhase.IN_SEASON, SportGroup.CYCLE))
+            .containsExactly(SessionType.ENDURANCE_RIDE, SessionType.STRENGTH_UPPER, SessionType.MOBILITY)
+        assertThat(Scorer.preferredTypesFor(TrainingPhase.RECOVERY_WEEK, SportGroup.CYCLE))
+            .containsExactly(SessionType.RECOVERY_SPIN, SessionType.ENDURANCE_RIDE, SessionType.MOBILITY)
+        assertThat(Scorer.preferredTypesFor(TrainingPhase.OFF_SEASON, SportGroup.CYCLE))
+            .containsExactly(SessionType.TRAINER_SESSION, SessionType.STRENGTH_FULL, SessionType.MOBILITY)
+
+        // Every other primary sport keeps the §3.5.5 table, exactly as before.
+        listOf(SportGroup.RUN, SportGroup.STRENGTH, SportGroup.SOCCER, null).forEach { group ->
+            TrainingPhase.entries.forEach { phase ->
+                assertThat(Scorer.preferredTypesFor(phase, group))
+                    .isEqualTo(Scorer.preferredTypes(phase))
+            }
+        }
+
+        // The taper shortens bike intervals the way it shortens running intervals.
+        assertThat(Scorer.durationFactor(TrainingPhase.TAPER, SessionType.BIKE_INTERVALS))
+            .isWithin(1e-9).of(0.6)
+        assertThat(Scorer.durationFactor(TrainingPhase.PEAK, SessionType.BIKE_INTERVALS))
+            .isWithin(1e-9).of(1.0)
+        assertThat(Scorer.durationFactor(TrainingPhase.TAPER, SessionType.ENDURANCE_RIDE))
+            .isWithin(1e-9).of(1.0)
     }
 }

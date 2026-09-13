@@ -9,8 +9,9 @@ import com.myhealth.domain.model.SportType
 import kotlin.math.max
 
 /**
- * The session catalog of PLAN §3.5.4: the twelve session shapes the suggester may propose, each
- * with its sport, intensity, default duration and RPE.
+ * The session catalog of PLAN §3.5.4: the sixteen session shapes the suggester may propose, each
+ * with its sport, intensity, default duration and RPE. The last four are the P12.3 cycling rows,
+ * which only [SessionCatalog.suggestableFor] lets through.
  *
  * `estTrimp` is **computed**, never tabulated: `0.30 * rpe * minutes`, with the `0.30` taken from
  * [TrimpDefaults.RPE_TO_TRIMP] so the suggester's budget arithmetic and the load engine's sRPE
@@ -50,12 +51,37 @@ object SessionCatalog {
         CatalogEntry(SessionType.CROSS_TRAINING, SportType.CYCLING, Intensity.LOW, 60, 4.0),
         CatalogEntry(SessionType.SOCCER_TRAINING, SportType.SOCCER_TRAINING, Intensity.MODERATE, 90, 6.5),
         CatalogEntry(SessionType.SOCCER_MATCH, SportType.SOCCER_MATCH, Intensity.HIGH, 90, 8.5),
+
+        // P12.3 cycling rows, appended so the twelve rows above keep their order.
+        CatalogEntry(SessionType.ENDURANCE_RIDE, SportType.CYCLING, Intensity.LOW, 90, 4.0),
+        CatalogEntry(SessionType.BIKE_INTERVALS, SportType.CYCLING, Intensity.HIGH, 60, 8.0),
+        CatalogEntry(SessionType.TRAINER_SESSION, SportType.CYCLING_INDOOR, Intensity.MODERATE, 45, 6.0),
+        CatalogEntry(SessionType.RECOVERY_SPIN, SportType.CYCLING_INDOOR, Intensity.RECOVERY, 30, 2.0),
     )
 
     private val byType: Map<SessionType, CatalogEntry> = ALL.associateBy { it.sessionType }
 
+    /** The four P12.3 rows, offered only to an athlete who actually rides ([suggestableFor]). */
+    val BIKE_TYPES: Set<SessionType> = setOf(
+        SessionType.ENDURANCE_RIDE,
+        SessionType.BIKE_INTERVALS,
+        SessionType.TRAINER_SESSION,
+        SessionType.RECOVERY_SPIN,
+    )
+
     /** Everything except `SOCCER_MATCH` — a match is a fixed calendar event, never a suggestion. */
     val SUGGESTABLE: List<CatalogEntry> = ALL.filter { it.sessionType != SessionType.SOCCER_MATCH }
+
+    /** [SUGGESTABLE] without the bike rows unless the athlete rides (`BikeRules.isBikeEnabled`). */
+    private val SUGGESTABLE_WITHOUT_BIKE: List<CatalogEntry> =
+        SUGGESTABLE.filterNot { it.sessionType in BIKE_TYPES }
+
+    /**
+     * §3.5.8's gate: the catalog a run of the engine may choose from. Without cycling this is
+     * exactly the pre-P12 list, in the pre-P12 order, so a bike-less week cannot change at all.
+     */
+    fun suggestableFor(bikeEnabled: Boolean): List<CatalogEntry> =
+        if (bikeEnabled) SUGGESTABLE else SUGGESTABLE_WITHOUT_BIKE
 
     fun entryFor(sessionType: SessionType): CatalogEntry? = byType[sessionType]
 
