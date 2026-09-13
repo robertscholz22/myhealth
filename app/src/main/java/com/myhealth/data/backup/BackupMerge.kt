@@ -14,8 +14,9 @@ import com.myhealth.data.db.dao.BackupDao
  * Rules:
  * - A row whose natural key already exists is skipped; nothing on the device is ever overwritten
  *   or deleted. Re-importing the same file twice is a no-op, which is what the smoke test checks.
- * - Owned children (streams, laps, overrides, template/meal items, suggested sessions) are only
- *   inserted when their parent was newly created — an existing parent already has its children.
+ * - Owned children (streams, laps, overrides, template/meal items, suggested sessions, strength
+ *   exercise rows) are only inserted when their parent was newly created — an existing parent
+ *   already has its children.
  * - Single-key caches (`profile`, `daily_*`, `nutrition_target_snapshot`, `sync_state`) are keyed
  *   by their own primary key: the device's own computed rows win over the backup's older ones.
  */
@@ -105,7 +106,15 @@ internal class BackupMerge(private val dao: BackupDao) {
             file.sleepSession, existing.sleepSession, { it.id }, { "${it.night}" },
             { it.copy(id = 0L) }, dao::insertSleepSession,
         ).inserted
-        written += mergeRoot(
+        // P14: a workout is identified by its built-in id, or by its name when the user made it.
+        // Merging by name is what stops a restore from duplicating "Upper A" on every import.
+        val workouts = mergeRoot(
+            file.strengthWorkout, existing.strengthWorkout, { it.id },
+            { it.templateId ?: "custom|${it.name.lowercase()}" }, { it.copy(id = 0L) },
+            dao::insertStrengthWorkout,
+        )
+        written += workouts.inserted
+        val plannedSessions = mergeRoot(
             file.plannedSession, existing.plannedSession, { it.id },
             { "${it.day}|${it.sportType}|${it.sessionType}|${it.startMinuteOfDay}" },
             {
@@ -114,10 +123,12 @@ internal class BackupMerge(private val dao: BackupDao) {
                     planId = plans.target(it.planId),
                     linkedActivityId = activities.target(it.linkedActivityId),
                     sourceSuggestionId = null,
+                    workoutId = workouts.target(it.workoutId),
                 )
             },
             dao::insertPlannedSession,
-        ).inserted
+        )
+        written += plannedSessions.inserted
         written += mergeRoot(
             file.waterLog, existing.waterLog, { it.id }, { "${it.day}|${it.atMinuteOfDay}|${it.ml}" },
             { it.copy(id = 0L) }, dao::insertWaterLog,
@@ -145,6 +156,26 @@ internal class BackupMerge(private val dao: BackupDao) {
             { it.copy(id = 0L) }, dao::insertCycleEntry,
         ).inserted
 
+        // P14: one logged set is uniquely identified by when it was completed plus which set of
+        // which exercise it was; both of its links are soft, so an unmatched header just drops out.
+        written += mergeRoot(
+            file.strengthSetLog, existing.strengthSetLog, { it.id },
+            { "${it.completedAtMillis}|${it.exerciseId}|${it.setIndex}" },
+            {
+                it.copy(
+                    id = 0L,
+                    plannedSessionId = plannedSessions.target(it.plannedSessionId),
+                    activityId = activities.target(it.activityId),
+                )
+            },
+            dao::insertStrengthSetLog,
+        ).inserted
+
+        written += mergeChildren(
+            file.strengthWorkoutExercise, { it.workoutId }, workouts,
+            { row, parent -> row.copy(id = 0L, workoutId = parent) },
+            dao::insertStrengthWorkoutExercise,
+        )
         written += mergeChildren(
             file.activityStream, { it.activityId }, activities,
             { row, parent -> row.copy(activityId = parent) }, dao::insertActivityStream,

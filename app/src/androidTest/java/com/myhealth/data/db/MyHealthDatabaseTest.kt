@@ -1,27 +1,19 @@
 package com.myhealth.data.db
 
 import androidx.room.Room
-import androidx.room.testing.MigrationTestHelper
-import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
-import com.myhealth.data.db.migration.Migrations
 import com.myhealth.data.db.entity.ActivitySessionEntity
-import com.myhealth.data.db.entity.ActivitySourceRecordEntity
-import com.myhealth.data.db.entity.CycleEntryEntity
 import com.myhealth.data.db.entity.IngredientEntity
 import com.myhealth.data.db.entity.MealLogEntity
 import com.myhealth.data.db.entity.MealLogItemEntity
 import com.myhealth.data.db.entity.ProfileEntity
-import com.myhealth.data.db.entity.RideBestEntity
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.MealSlot
 import com.myhealth.domain.model.MeasureBasis
 import com.myhealth.domain.model.NeatLevel
 import com.myhealth.domain.model.QuantityUnit
-import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.model.Sex
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
@@ -29,13 +21,16 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
  * Insert/read coverage for the three representative table families of schema v1 (PLAN P1.5):
  * the single-row profile, an activity, and a meal log with its owned items.
+ *
+ * The migration replays live next door in `MyHealthMigrationTest` (R10: this file was past 400
+ * lines once schema v6 arrived, and "does the database read and write" is a different question
+ * from "does an upgrade preserve what is in it").
  *
  * Instrumented — there is no emulator on the build machine (§0.3), so this compiles in CI and is
  * only executed when a device is attached.
@@ -44,15 +39,6 @@ import org.junit.runner.RunWith
 class MyHealthDatabaseTest {
 
     private lateinit var db: MyHealthDatabase
-
-    /** Replays real upgrades from the exported schema JSONs (PLAN §6.4 step 4). */
-    @get:Rule
-    val migrations = MigrationTestHelper(
-        InstrumentationRegistry.getInstrumentation(),
-        MyHealthDatabase::class.java,
-        emptyList(),
-        FrameworkSQLiteOpenHelperFactory(),
-    )
 
     @Before
     fun setUp() {
@@ -183,253 +169,5 @@ class MyHealthDatabaseTest {
 
         db.mealDao().deleteById(logId)
         assertThat(db.mealDao().observeDay(19_662L).first()).isEmpty()
-    }
-
-    /**
-     * P8.5: an existing v1 database upgrades in place, the FTS index is rebuilt from the rows it
-     * already held, and a row inserted afterwards is indexed by the content-sync triggers.
-     */
-    @Test
-    fun migration_1_to_2_builds_the_ingredient_fts_index_over_existing_rows() {
-        migrations.createDatabase(MIGRATION_DB, 1).use { v1 ->
-            v1.execSQL(
-                "INSERT INTO ingredient (id, name, brand, basis, kcal, isFavorite, source, " +
-                    "useCount, archived, createdAtMillis, updatedAtMillis) VALUES " +
-                    "(1, 'Hafermilch', 'Oatly', 'PER_100ML', 46.0, 0, 'MANUAL', 0, 0, 1, 1)",
-            )
-        }
-
-        migrations.runMigrationsAndValidate(MIGRATION_DB, 2, true, *Migrations.ALL)
-
-        val migrated = Room.databaseBuilder(
-            ApplicationProvider.getApplicationContext(),
-            MyHealthDatabase::class.java,
-            MIGRATION_DB,
-        ).addMigrations(*Migrations.ALL).build()
-        try {
-            runTest {
-                val existing = migrated.ingredientDao().searchFts("hafer*", limit = 10).first()
-                assertThat(existing.map { it.name }).containsExactly("Hafermilch")
-
-                migrated.ingredientDao().upsert(
-                    IngredientEntity(
-                        name = "Sojamilch",
-                        basis = MeasureBasis.PER_100ML,
-                        kcal = 39.0,
-                        source = "MANUAL",
-                        createdAtMillis = 2L,
-                        updatedAtMillis = 2L,
-                    ),
-                )
-                val inserted = migrated.ingredientDao().searchFts("soja*", limit = 10).first()
-                assertThat(inserted.map { it.name }).containsExactly("Sojamilch")
-            }
-        } finally {
-            migrated.close()
-        }
-    }
-
-    /**
-     * P11.1: an existing v2 database gains the `cycle_entry` table in place — the rows it already
-     * held survive, the new table's unique index over `periodStartDay` is really there, and the
-     * DAO reads and writes it afterwards.
-     */
-    @Test
-    fun migration_2_to_3_adds_cycle_entry_with_a_unique_period_start() {
-        migrations.createDatabase(MIGRATION_DB, 2).use { v2 ->
-            v2.execSQL(
-                "INSERT INTO ingredient (id, name, brand, basis, kcal, isFavorite, source, " +
-                    "useCount, archived, createdAtMillis, updatedAtMillis) VALUES " +
-                    "(1, 'Hafermilch', 'Oatly', 'PER_100ML', 46.0, 0, 'MANUAL', 0, 0, 1, 1)",
-            )
-        }
-
-        migrations.runMigrationsAndValidate(MIGRATION_DB, 3, true, *Migrations.ALL)
-
-        val migrated = Room.databaseBuilder(
-            ApplicationProvider.getApplicationContext(),
-            MyHealthDatabase::class.java,
-            MIGRATION_DB,
-        ).addMigrations(*Migrations.ALL).build()
-        try {
-            runTest {
-                // Nothing was lost on the way up.
-                assertThat(migrated.ingredientDao().searchFts("hafer*", limit = 10).first())
-                    .hasSize(1)
-
-                val dao = migrated.cycleDao()
-                val id = dao.upsert(
-                    CycleEntryEntity(
-                        periodStartDay = 20_800L,
-                        periodEndDay = 20_804L,
-                        createdAtMillis = 1L,
-                        updatedAtMillis = 1L,
-                    ),
-                )
-                assertThat(dao.getAll()).hasSize(1)
-                assertThat(dao.getByStartDay(20_800L)?.id).isEqualTo(id)
-
-                // The unique index is what keeps one cycle per start day: Room's @Upsert resolves
-                // the UNIQUE conflict by updating by primary key (id 0 matches nothing), so the
-                // duplicate is dropped without an exception and the original row survives.
-                runCatching {
-                    dao.upsert(
-                        CycleEntryEntity(
-                            periodStartDay = 20_800L,
-                            createdAtMillis = 2L,
-                            updatedAtMillis = 2L,
-                        ),
-                    )
-                }
-                assertThat(dao.getAll()).hasSize(1)
-                assertThat(dao.getByStartDay(20_800L)?.id).isEqualTo(id)
-                assertThat(dao.getByStartDay(20_800L)?.periodEndDay).isEqualTo(20_804L)
-            }
-        } finally {
-            migrated.close()
-        }
-    }
-
-    /**
-     * "Undo import": an existing v3 database gains `activity_source_record.importRecordId` in
-     * place. The rows it already held survive with `NULL` in the new column (they predate undo),
-     * and a record written afterwards can be found by its import.
-     */
-    @Test
-    fun migration_3_to_4_adds_import_record_id_to_activity_source_record() {
-        migrations.createDatabase(MIGRATION_DB, 3).use { v3 ->
-            v3.execSQL(
-                "INSERT INTO activity_source_record (id, activityId, source, externalId, " +
-                    "payloadJson, receivedAtMillis) VALUES " +
-                    "(1, NULL, 'HEALTH_CONNECT', 'hc-1', '{}', 1000)",
-            )
-        }
-
-        migrations.runMigrationsAndValidate(MIGRATION_DB, 4, true, *Migrations.ALL)
-
-        val migrated = Room.databaseBuilder(
-            ApplicationProvider.getApplicationContext(),
-            MyHealthDatabase::class.java,
-            MIGRATION_DB,
-        ).addMigrations(*Migrations.ALL).build()
-        try {
-            runTest {
-                val dao = migrated.activityDao()
-                // The pre-v4 arrival survived and is not attributed to any import.
-                val existing = dao.getSourceRecord(ActivitySource.HEALTH_CONNECT, "hc-1")
-                assertThat(existing?.importRecordId).isNull()
-                assertThat(dao.getSourceRecordsOfImport(7L)).isEmpty()
-
-                dao.upsertSourceRecord(
-                    ActivitySourceRecordEntity(
-                        source = ActivitySource.CSV_IMPORT,
-                        externalId = "csv-1",
-                        payloadJson = "{}",
-                        receivedAtMillis = 2_000L,
-                        importRecordId = 7L,
-                    ),
-                )
-                assertThat(dao.getSourceRecordsOfImport(7L).map { it.externalId })
-                    .containsExactly("csv-1")
-            }
-        } finally {
-            migrated.close()
-        }
-    }
-
-    /**
-     * P12: an existing v4 database gains the three power columns on `activity_session`, the
-     * `powerWJson` channel on `activity_stream`, the FTP override plus trainer flag on `profile`,
-     * and the new `ride_best` table — in place, with rows already in the two tables that change.
-     */
-    @Test
-    fun migration_4_to_5_adds_power_columns_and_ride_best() {
-        migrations.createDatabase(MIGRATION_DB, 4).use { v4 ->
-            v4.execSQL(
-                "INSERT INTO activity_session (id, startAtMillis, endAtMillis, day, sportType, " +
-                    "sportGroup, title, durationSec, elapsedSec, primarySource, mergedSourcesCsv, " +
-                    "dedupeBucket, userEditedFieldsCsv, hasStreams, createdAtMillis, updatedAtMillis) " +
-                    "VALUES (1, 1000, 4600, 19662, 'CYCLING', 'CYCLE', 'Zwift', 3600, 3600, " +
-                    "'CSV_IMPORT', 'CSV_IMPORT', 'CYCLE|0', '', 0, 1, 1)",
-            )
-            v4.execSQL(
-                "INSERT INTO profile (id, displayName, sex, birthDay, heightCm, neatLevel, " +
-                    "goalPaceKgPerWeek, sleepTargetHours, preferredSportsJson, mobilityOnRestDays, " +
-                    "createdAtMillis, updatedAtMillis) VALUES " +
-                    "(1, 'Robert', 'MALE', 5000, 180.0, 'LIGHT_ACTIVE', 0.0, 8.0, '{}', 1, 1, 1)",
-            )
-        }
-
-        migrations.runMigrationsAndValidate(MIGRATION_DB, 5, true, *Migrations.ALL)
-
-        val migrated = Room.databaseBuilder(
-            ApplicationProvider.getApplicationContext(),
-            MyHealthDatabase::class.java,
-            MIGRATION_DB,
-        ).addMigrations(*Migrations.ALL).build()
-        try {
-            runTest {
-                // The pre-v5 ride survived and simply has no power — nothing before 1.1.0 read one.
-                val ride = checkNotNull(migrated.activityDao().getById(1L))
-                assertThat(ride.title).isEqualTo("Zwift")
-                assertThat(ride.avgPowerW).isNull()
-                assertThat(ride.maxPowerW).isNull()
-                assertThat(ride.normalizedPowerW).isNull()
-
-                // The profile row stayed valid: the new flag took its `DEFAULT 0`.
-                val profile = checkNotNull(migrated.profileDao().observeProfile().first())
-                assertThat(profile.ftpWattsManual).isNull()
-                assertThat(profile.indoorTrainerAvailable).isFalse()
-
-                val dao = migrated.rideBestDao()
-                dao.upsertAll(
-                    listOf(
-                        RideBestEntity(
-                            kind = RideBestKind.POWER_20MIN,
-                            value = 300.0,
-                            activityId = 1L,
-                            day = 19_662L,
-                            createdAtMillis = 1L,
-                        ),
-                        RideBestEntity(
-                            kind = RideBestKind.TIME_40K,
-                            value = 4_478.0,
-                            activityId = null,
-                            day = 19_662L,
-                            isEstimated = true,
-                            createdAtMillis = 1L,
-                        ),
-                    ),
-                )
-                assertThat(dao.getByActivity(1L).single().kind).isEqualTo(RideBestKind.POWER_20MIN)
-                val bests = dao.observeBestPerKind().first().associateBy { it.kind }
-                assertThat(bests.getValue(RideBestKind.POWER_20MIN).value).isEqualTo(300.0)
-                assertThat(bests.getValue(RideBestKind.TIME_40K).isEstimated).isTrue()
-
-                // `uq_ride_best_activity_kind` keeps one row per (ride, kind).
-                runCatching {
-                    dao.upsert(
-                        RideBestEntity(
-                            kind = RideBestKind.POWER_20MIN,
-                            value = 280.0,
-                            activityId = 1L,
-                            day = 19_662L,
-                            createdAtMillis = 2L,
-                        ),
-                    )
-                }
-                assertThat(dao.getByActivity(1L)).hasSize(1)
-
-                // The FK is SET_NULL: deleting the ride keeps the effort, drops the link.
-                migrated.activityDao().deleteById(1L)
-                assertThat(dao.getSince(0L).map { it.activityId }).containsExactly(null, null)
-            }
-        } finally {
-            migrated.close()
-        }
-    }
-
-    private companion object {
-        const val MIGRATION_DB = "migration-test.db"
     }
 }

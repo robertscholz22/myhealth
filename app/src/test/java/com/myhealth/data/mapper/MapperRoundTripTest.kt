@@ -24,6 +24,7 @@ import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.PlannedStatus
 import com.myhealth.domain.model.Profile
 import com.myhealth.domain.model.QuantityUnit
+import com.myhealth.domain.model.RationaleEntry
 import com.myhealth.domain.model.RecoveryBand
 import com.myhealth.domain.model.RideBest
 import com.myhealth.domain.model.RideBestKind
@@ -34,6 +35,8 @@ import com.myhealth.domain.model.SleepStage
 import com.myhealth.domain.model.SleepStageInterval
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
+import com.myhealth.domain.model.SuggestedSession
+import com.myhealth.domain.model.SuggestionStatus
 import org.junit.Test
 
 /**
@@ -64,11 +67,18 @@ class MapperRoundTripTest {
             indoorTrainerAvailable = true,
             createdAtMillis = 1_000L,
             updatedAtMillis = 2_000L,
+            hrZoneBoundsJson = "[134,148,162,176]",
+            lactateThresholdHrManual = 170,
         )
 
         assertThat(profile.toEntity().toDomain()).isEqualTo(profile)
-        // The P12 defaults (no override, no trainer) also survive the round trip.
-        val plain = profile.copy(ftpWattsManual = null, indoorTrainerAvailable = false)
+        // The P12/P14 defaults (no override, no trainer, derived zones) survive the round trip too.
+        val plain = profile.copy(
+            ftpWattsManual = null,
+            indoorTrainerAvailable = false,
+            hrZoneBoundsJson = null,
+            lactateThresholdHrManual = null,
+        )
         assertThat(plain.toEntity().toDomain()).isEqualTo(plain)
     }
 
@@ -231,9 +241,46 @@ class MapperRoundTripTest {
             sourceSuggestionId = 11L,
             createdAtMillis = 1_000L,
             updatedAtMillis = 1_500L,
+            structureJson = """{"version":1,"templateId":"RUN_1000_I","steps":[]}""",
+            workoutId = 3L,
         )
 
         assertThat(planned.toEntity().toDomain()).isEqualTo(planned)
+        // The P14 defaults (no structure, no workout) also survive the round trip.
+        val plain = planned.copy(structureJson = null, workoutId = null)
+        assertThat(plain.toEntity().toDomain()).isEqualTo(plain)
+    }
+
+    /** P14: the three prescription columns `suggested_session` gained in DB v6. */
+    @Test
+    fun suggestedSession_roundTrips() {
+        val suggested = SuggestedSession(
+            id = 8L,
+            batchId = 3L,
+            day = 19_020L,
+            sportType = SportType.RUN_OUTDOOR,
+            sessionType = com.myhealth.domain.model.SessionType.INTERVAL_RUN,
+            intensity = Intensity.HIGH,
+            targetDurationMin = 55,
+            targetDistanceMeters = null,
+            estimatedTrimp = 120.0,
+            score = 0.82,
+            rationale = listOf(RationaleEntry("INTERVAL_STRUCTURE", "5 x 1000 m at 3:54/km")),
+            status = SuggestionStatus.PROPOSED,
+            targetPaceSecPerKm = 234,
+            structureJson = """{"version":1,"templateId":"RUN_1000_I","steps":[]}""",
+            workoutTemplateId = "UPPER_A",
+        )
+
+        assertThat(suggested.toEntity().toDomain()).isEqualTo(suggested)
+        // A pre-P14 suggestion (no pace, no structure, no template) round-trips unchanged.
+        val plain = suggested.copy(
+            targetPaceSecPerKm = null,
+            structureJson = null,
+            workoutTemplateId = null,
+            rationale = emptyList(),
+        )
+        assertThat(plain.toEntity().toDomain()).isEqualTo(plain)
     }
 
     @Test

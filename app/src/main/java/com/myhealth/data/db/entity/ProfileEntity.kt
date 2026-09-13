@@ -42,6 +42,11 @@ data class ProfileEntity(
     val indoorTrainerAvailable: Boolean = false,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    /** Manual zone override as `[z2,z3,z4,z5]` bpm (P14, DB v6; §3.9). Nullable, so the
+     * migration adds it with a plain `ALTER TABLE … ADD COLUMN`. */
+    val hrZoneBoundsJson: String? = null,
+    /** Lactate-threshold HR anchoring the Friel scheme (P14, DB v6; §3.9). */
+    val lactateThresholdHrManual: Int? = null,
 ) {
     companion object {
         const val SINGLETON_ID: Long = 1L

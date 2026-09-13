@@ -135,9 +135,91 @@ object Migrations {
     }
 
     /**
+     * 5 → 6 (P14.1 "Zones & strength"): the three strength tables, the two zone columns on
+     * `profile`, three prescription columns on `suggested_session`, and `structureJson` +
+     * `workoutId` on `planned_session`.
+     *
+     * Order matters: `strength_workout` is created **first**, because `planned_session.workoutId`
+     * references it, and `strength_set_log` references `planned_session`, which already exists.
+     *
+     * `workoutId` is added with a `REFERENCES` clause on the `ALTER TABLE` itself — SQLite allows
+     * that as long as the new column's default is `NULL`, which it is, and the constraint then
+     * shows up in `PRAGMA foreign_key_list` exactly as Room's own `CREATE TABLE` would have
+     * declared it (§6.4 row 6). `planned_session` is the most-referenced table in the app, so not
+     * recreating it is worth a paragraph of explanation: the recreate-the-Room-way fallback stays
+     * available if `runMigrationsAndValidate` ever disagrees.
+     *
+     * Every statement is Room's own, copied verbatim from
+     * `app/schemas/com.myhealth.data.db.MyHealthDatabase/6.json`, so `runMigrationsAndValidate`
+     * compares them character for character. Existing rows keep `NULL` in every new column:
+     * nothing before 0.4.0 knew a muscle or a zone override.
+     */
+    private val MIGRATION_5_6 = Migration(5, 6) { db ->
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `strength_workout` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, " +
+                "`kind` TEXT NOT NULL, `templateId` TEXT, `isBuiltIn` INTEGER NOT NULL, " +
+                "`notes` TEXT, `createdAtMillis` INTEGER NOT NULL, " +
+                "`updatedAtMillis` INTEGER NOT NULL)",
+        )
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `uq_strength_workout_template` " +
+                "ON `strength_workout` (`templateId`)",
+        )
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `strength_workout_exercise` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `workoutId` INTEGER NOT NULL, " +
+                "`orderIndex` INTEGER NOT NULL, `exerciseId` TEXT NOT NULL, " +
+                "`sets` INTEGER NOT NULL, `reps` INTEGER, `seconds` INTEGER, `loadKg` REAL, " +
+                "`isBodyweight` INTEGER NOT NULL, `restSec` INTEGER, `note` TEXT, " +
+                "FOREIGN KEY(`workoutId`) REFERENCES `strength_workout`(`id`) " +
+                "ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `idx_swe_workout` " +
+                "ON `strength_workout_exercise` (`workoutId`)",
+        )
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `uq_swe_order` " +
+                "ON `strength_workout_exercise` (`workoutId`, `orderIndex`)",
+        )
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `strength_set_log` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `day` INTEGER NOT NULL, " +
+                "`plannedSessionId` INTEGER, `activityId` INTEGER, `exerciseId` TEXT NOT NULL, " +
+                "`setIndex` INTEGER NOT NULL, `reps` INTEGER, `seconds` INTEGER, `loadKg` REAL, " +
+                "`rpe` INTEGER, `completedAtMillis` INTEGER NOT NULL, " +
+                "FOREIGN KEY(`plannedSessionId`) REFERENCES `planned_session`(`id`) " +
+                "ON UPDATE NO ACTION ON DELETE SET NULL , " +
+                "FOREIGN KEY(`activityId`) REFERENCES `activity_session`(`id`) " +
+                "ON UPDATE NO ACTION ON DELETE SET NULL )",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `idx_ssl_day` ON `strength_set_log` (`day`)")
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `idx_ssl_planned` ON `strength_set_log` (`plannedSessionId`)",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `idx_ssl_activity` ON `strength_set_log` (`activityId`)",
+        )
+        db.execSQL("ALTER TABLE `profile` ADD COLUMN `hrZoneBoundsJson` TEXT")
+        db.execSQL("ALTER TABLE `profile` ADD COLUMN `lactateThresholdHrManual` INTEGER")
+        db.execSQL("ALTER TABLE `suggested_session` ADD COLUMN `targetPaceSecPerKm` INTEGER")
+        db.execSQL("ALTER TABLE `suggested_session` ADD COLUMN `structureJson` TEXT")
+        db.execSQL("ALTER TABLE `suggested_session` ADD COLUMN `workoutTemplateId` TEXT")
+        db.execSQL("ALTER TABLE `planned_session` ADD COLUMN `structureJson` TEXT")
+        db.execSQL(
+            "ALTER TABLE `planned_session` ADD COLUMN `workoutId` INTEGER " +
+                "REFERENCES `strength_workout`(`id`) ON DELETE SET NULL",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `idx_planned_workout` ON `planned_session` (`workoutId`)",
+        )
+    }
+
+    /**
      * Every migration, oldest first. `.addMigrations(*ALL)` is the only call site, in
      * `MyHealthDatabase.build`, so adding a migration never changes it.
      */
     val ALL: Array<Migration> =
-        arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+        arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
 }

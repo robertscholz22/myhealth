@@ -24,6 +24,7 @@ import com.myhealth.data.db.dao.ProfileDao
 import com.myhealth.data.db.dao.RideBestDao
 import com.myhealth.data.db.dao.RunningBestDao
 import com.myhealth.data.db.dao.SleepDao
+import com.myhealth.data.db.dao.StrengthDao
 import com.myhealth.data.db.dao.SuggestionDao
 import com.myhealth.data.db.dao.SyncStateDao
 import com.myhealth.data.db.entity.ActivityLapEntity
@@ -50,6 +51,9 @@ import com.myhealth.data.db.entity.ProfileEntity
 import com.myhealth.data.db.entity.RideBestEntity
 import com.myhealth.data.db.entity.RunningBestEntity
 import com.myhealth.data.db.entity.SleepSessionEntity
+import com.myhealth.data.db.entity.StrengthSetLogEntity
+import com.myhealth.data.db.entity.StrengthWorkoutEntity
+import com.myhealth.data.db.entity.StrengthWorkoutExerciseEntity
 import com.myhealth.data.db.entity.SuggestedSessionEntity
 import com.myhealth.data.db.entity.SuggestionBatchEntity
 import com.myhealth.data.db.entity.SyncStateEntity
@@ -59,7 +63,7 @@ import com.myhealth.data.db.migration.Migrations
 
 /**
  * The single Room database (PLAN §2.2): 26 tables plus the P8.5 `ingredient_fts` index, the
- * P11.1 `cycle_entry` table and the P12 `ride_best` table,
+ * P11.1 `cycle_entry` table, the P12 `ride_best` table and the three P14 strength tables,
  * `exportSchema = true`, schemas in `app/schemas`.
  *
  * Every version bump ships an explicit `Migration` in [Migrations] plus a row in `docs/PLAN.md`
@@ -104,8 +108,12 @@ import com.myhealth.data.db.migration.Migrations
         ImportRecordEntity::class,
         // §5 P11.1 cycle
         CycleEntryEntity::class,
+        // §2.2.7 strength (P14)
+        StrengthWorkoutEntity::class,
+        StrengthWorkoutExerciseEntity::class,
+        StrengthSetLogEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -148,6 +156,9 @@ abstract class MyHealthDatabase : RoomDatabase() {
 
     /** `cycle_entry` (P11.1). */
     abstract fun cycleDao(): CycleDao
+
+    /** The three strength tables (P14). */
+    abstract fun strengthDao(): StrengthDao
 
     /** Whole-table access for the JSON backup (P8.4). */
     abstract fun backupDao(): BackupDao

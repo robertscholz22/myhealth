@@ -27,6 +27,9 @@ import com.myhealth.data.db.entity.ProfileEntity
 import com.myhealth.data.db.entity.RideBestEntity
 import com.myhealth.data.db.entity.RunningBestEntity
 import com.myhealth.data.db.entity.SleepSessionEntity
+import com.myhealth.data.db.entity.StrengthSetLogEntity
+import com.myhealth.data.db.entity.StrengthWorkoutEntity
+import com.myhealth.data.db.entity.StrengthWorkoutExerciseEntity
 import com.myhealth.data.db.entity.SuggestedSessionEntity
 import com.myhealth.data.db.entity.SuggestionBatchEntity
 import com.myhealth.data.db.entity.SyncStateEntity
@@ -300,4 +303,31 @@ interface BackupDao {
 
     @Query("DELETE FROM cycle_entry")
     suspend fun deleteCycleEntry()
+
+    @Query("SELECT * FROM strength_workout")
+    suspend fun allStrengthWorkout(): List<StrengthWorkoutEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStrengthWorkout(rows: List<StrengthWorkoutEntity>): List<Long>
+
+    @Query("DELETE FROM strength_workout")
+    suspend fun deleteStrengthWorkout()
+
+    @Query("SELECT * FROM strength_workout_exercise")
+    suspend fun allStrengthWorkoutExercise(): List<StrengthWorkoutExerciseEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStrengthWorkoutExercise(rows: List<StrengthWorkoutExerciseEntity>): List<Long>
+
+    @Query("DELETE FROM strength_workout_exercise")
+    suspend fun deleteStrengthWorkoutExercise()
+
+    @Query("SELECT * FROM strength_set_log")
+    suspend fun allStrengthSetLog(): List<StrengthSetLogEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStrengthSetLog(rows: List<StrengthSetLogEntity>): List<Long>
+
+    @Query("DELETE FROM strength_set_log")
+    suspend fun deleteStrengthSetLog()
 }

@@ -42,3 +42,30 @@ private fun bandIndex(hrr: Double): Int = when {
     hrr < 0.90 -> 3
     else -> 4
 }
+
+/**
+ * The model-driven overload (PLAN §3.9, P14.1): minutes per **named** zone Z1…Z5 of [model],
+ * instead of per fixed 10 % HRR band.
+ *
+ * Identical accounting to the five-band [timeInZones] above — the interval to the next sample is
+ * attributed to the zone of the earlier reading, capped at 60 s, and a `null` reading drops its
+ * whole interval — so a [com.myhealth.domain.model.HrZoneScheme.HRR_KARVONEN] model (the default)
+ * returns exactly the list the raw bands return for the same stream (test `hz06`). A `MANUAL` or
+ * `LTHR_FRIEL` model is where the two legitimately differ: that is the point of an override.
+ *
+ * The original function is deliberately left untouched: the Activity-detail table and every
+ * zone-time figure computed before P14 must keep the value they had.
+ */
+fun timeInZones(offsetsSec: IntArray, hr: List<Int?>, model: HrZoneModel): List<Double> {
+    val minutes = DoubleArray(HR_ZONE_COUNT)
+    val sampleCount = minOf(offsetsSec.size, hr.size)
+    if (sampleCount < 2) return minutes.toList()
+
+    for (i in 0 until sampleCount - 1) {
+        val hrAtI = hr[i] ?: continue
+        val dtSec = (offsetsSec[i + 1] - offsetsSec[i]).coerceIn(0, 60)
+        if (dtSec == 0) continue
+        minutes[model.zoneOf(hrAtI) - 1] += dtSec / 60.0
+    }
+    return minutes.toList()
+}

@@ -71,6 +71,8 @@ fun PlannedSessionEntity.toDomain(): PlannedSession = PlannedSession(
     sourceSuggestionId = sourceSuggestionId,
     createdAtMillis = createdAtMillis,
     updatedAtMillis = updatedAtMillis,
+    structureJson = structureJson,
+    workoutId = workoutId,
 )
 
 fun PlannedSession.toEntity(): PlannedSessionEntity = PlannedSessionEntity(
@@ -93,6 +95,8 @@ fun PlannedSession.toEntity(): PlannedSessionEntity = PlannedSessionEntity(
     sourceSuggestionId = sourceSuggestionId,
     createdAtMillis = createdAtMillis,
     updatedAtMillis = updatedAtMillis,
+    structureJson = structureJson,
+    workoutId = workoutId,
 )
 
 // ---- suggestion_batch ⇄ SuggestionBatch ---------------------------------------------------------
@@ -144,6 +148,9 @@ fun SuggestedSessionEntity.toDomain(): SuggestedSession = SuggestedSession(
     score = score,
     rationale = rationaleJson.toRationale(),
     status = status,
+    targetPaceSecPerKm = targetPaceSecPerKm,
+    structureJson = structureJson,
+    workoutTemplateId = workoutTemplateId,
 )
 
 fun SuggestedSession.toEntity(): SuggestedSessionEntity = SuggestedSessionEntity(
@@ -159,6 +166,9 @@ fun SuggestedSession.toEntity(): SuggestedSessionEntity = SuggestedSessionEntity
     score = score,
     rationaleJson = rationale.toRationaleJson(),
     status = status,
+    targetPaceSecPerKm = targetPaceSecPerKm,
+    structureJson = structureJson,
+    workoutTemplateId = workoutTemplateId,
 )
 
 // ---- goal ⇄ Goal ----------------------------------------------------------------------------------

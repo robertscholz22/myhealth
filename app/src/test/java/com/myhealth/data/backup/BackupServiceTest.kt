@@ -39,6 +39,9 @@ class BackupServiceTest {
         dao.mealLogItem += BackupFixtures.mealLogItem()
         dao.runningBest += BackupFixtures.runningBest()
         dao.rideBest += BackupFixtures.rideBest()
+        dao.strengthWorkout += BackupFixtures.strengthWorkout()
+        dao.strengthWorkoutExercise += BackupFixtures.strengthWorkoutExercise()
+        dao.strengthSetLog += BackupFixtures.strengthSetLog()
     }
 
     @Test
@@ -47,8 +50,8 @@ class BackupServiceTest {
 
         val summary = (service.export(URI) as Outcome.Ok).value
 
-        assertThat(summary.totalRows).isEqualTo(10)
-        assertThat(summary.rowsWritten).isEqualTo(10)
+        assertThat(summary.totalRows).isEqualTo(13)
+        assertThat(summary.rowsWritten).isEqualTo(13)
         assertThat(summary.appVersion).isEqualTo("1.0")
         assertThat(summary.exportedAtMillis).isEqualTo(clock.millis())
         assertThat(summary.schemaVersion).isEqualTo(BackupFile.CURRENT_SCHEMA_VERSION)
@@ -66,7 +69,7 @@ class BackupServiceTest {
 
         val summary = (service.import(URI, BackupMode.REPLACE) as Outcome.Ok).value
 
-        assertThat(summary.rowsWritten).isEqualTo(10)
+        assertThat(summary.rowsWritten).isEqualTo(13)
         assertThat(dao.activitySession.map { it.id to it.title }).containsExactly(1L to "Spiel")
         assertThat(dao.ingredient.map { it.name }).containsExactly("Haferflocken")
         assertThat(dao.activityStream.single().activityId).isEqualTo(1L)
@@ -80,7 +83,7 @@ class BackupServiceTest {
 
         val summary = (service.import(URI, BackupMode.MERGE) as Outcome.Ok).value
 
-        assertThat(summary.rowsWritten).isEqualTo(10)
+        assertThat(summary.rowsWritten).isEqualTo(13)
         val activityId = dao.activitySession.single().id
         assertThat(activityId).isNotEqualTo(1L)
         assertThat(dao.activityStream.single().activityId).isEqualTo(activityId)
@@ -132,6 +135,43 @@ class BackupServiceTest {
             .containsExactly(RideBestKind.POWER_20MIN, RideBestKind.TIME_40K)
         assertThat(dao.rideBest.first { it.kind == RideBestKind.TIME_40K }.activityId)
             .isEqualTo(activityId)
+    }
+
+    /**
+     * P14: `strength_workout` merges on its `templateId` (a user's own workout on its name), its
+     * exercise rows ride along as owned children under the id the merge handed out, and a set log
+     * merges on `completedAtMillis|exerciseId|setIndex` — so restoring a backup twice leaves one
+     * "Upper A" with one row, not two.
+     */
+    @Test
+    fun strength_workout_and_set_log_merge_by_natural_key() = runTest {
+        seed()
+        service.export(URI)
+        clearDevice()
+
+        service.import(URI, BackupMode.MERGE)
+
+        val workoutId = dao.strengthWorkout.single().id
+        assertThat(workoutId).isNotEqualTo(1L)
+        assertThat(dao.strengthWorkout.single().templateId).isEqualTo("UPPER_A")
+        assertThat(dao.strengthWorkoutExercise.single().workoutId).isEqualTo(workoutId)
+        assertThat(dao.strengthSetLog.single().exerciseId).isEqualTo("BARBELL_BENCH_PRESS")
+
+        // The same workout and the same logged set arriving again under new ids change nothing.
+        content.bytes = BackupSerializer
+            .encodeToString(
+                BackupFixtures.file().copy(
+                    strengthWorkout = listOf(BackupFixtures.strengthWorkout(id = 77L)),
+                    strengthSetLog = listOf(BackupFixtures.strengthSetLog(id = 88L)),
+                ),
+            )
+            .toByteArray()
+        service.import(URI, BackupMode.MERGE)
+
+        assertThat(dao.strengthWorkout).hasSize(1)
+        assertThat(dao.strengthWorkout.single().id).isEqualTo(workoutId)
+        assertThat(dao.strengthSetLog).hasSize(1)
+        assertThat(dao.strengthWorkoutExercise).hasSize(1)
     }
 
     /** The smoke test in code: importing the same file twice must not double anything. */
@@ -193,6 +233,9 @@ class BackupServiceTest {
         dao.mealLogItem.clear()
         dao.runningBest.clear()
         dao.rideBest.clear()
+        dao.strengthWorkout.clear()
+        dao.strengthWorkoutExercise.clear()
+        dao.strengthSetLog.clear()
     }
 
     private companion object {

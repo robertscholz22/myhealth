@@ -39,6 +39,7 @@ import com.myhealth.data.repository.RoomPlanRepository
 import com.myhealth.data.repository.RoomProfileRepository
 import com.myhealth.data.repository.RoomRideBestRepository
 import com.myhealth.data.repository.RoomRunningBestRepository
+import com.myhealth.data.repository.RoomStrengthRepository
 import com.myhealth.data.repository.RoomSuggestionRepository
 import com.myhealth.data.repository.RoomSyncStateRepository
 import com.myhealth.data.repository.RoomTransactionRunner
@@ -63,6 +64,7 @@ import com.myhealth.domain.repository.ProfileRepository
 import com.myhealth.domain.repository.RideBestRepository
 import com.myhealth.domain.repository.RunningBestRepository
 import com.myhealth.domain.repository.SettingsRepository
+import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.repository.SyncStateRepository
 import com.myhealth.sync.SyncScheduler
@@ -164,6 +166,9 @@ class AppGraph(private val app: Application) {
 
     /** `ride_best` (P12); read by the Bike screen and the FTP estimate. */
     val rideBestRepo: RideBestRepository by lazy { RoomRideBestRepository(db.rideBestDao()) }
+
+    /** The three strength tables (§2.2.7, P14): workouts, their rows and the per-set log. */
+    val strengthRepo: StrengthRepository by lazy { RoomStrengthRepository(db.strengthDao()) }
 
     /**
      * `daily_load` (§2.2.6, P5.5). [RoomLoadRepository.recomputeFrom] is wired to

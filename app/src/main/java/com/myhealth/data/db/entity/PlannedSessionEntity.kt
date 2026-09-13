@@ -33,11 +33,18 @@ import kotlinx.serialization.Serializable
             childColumns = ["linkedActivityId"],
             onDelete = ForeignKey.SET_NULL,
         ),
+        ForeignKey(
+            entity = StrengthWorkoutEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["workoutId"],
+            onDelete = ForeignKey.SET_NULL,
+        ),
     ],
     indices = [
         Index(value = ["planId"], name = "idx_planned_plan"),
         Index(value = ["day"], name = "idx_planned_day"),
         Index(value = ["linkedActivityId"], name = "idx_planned_activity"),
+        Index(value = ["workoutId"], name = "idx_planned_workout"),
     ],
 )
 data class PlannedSessionEntity(
@@ -60,4 +67,8 @@ data class PlannedSessionEntity(
     val sourceSuggestionId: Long? = null,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    /** The `WorkoutStructure` of §3.11 as JSON (P14, DB v6). */
+    val structureJson: String? = null,
+    /** The strength workout this session runs (P14, DB v6); `SET_NULL`, index `idx_planned_workout`. */
+    val workoutId: Long? = null,
 )

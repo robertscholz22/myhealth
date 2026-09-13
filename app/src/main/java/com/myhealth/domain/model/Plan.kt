@@ -35,6 +35,10 @@ data class PlannedSession(
     val sourceSuggestionId: Long?,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    /** The `WorkoutStructure` of §3.11 as JSON (P14, DB v6); null for an unstructured session. */
+    val structureJson: String? = null,
+    /** The strength workout this session runs (P14, DB v6); `SET_NULL` if the workout is deleted. */
+    val workoutId: Long? = null,
 )
 
 /** One `{ruleId, text}` entry of a suggested session's rationale (§3.5.6 step 8). */
@@ -54,6 +58,12 @@ data class SuggestedSession(
     val score: Double,
     val rationale: List<RationaleEntry>,
     val status: SuggestionStatus,
+    /** The pace the zone model recommends for this session type (P14, DB v6; §3.10). */
+    val targetPaceSecPerKm: Int? = null,
+    /** The `WorkoutStructure` of §3.11 as JSON (P14, DB v6); filled by `IntervalBuilder` in P14.3. */
+    val structureJson: String? = null,
+    /** A built-in `StrengthTemplates` id, materialised into a `strength_workout` row on accept. */
+    val workoutTemplateId: String? = null,
 )
 
 /** Mirrors `suggestion_batch` (§2.2.4). */

@@ -216,3 +216,70 @@ enum class EngineWarningCode {
     NO_NUTRIENTS_FOUND,
     LOW_CONFIDENCE,
 }
+
+// ---- P14: heart-rate zones, strength and structured workouts (§2.1) ----------------------------
+
+/**
+ * How [com.myhealth.domain.engine.load.HrZoneModel] derives its four zone boundaries (§3.9).
+ *
+ * Resolution order is `MANUAL` → `LTHR_FRIEL` → `HRR_KARVONEN`; the last one is the default and
+ * reproduces the `<60/60-70/70-80/80-90/>=90 %` heart-rate-reserve bands `timeInZones` has drawn
+ * since P2.9, so naming the zones changed no stored figure.
+ */
+enum class HrZoneScheme { HRR_KARVONEN, LTHR_FRIEL, MANUAL }
+
+/** Which silhouette of the body figure a [MuscleGroup] is drawn on (§3.12.2). */
+enum class BodySide { FRONT, BACK, BOTH }
+
+/**
+ * The 16 muscle groups the exercise catalog, the body figure and `MuscleLoadEngine` speak in
+ * (§2.1, P14). [isLowerBody] is what constraint `C15` reads: no leg day after a hard run.
+ */
+enum class MuscleGroup(val side: BodySide, val isLowerBody: Boolean) {
+    CHEST(BodySide.FRONT, false),
+    SHOULDERS_FRONT(BodySide.FRONT, false),
+    SHOULDERS_REAR(BodySide.BACK, false),
+    BICEPS(BodySide.FRONT, false),
+    TRICEPS(BodySide.BACK, false),
+    FOREARMS(BodySide.BOTH, false),
+    ABS(BodySide.FRONT, false),
+    OBLIQUES(BodySide.FRONT, false),
+    TRAPS(BodySide.BACK, false),
+    LATS(BodySide.BACK, false),
+    LOWER_BACK(BodySide.BACK, false),
+    GLUTES(BodySide.BACK, true),
+    QUADS(BodySide.FRONT, true),
+    HAMSTRINGS(BodySide.BACK, true),
+    ADDUCTORS(BodySide.FRONT, true),
+    CALVES(BodySide.BOTH, true),
+}
+
+/** What an exercise is performed with (§3.12.1). */
+enum class Equipment { BODYWEIGHT, DUMBBELL, BARBELL, MACHINE, CABLE, KETTLEBELL, BAND, MEDICINE_BALL }
+
+/** The movement an exercise trains (§3.12.1) — used for filtering and template balance. */
+enum class MovementPattern {
+    SQUAT,
+    HINGE,
+    LUNGE,
+    HORIZONTAL_PUSH,
+    VERTICAL_PUSH,
+    HORIZONTAL_PULL,
+    VERTICAL_PULL,
+    CARRY,
+    CORE,
+    ISOLATION,
+    PLYOMETRIC,
+}
+
+/** `strength_workout.kind` (§2.2.7). `CUSTOM` is the last-resort member of the converter. */
+enum class StrengthWorkoutKind { FULL, UPPER, LOWER, CORE, CUSTOM }
+
+/** A muscle group's fresh/loaded/fatigued band relative to `0.35 × CTL` (§3.12.4). */
+enum class MuscleLoadBand { FRESH, LOADED, FATIGUED }
+
+/** The kinds of step a [com.myhealth.domain.model.WorkoutStructure] is built from (§3.11). */
+enum class WorkoutStepKind { WARMUP, WORK, RECOVERY, COOLDOWN, REPEAT }
+
+/** What a workout step prescribes (§3.11); `NONE` means "just do it for the duration". */
+enum class WorkoutTargetKind { ZONE, PACE, POWER, EFFORT, NONE }

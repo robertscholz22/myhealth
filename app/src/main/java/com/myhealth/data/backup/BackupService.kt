@@ -95,6 +95,9 @@ class BackupService(
         rideBest = dao.allRideBest(),
         importRecord = dao.allImportRecord(),
         cycleEntry = dao.allCycleEntry(),
+        strengthWorkout = dao.allStrengthWorkout(),
+        strengthWorkoutExercise = dao.allStrengthWorkoutExercise(),
+        strengthSetLog = dao.allStrengthSetLog(),
     )
 
     /** Child-first wipe, then parent-first insert with the backup's own ids. */
@@ -104,6 +107,10 @@ class BackupService(
     }
 
     private suspend fun deleteAllChildFirst() {
+        // P14: the set log hangs off `planned_session` and `activity_session`, the exercise rows
+        // off `strength_workout` — all three go before any of their parents.
+        dao.deleteStrengthSetLog()
+        dao.deleteStrengthWorkoutExercise()
         dao.deleteCycleEntry()
         dao.deleteImportRecord()
         // `ride_best` and `running_best` are children of `activity_session`, so they go first.
@@ -120,6 +127,8 @@ class BackupService(
         dao.deleteSuggestedSession()
         dao.deleteSuggestionBatch()
         dao.deletePlannedSession()
+        // After `planned_session`, which references it (`SET_NULL`).
+        dao.deleteStrengthWorkout()
         dao.deleteTrainingPlan()
         dao.deleteEventOverride()
         dao.deleteCalendarEvent()
@@ -150,6 +159,9 @@ class BackupService(
         written += dao.insertCalendarEvent(file.calendarEvent).size
         written += dao.insertEventOverride(file.eventOverride).size
         written += dao.insertTrainingPlan(file.trainingPlan).size
+        // Before `planned_session`, whose `workoutId` points at it.
+        written += dao.insertStrengthWorkout(file.strengthWorkout).size
+        written += dao.insertStrengthWorkoutExercise(file.strengthWorkoutExercise).size
         written += dao.insertPlannedSession(file.plannedSession).size
         written += dao.insertSuggestionBatch(file.suggestionBatch).size
         written += dao.insertSuggestedSession(file.suggestedSession).size
@@ -165,6 +177,7 @@ class BackupService(
         written += dao.insertRideBest(file.rideBest).size
         written += dao.insertImportRecord(file.importRecord).size
         written += dao.insertCycleEntry(file.cycleEntry).size
+        written += dao.insertStrengthSetLog(file.strengthSetLog).size
         return written
     }
 }

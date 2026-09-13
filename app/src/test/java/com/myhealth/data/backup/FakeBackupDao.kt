@@ -24,6 +24,9 @@ import com.myhealth.data.db.entity.ProfileEntity
 import com.myhealth.data.db.entity.RideBestEntity
 import com.myhealth.data.db.entity.RunningBestEntity
 import com.myhealth.data.db.entity.SleepSessionEntity
+import com.myhealth.data.db.entity.StrengthSetLogEntity
+import com.myhealth.data.db.entity.StrengthWorkoutEntity
+import com.myhealth.data.db.entity.StrengthWorkoutExerciseEntity
 import com.myhealth.data.db.entity.SuggestedSessionEntity
 import com.myhealth.data.db.entity.SuggestionBatchEntity
 import com.myhealth.data.db.entity.SyncStateEntity
@@ -301,4 +304,32 @@ internal class FakeBackupDao : BackupDao {
         auto(cycleEntry, rows, { it.id }) { row, id -> row.copy(id = id) }
 
     override suspend fun deleteCycleEntry() = cycleEntry.clear()
+
+    val strengthWorkout: MutableList<StrengthWorkoutEntity> = mutableListOf()
+
+    override suspend fun allStrengthWorkout(): List<StrengthWorkoutEntity> = strengthWorkout.toList()
+
+    override suspend fun insertStrengthWorkout(rows: List<StrengthWorkoutEntity>) =
+        auto(strengthWorkout, rows, { it.id }) { row, id -> row.copy(id = id) }
+
+    override suspend fun deleteStrengthWorkout() = strengthWorkout.clear()
+
+    val strengthWorkoutExercise: MutableList<StrengthWorkoutExerciseEntity> = mutableListOf()
+
+    override suspend fun allStrengthWorkoutExercise(): List<StrengthWorkoutExerciseEntity> =
+        strengthWorkoutExercise.toList()
+
+    override suspend fun insertStrengthWorkoutExercise(rows: List<StrengthWorkoutExerciseEntity>) =
+        auto(strengthWorkoutExercise, rows, { it.id }) { row, id -> row.copy(id = id) }
+
+    override suspend fun deleteStrengthWorkoutExercise() = strengthWorkoutExercise.clear()
+
+    val strengthSetLog: MutableList<StrengthSetLogEntity> = mutableListOf()
+
+    override suspend fun allStrengthSetLog(): List<StrengthSetLogEntity> = strengthSetLog.toList()
+
+    override suspend fun insertStrengthSetLog(rows: List<StrengthSetLogEntity>) =
+        auto(strengthSetLog, rows, { it.id }) { row, id -> row.copy(id = id) }
+
+    override suspend fun deleteStrengthSetLog() = strengthSetLog.clear()
 }

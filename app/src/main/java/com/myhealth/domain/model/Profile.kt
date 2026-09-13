@@ -28,6 +28,14 @@ data class Profile(
     val indoorTrainerAvailable: Boolean = false,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    /**
+     * Manual heart-rate zone override (P14, DB v6): a JSON array of **four ascending bpm**
+     * `[z2Start,z3Start,z4Start,z5Start]`. Null means the zones are derived (§3.9); an
+     * implausible blob is ignored with `IMPLAUSIBLE_VALUE`, never rejected.
+     */
+    val hrZoneBoundsJson: String? = null,
+    /** Anchors the Friel zone scheme when no manual bounds exist (P14, DB v6; §3.9). */
+    val lactateThresholdHrManual: Int? = null,
 ) {
     /** Whole years of age on [on], from [birthDay] (epoch day). */
     fun ageYears(on: LocalDate): Int = Period.between(birthDay.toLocalDate(), on).years

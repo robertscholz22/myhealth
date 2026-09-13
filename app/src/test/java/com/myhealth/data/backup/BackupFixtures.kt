@@ -11,6 +11,9 @@ import com.myhealth.data.db.entity.MealLogItemEntity
 import com.myhealth.data.db.entity.ProfileEntity
 import com.myhealth.data.db.entity.RideBestEntity
 import com.myhealth.data.db.entity.RunningBestEntity
+import com.myhealth.data.db.entity.StrengthSetLogEntity
+import com.myhealth.data.db.entity.StrengthWorkoutEntity
+import com.myhealth.data.db.entity.StrengthWorkoutExerciseEntity
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.MealSlot
 import com.myhealth.domain.model.MeasureBasis
@@ -18,6 +21,7 @@ import com.myhealth.domain.model.NeatLevel
 import com.myhealth.domain.model.QuantityUnit
 import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.model.Sex
+import com.myhealth.domain.model.StrengthWorkoutKind
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
 
@@ -174,6 +178,45 @@ internal object BackupFixtures {
         updatedAtMillis = START,
     )
 
+    /** P14: a built-in workout; `templateId` (else the lowercased name) is the MERGE key. */
+    fun strengthWorkout(id: Long = 1L, templateId: String? = "UPPER_A", name: String = "Upper A") =
+        StrengthWorkoutEntity(
+            id = id,
+            name = name,
+            kind = StrengthWorkoutKind.UPPER,
+            templateId = templateId,
+            isBuiltIn = templateId != null,
+            createdAtMillis = START,
+            updatedAtMillis = START,
+        )
+
+    /** P14: one row of [strengthWorkout] — an owned child, inserted only under a new parent. */
+    fun strengthWorkoutExercise(id: Long = 1L, workoutId: Long = 1L, orderIndex: Int = 0) =
+        StrengthWorkoutExerciseEntity(
+            id = id,
+            workoutId = workoutId,
+            orderIndex = orderIndex,
+            exerciseId = "BARBELL_BENCH_PRESS",
+            sets = 3,
+            reps = 10,
+            loadKg = 60.0,
+        )
+
+    /** P14: one logged set; `completedAtMillis|exerciseId|setIndex` is the MERGE key. */
+    fun strengthSetLog(id: Long = 1L, plannedSessionId: Long? = null, setIndex: Int = 1) =
+        StrengthSetLogEntity(
+            id = id,
+            day = DAY,
+            plannedSessionId = plannedSessionId,
+            activityId = null,
+            exerciseId = "BARBELL_BENCH_PRESS",
+            setIndex = setIndex,
+            reps = 10,
+            loadKg = 60.0,
+            rpe = 8,
+            completedAtMillis = START,
+        )
+
     fun file(exportedAtMillis: Long = START, appVersion: String = "1.0") = BackupFile(
         exportedAtMillis = exportedAtMillis,
         appVersion = appVersion,
@@ -188,5 +231,8 @@ internal object BackupFixtures {
         runningBest = listOf(runningBest()),
         rideBest = listOf(rideBest()),
         cycleEntry = listOf(cycleEntry()),
+        strengthWorkout = listOf(strengthWorkout()),
+        strengthWorkoutExercise = listOf(strengthWorkoutExercise()),
+        strengthSetLog = listOf(strengthSetLog()),
     )
 }

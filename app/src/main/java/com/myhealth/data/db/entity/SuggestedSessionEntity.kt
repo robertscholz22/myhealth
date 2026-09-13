@@ -44,4 +44,10 @@ data class SuggestedSessionEntity(
     /** JSON list of `{ruleId, text}` (§3.5.6 step 8). */
     val rationaleJson: String,
     val status: SuggestionStatus = SuggestionStatus.PROPOSED,
+    /** The recommended pace for this session type (P14, DB v6; §3.10). */
+    val targetPaceSecPerKm: Int? = null,
+    /** The `WorkoutStructure` of §3.11 as JSON (P14, DB v6). */
+    val structureJson: String? = null,
+    /** A built-in `StrengthTemplates` id, materialised into a workout row on accept (P14, DB v6). */
+    val workoutTemplateId: String? = null,
 )

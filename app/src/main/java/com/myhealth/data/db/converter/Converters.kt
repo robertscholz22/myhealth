@@ -20,6 +20,7 @@ import com.myhealth.domain.model.QuantityUnit
 import com.myhealth.domain.model.RecoveryBand
 import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.model.Sex
+import com.myhealth.domain.model.StrengthWorkoutKind
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
 import com.myhealth.domain.model.SessionType
@@ -226,6 +227,18 @@ class Converters {
     @TypeConverter
     fun toRideBestKind(value: String): RideBestKind =
         decode(value, RideBestKind.entries.toTypedArray(), RideBestKind.POWER_5MIN)
+
+    /**
+     * `strength_workout.kind` (P14). The last-resort member is [StrengthWorkoutKind.CUSTOM]: a kind
+     * this build does not know is, by definition, not one of the four it can reason about, and
+     * `CUSTOM` is exactly the "a workout the app has no opinion about" bucket.
+     */
+    @TypeConverter
+    fun fromStrengthWorkoutKind(value: StrengthWorkoutKind): String = value.name
+
+    @TypeConverter
+    fun toStrengthWorkoutKind(value: String): StrengthWorkoutKind =
+        decode(value, StrengthWorkoutKind.entries.toTypedArray(), StrengthWorkoutKind.CUSTOM)
 
     @TypeConverter
     fun fromImportKind(value: ImportKind): String = value.name

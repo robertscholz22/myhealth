@@ -27,6 +27,8 @@ fun ProfileEntity.toDomain(): Profile = Profile(
     indoorTrainerAvailable = indoorTrainerAvailable,
     createdAtMillis = createdAtMillis,
     updatedAtMillis = updatedAtMillis,
+    hrZoneBoundsJson = hrZoneBoundsJson,
+    lactateThresholdHrManual = lactateThresholdHrManual,
 )
 
 fun Profile.toEntity(): ProfileEntity = ProfileEntity(
@@ -48,4 +50,6 @@ fun Profile.toEntity(): ProfileEntity = ProfileEntity(
     indoorTrainerAvailable = indoorTrainerAvailable,
     createdAtMillis = createdAtMillis,
     updatedAtMillis = updatedAtMillis,
+    hrZoneBoundsJson = hrZoneBoundsJson,
+    lactateThresholdHrManual = lactateThresholdHrManual,
 )

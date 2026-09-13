@@ -23,6 +23,9 @@ import com.myhealth.data.db.entity.ProfileEntity
 import com.myhealth.data.db.entity.RideBestEntity
 import com.myhealth.data.db.entity.RunningBestEntity
 import com.myhealth.data.db.entity.SleepSessionEntity
+import com.myhealth.data.db.entity.StrengthSetLogEntity
+import com.myhealth.data.db.entity.StrengthWorkoutEntity
+import com.myhealth.data.db.entity.StrengthWorkoutExerciseEntity
 import com.myhealth.data.db.entity.SuggestedSessionEntity
 import com.myhealth.data.db.entity.SuggestionBatchEntity
 import com.myhealth.data.db.entity.SyncStateEntity
@@ -86,6 +89,10 @@ data class BackupFile(
     val importRecord: List<ImportRecordEntity> = emptyList(),
     // §5 P11.1 cycle
     val cycleEntry: List<CycleEntryEntity> = emptyList(),
+    // §2.2.7 strength (P14)
+    val strengthWorkout: List<StrengthWorkoutEntity> = emptyList(),
+    val strengthWorkoutExercise: List<StrengthWorkoutExerciseEntity> = emptyList(),
+    val strengthSetLog: List<StrengthSetLogEntity> = emptyList(),
 ) {
 
     /** Rows per SQLite table name, empty tables omitted — what the screen reports after a run. */
@@ -118,6 +125,9 @@ data class BackupFile(
         "ride_best" to rideBest.size,
         "import_record" to importRecord.size,
         "cycle_entry" to cycleEntry.size,
+        "strength_workout" to strengthWorkout.size,
+        "strength_workout_exercise" to strengthWorkoutExercise.size,
+        "strength_set_log" to strengthSetLog.size,
     ).filterValues { it > 0 }
 
     val totalRows: Int get() = rowsPerTable().values.sum()
@@ -125,10 +135,11 @@ data class BackupFile(
     companion object {
         /**
          * Must track `@Database(version = …)` of `MyHealthDatabase`. It stood at 3 while the
-         * database moved to 4 (the "undo import" column) — a pre-existing drift corrected here
-         * together with the P12 bump, so a 1.1.0 export declares 5 and an older app refuses it,
-         * which is exactly the guarantee the field exists for.
+         * database moved to 4 (the "undo import" column) — a pre-existing drift corrected with
+         * the P12 bump to 5. P14.1 raises it to **6** (zones + the three strength tables), so a
+         * 0.4.0 export declares 6 and an older app refuses it, which is exactly the guarantee the
+         * field exists for.
          */
-        const val CURRENT_SCHEMA_VERSION: Int = 5
+        const val CURRENT_SCHEMA_VERSION: Int = 6
     }
 }
