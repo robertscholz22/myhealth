@@ -40,7 +40,7 @@ class RoomSyncStateRepository(
         update(key) { it.copy(changesToken = token) }
 
     override suspend fun recordSuccess(key: String, atMillis: Long): Outcome<Unit> =
-        update(key) { it.copy(lastSuccessAtMillis = atMillis) }
+        update(key) { it.copy(lastSuccessAtMillis = atMillis, lastError = null, lastErrorAtMillis = null) }
 
     override suspend fun recordError(key: String, atMillis: Long, message: String): Outcome<Unit> =
         update(key) { it.copy(lastErrorAtMillis = atMillis, lastError = message) }

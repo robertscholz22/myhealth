@@ -202,7 +202,9 @@ class TodayViewModel(
             healthSummary = cs.core.health,
             sleep = cs.sync.sleep,
             lastSyncSuccessAtMillis = cs.sync.syncStates.mapNotNull { it.lastSuccessAtMillis }.maxOrNull(),
-            lastSyncError = cs.sync.syncStates.mapNotNull { it.lastError }.firstOrNull(),
+            lastSyncError = cs.sync.syncStates.firstOrNull { st ->
+                st.lastError != null && (st.lastErrorAtMillis ?: 0L) > (st.lastSuccessAtMillis ?: 0L)
+            }?.lastError,
             isSyncing = cs.sync.syncNow == SyncWorkState.Running,
             linkSuggestions = cs.links,
             target = cs.food.target,

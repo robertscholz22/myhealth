@@ -357,3 +357,22 @@ Not built, deliberately. Garmin offers no personal API; the only route is the re
 | Settings shows "Track menstrual cycle" switch; Cycle → "Period ended" (date dialog, default today) sets `periodEndDay` on the current entry (DB: start 20709, end 20709) | PASS | c14_settings_cycle_switch.png, c15_period_ended.png |
 - POLISH-10 → FIXED: `Periodization` uses a 150 AU starter target when CTL < 5 and the previous week has no load; every suggested session then carries the `STARTER_WEEK` rationale ("Starter week: no training history yet, so this is a gentle first week"). Tests `per04_starter_target_when_no_history`, `sug26_starter_week_rationale`.
 - POLISH-11 → FIXED: onboarding defaults Run 2 / Strength 2 / Soccer 1 sessions per week; C10 treats all-zero caps as "no cap" (`c10b_all_zero_caps_means_no_cap`, `OnboardingDraftTest`).
+
+## Session 7 — 2026-09-13 (Pixel 7a, Android 17 / SDK 37, Garmin Connect 5.29)
+
+| Step | Result | Evidence |
+|---|---|---|
+| Install debug build on the Pixel 7a; first launch shows onboarding, no crash | PASS | phone_01_first_launch.png |
+- NOTE-12 (Garmin → Health Connect on the phone): Garmin Connect 5.29 declares exactly these Health Connect write permissions: ACTIVE_CALORIES_BURNED, BODY_FAT, DISTANCE, ELEVATION_GAINED, EXERCISE, FLOORS_CLIMBED, HEART_RATE, RESTING_HEART_RATE, SLEEP, SPEED, STEPS, TOTAL_CALORIES_BURNED, WEIGHT — and no HRV, VO2max, SpO2 or respiratory rate. None were granted before this session (Health Connect sync not enabled in Garmin Connect yet). Consequence: the recovery score runs on sleep + resting HR + load (HRV component absent, weights renormalise); VO2max stays the app's own VDOT estimate.
+| Onboarding completed by the owner; all 19 Health Connect permissions granted through the system sheets during onboarding; dark theme renders with green accents | PASS | phone_03_integrations.png |
+| Sync now + backfill (to 2023-08-01): 2 soccer trainings (Sep 7 + 9, HR streams ~254 samples, TRIMP 205 / 76), 7 days of daily summaries (total kcal, resting HR 46–49, steps on 5 days), 7 sleep sessions with stages (avg 7.7 h), recovery 78 GOOD, ACWR flagged INSUFFICIENT_HISTORY | PASS | phone_05_integrations_synced.png, phone_06_today.png, phone_07_activities.png |
+- NOTE-13 (Garmin data depth): Garmin Connect only wrote the last ~7 days into Health Connect after the integration was enabled (nothing older exists in HC despite the 365-day backfill). Older history, PRs and CTL warm-up therefore come from a Garmin export (FIT/CSV/ZIP) via More → Import, as documented in DELIVERY.md.
+- BUG-9 (sync status): `sync_state.lastError` ("Health Connect permission denied", from the worker run before permissions were granted) is not cleared by a later successful sync, so Today shows "Sync failed: Health Connect permission denied" although all four channels synced at 13:20. **Fix:** `recordSuccess` clears `lastError`/`lastErrorAtMillis`; Today's banner only shows an error whose timestamp is newer than the last success.
+- POLISH-12 (formatting): decimals are locale-formatted in some places ("8,8 h" on a German phone) and dot-formatted in others ("1.40", "77.0 kg"); pick one convention (locale-aware everywhere).
+- POLISH-13 (load): the backfill created ~1 170 `daily_load` rows of zeros back to 2023 (recompute from `fromDay − 28`); start the series at the first activity day instead.
+| Activity detail with real Garmin data: 1h 29m · 7.20 km · avg 154 / max 186 bpm · TRIMP 205.3 (HR samples) · calories, HR-over-time and speed-over-time charts, link-to-event card | PASS | phone_08_activity_detail.png, phone_08_activity_detail2.png |
+| Load & Recovery: ATL 20 / CTL 14 / ACWR 1.40 (Caution) / TSB −11, monotony, strain, charts, flags (insufficient history, sleep debt) | PASS | phone_09_load.png |
+| Body: 77.0 kg, "5.0 kg above your 72.0 kg goal", weight/body-fat/resting-HR sections | PASS | phone_10_body.png |
+| Calendar + Day detail 9 Sep: activity dot, sleep 7h 41m (Deep 109m · REM 75m · Light 277m), TRIMP 205 | PASS | phone_11_calendar.png |
+| Nutrition: target 2020 kcal / 130 P / 205 C / 74 F; "Why this target?" = BMR 1685 (Mifflin, 77 kg, 176 cm, 38 y), TDEE 2275 estimated, REST, "Lose weight (0.5 kg/week) → −550 kcal/day", "raised to the safety floor", protein 1.8 g/kg (deficit) | PASS | phone_12_nutrition.png |
+| Training → Generate suggestions on one week of history: Base, target 103 AU (CTL 14), long run + mobility fillers with rationale | PASS | phone_13_suggestions.png |
