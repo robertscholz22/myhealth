@@ -339,3 +339,15 @@ product bugs, and were fixed without touching production code except reading the
 ## Scope decision — P9 (direct Garmin Connect client)
 
 Not built, deliberately. Garmin offers no personal API; the only route is the reverse-engineered SSO flow used by community Python libraries, which Garmin broke in March 2026 and can break again at any time, and which requires storing the Garmin password on the device. Everything the owner asked for (activities, HR, sleep, steps, calories, weight, body fat, HRV, VO2max) arrives through Health Connect, which is the supported path. The isolation seam (`GarminMetricsProvider`, PLAN P9.1) remains available should Garmin's Body Battery / stress / training readiness ever be wanted; it would be a self-contained, optional, default-off module.
+
+## Session 6 — 2026-09-13 (P11 cycle tracker, build ef19d44, 734 unit + 12 instrumented tests)
+
+| Step | Result | Evidence |
+|---|---|---|
+| Onboarding as FEMALE: step 3 shows "Track menstrual cycle" (default on) | PASS | c01_onboarding_step3.png |
+| Cycle screen (More → Cycle): empty state → "Log period start" (date picker, default today) → status "Menstrual · Day 1 of ~28 · Next period in 28 days (11 Oct) · Ovulation ~27 Sep · Fertile window 22–28 Sep · default-cycle confidence note", forecast of 6 cycles with period ranges and ovulation dates, history row "13 Sep 2026 · Ongoing", "Period ended" action | PASS | c03_cycle_empty.png, c05_cycle_status.png, c06_cycle_forecast.png |
+| Today: "Cycle" card (Menstrual · Day 1 of ~28 · next period) | PASS | c07_today_scrolled.png |
+| Calendar: period days 13–17 (red), fertile window 22–24/28 (olive), ovulation window 25–27 (rings), predicted next period 11 Oct (light red) | PASS | c08_calendar_markers.png |
+- POLISH-10 (suggestions, new users): right after the first sync (before `daily_load` exists) or for a user with no history, `weeklyTarget = min(ctl·7·factor, max(lastWeek·1.25, 150))` is 0, so the generated week contains only mobility. Use a starter target (150 AU) when CTL < 5 and there is no last-week load, and label it "starter week" in the rationale.
+| Cycle-aware suggestions (after sync, CTL 83, target 473 AU, 11 sessions): rationale lines per day — day 1/2 "keeping the intensity moderate for the first two days", day 3–5 "quality work is fine now, rated a little more cautiously", follicular "intervals and strength work are usually best tolerated now", each with "Based on a default 28-day cycle — log your period to improve this" | PASS | c13_review_1.png … c13_review_6.png |
+- POLISH-11 (onboarding): the "sessions / week" fields default to 0, so a user who skips them gets sport caps of 0 and the suggester can only propose cross-training/mobility. Default to Run 2 / Strength 2 / Soccer 1 and treat 0 as "no cap" only when all three are 0.

@@ -10,6 +10,7 @@ Native Android app (Kotlin, Jetpack Compose, Room) for a Google Pixel 7A: a pers
 - **Nutrition** — ingredients entered by hand, scanned from a nutrition label (camera OCR, German + English), from a photo, or looked up by barcode (Open Food Facts); meal templates; a diary with per-slot logging and water; **adaptive daily targets** (calories and protein/carb/fat split) from weight, goal weight, activity level, measured expenditure and the day's context (rest, training, pre-match, match day).
 - **Training plans** — goals (race time, weight, consistency), a week board, and rule-based **session suggestions** with rationale, driven by goals, load, recovery and the calendar (no hard sessions before a match, taper before races, rest days, sport caps).
 - **Import / backup** — Garmin `.fit`, activity `.csv` and full export `.zip`; JSON backup export/import.
+- **Cycle tracker** (female users, or anyone who enables it) — log period starts and ends, get averages-based forecasts of the next periods, ovulation and fertile windows on the calendar and Today, and cycle-aware training suggestions (moderate intensity on the first period days, strength/intervals favoured in the follicular phase, warm-up note around ovulation, recovery focus in the late luteal phase).
 - Green Material 3 theme (wallpaper colours optional).
 
 ## Build and install

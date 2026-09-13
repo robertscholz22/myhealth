@@ -15,6 +15,9 @@
 ## Verified on the emulator (see VERIFICATION.md for every step)
 Onboarding · Health Connect grant sheets · incremental sync + backfill + dedupe against re-seeded data · activities/detail/HR zones · load, recovery, PRs (incl. FIT best splits) · calendar events with recurrence, linking to activities (90 % auto-proposal) · adaptive nutrition targets (pre-match day: carbs ↑, fat ↓, protein ↑; Katch-McArdle when body fat exists) · ingredients by hand, by barcode (Open Food Facts), by label OCR from a photo (bundled-model test build) · meal templates, diary, water, item edit/delete · training plan, suggestions with rationale, accept, mark done, manual sessions · FIT + CSV import with checksum duplicate detection · JSON backup export/import · release build under R8.
 
+## Added 2026-09-13: menstrual cycle tracker
+More → Cycle (shown for female profiles or when enabled in Settings): log period start / period ended, forecast of the next six cycles from your average cycle and period length (28/5 until you have logged a few), ovulation and fertile window on the calendar and the Today card. The training suggester reads the phase per day and adapts intensity and rationale; nutrition shows a luteal-phase note. Verified on the emulator with a female profile (VERIFICATION.md session 6); 734 unit + 12 instrumented tests.
+
 ## Known limitations / follow-ups
 - OCR from the live camera could not be exercised on the emulator (no ML Kit model download there); the same code path was verified with a photo and a bundled model. First use on the phone downloads the text/barcode models once.
 - Garmin-only metrics (Body Battery, stress, training readiness) are not in Health Connect; the optional direct Garmin client (PLAN P9) was deliberately not built (brittle reverse-engineered login; see VERIFICATION.md).
