@@ -16,7 +16,7 @@ import kotlin.math.abs
 
 /**
  * [SuggestionEngine] against the named cases of PLAN §3.5.7 (`sug01`–`sug08`, `sug13`–`sug16`,
- * `sug18`–`sug20`; `sug09`–`sug12` and `sug17` are [PeriodizationTest]'s, `sug21`–`sug25`
+ * `sug18`–`sug20`, `sug26`; `sug09`–`sug12` and `sug17` are [PeriodizationTest]'s, `sug21`–`sug25`
  * [SuggestionEngineCycleTest]'s).
  *
  * Every assertion is about the **output** of a full `generate` run, not about internals: these are
@@ -225,6 +225,35 @@ class SuggestionEngineTest {
         assertThat(result.batch.horizonEndDay).isEqualTo(day(7))
         assertThat(result.batch.weeklyLoadTarget).isEqualTo(result.weeklyTarget)
         assertThat(result.batch.id).isEqualTo(0L)
+    }
+
+    @Test
+    fun sug26_starter_week_rationale() {
+        // POLISH-10: no `daily_load` history at all (right after the first sync, or a brand-new
+        // profile) must not collapse the week to mobility-only — it gets the 150 AU starter target,
+        // and every suggested session says so.
+        val result = engine.generate(
+            SuggestFixtures.input(
+                recentLoad = emptyList(),
+                profile = SuggestFixtures.profile(mobilityOnRestDays = true),
+            ),
+        )
+
+        assertThat(result.weeklyTarget).isWithin(0.01).of(150.0)
+        assertThat(result.sessions.filter { it.sessionType != SessionType.MOBILITY }).isNotEmpty()
+
+        result.sessions.forEach { session ->
+            val ruleIds = session.rationale.map { it.ruleId }
+            assertThat(ruleIds).contains(Rationale.RULE_STARTER_WEEK)
+        }
+        val starterEntry = result.sessions.first().rationale.first { it.ruleId == Rationale.RULE_STARTER_WEEK }
+        assertThat(starterEntry.text)
+            .isEqualTo("Starter week: no training history yet, so this is a gentle first week.")
+
+        // A returning athlete with real history never sees this rationale.
+        val normal = engine.generate(SuggestFixtures.input())
+        assertThat(normal.sessions.flatMap { it.rationale }.map { it.ruleId })
+            .doesNotContain(Rationale.RULE_STARTER_WEEK)
     }
 
     @Test

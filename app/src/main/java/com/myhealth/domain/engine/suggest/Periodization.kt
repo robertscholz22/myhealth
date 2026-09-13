@@ -49,6 +49,12 @@ object Periodization {
     /** …but a returning athlete is always allowed at least this much (the ramp cap's floor). */
     const val RAMP_FLOOR_AU: Double = 150.0
 
+    /** POLISH-10: below this CTL there is not enough history for `ctl * 7 * factor` to mean anything. */
+    const val STARTER_CTL_THRESHOLD: Double = 5.0
+
+    /** POLISH-10: a brand-new athlete (CTL < 5, no load logged last week) gets this instead of ~0 AU. */
+    const val STARTER_TARGET_AU: Double = 150.0
+
     const val ACWR_SUPPRESS_ABOVE: Double = 1.5
     const val ACWR_SUPPRESS_FACTOR: Double = 0.75
     const val FATIGUED_FACTOR: Double = 0.85
@@ -117,8 +123,19 @@ object Periodization {
     }
 
     /**
+     * POLISH-10: true for a brand-new athlete — CTL hasn't built up yet **and** nothing was logged
+     * last week either, so `ctl * 7 * factor` collapses to ~0 and the ramp cap's `max(_, 150)` floor
+     * never kicks in (it only guards the *cap*, and the raw target is already below it). A returning
+     * athlete who simply rested last week has `ctl >= 5` and hits [RAMP_FLOOR_AU] instead — this flag
+     * is specifically "no history to plan from", not "no load last week".
+     */
+    fun isStarterWeek(ctl: Double, lastWeekActual: Double): Boolean =
+        ctl < STARTER_CTL_THRESHOLD && lastWeekActual <= 0.0
+
+    /**
      * The weekly AU budget of §3.5.2, in the order the plan writes it: phase factor, then the
-     * 25 % ramp cap (floored at 150 AU), then the ACWR and recovery multipliers, then `max(_, 0)`.
+     * 25 % ramp cap (floored at 150 AU) — or the POLISH-10 starter target when there is no history
+     * at all — then the ACWR and recovery multipliers, then `max(_, 0)`.
      */
     fun weeklyTarget(
         phase: TrainingPhase,
@@ -127,8 +144,12 @@ object Periodization {
         acwr: Double?,
         band: RecoveryBand?,
     ): Double {
-        var target = ctl * DAYS_PER_WEEK * factorFor(phase)
-        target = min(target, max(lastWeekActual * MAX_RAMP_FACTOR, RAMP_FLOOR_AU))
+        var target = if (isStarterWeek(ctl, lastWeekActual)) {
+            STARTER_TARGET_AU
+        } else {
+            val base = ctl * DAYS_PER_WEEK * factorFor(phase)
+            min(base, max(lastWeekActual * MAX_RAMP_FACTOR, RAMP_FLOOR_AU))
+        }
         if (acwr != null && acwr > ACWR_SUPPRESS_ABOVE) target *= ACWR_SUPPRESS_FACTOR
         if (band == RecoveryBand.FATIGUED) target *= FATIGUED_FACTOR
         if (band == RecoveryBand.STRAINED) target *= STRAINED_FACTOR
@@ -165,6 +186,7 @@ object Periodization {
             lastWeekActual = lastWeek,
             acwr = acwr,
             band = input.recovery.bandOf(),
+            isStarterWeek = isStarterWeek(ctl, lastWeek),
         )
     }
 
@@ -180,4 +202,6 @@ data class PeriodizationResult(
     val lastWeekActual: Double,
     val acwr: Double?,
     val band: RecoveryBand?,
+    /** POLISH-10: true when this is a brand-new athlete's first generated week. */
+    val isStarterWeek: Boolean = false,
 )

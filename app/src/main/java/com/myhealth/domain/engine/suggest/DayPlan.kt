@@ -183,15 +183,25 @@ object SportPreferences {
 
     const val LONG_RUN_WEEKDAY_KEY: String = "longRunWeekday"
 
-    fun capsOf(preferredSportsJson: String): Map<SportGroup, Int> = objectOf(preferredSportsJson)
-        ?.entries
-        ?.mapNotNull { (key, value) ->
-            val group = SportGroup.entries.firstOrNull { it.name == key } ?: return@mapNotNull null
-            val cap = (value as? JsonPrimitive)?.intOrNull ?: return@mapNotNull null
-            group to cap
-        }
-        ?.toMap()
-        .orEmpty()
+    /**
+     * POLISH-11: when every configured sport is capped at 0 (a skipped/cleared onboarding step,
+     * not a deliberate "no running, no strength, no soccer" choice), that is read as "no caps
+     * configured" rather than "ban every sport" — otherwise C10 discards every catalog candidate
+     * and the suggester can only propose cross-training/mobility. A single sport explicitly left
+     * at 0 alongside a non-zero one is still a real cap on that sport.
+     */
+    fun capsOf(preferredSportsJson: String): Map<SportGroup, Int> {
+        val caps = objectOf(preferredSportsJson)
+            ?.entries
+            ?.mapNotNull { (key, value) ->
+                val group = SportGroup.entries.firstOrNull { it.name == key } ?: return@mapNotNull null
+                val cap = (value as? JsonPrimitive)?.intOrNull ?: return@mapNotNull null
+                group to cap
+            }
+            ?.toMap()
+            .orEmpty()
+        return if (caps.isNotEmpty() && caps.values.all { it == 0 }) emptyMap() else caps
+    }
 
     fun longRunWeekdayOf(preferredSportsJson: String): DayOfWeek? {
         val raw = (objectOf(preferredSportsJson)?.get(LONG_RUN_WEEKDAY_KEY) as? JsonPrimitive)

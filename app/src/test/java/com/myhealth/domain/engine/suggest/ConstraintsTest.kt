@@ -179,6 +179,26 @@ class ConstraintsTest {
     }
 
     @Test
+    fun c10b_all_zero_caps_means_no_cap() {
+        // POLISH-11: a skipped onboarding step (or a profile cleared back to all zeros) must not
+        // ban every sport outright — that is read as "no caps configured", not "no training".
+        val allZero = SuggestFixtures.input(
+            profile = SuggestFixtures.profile(preferredSportsJson = """{"RUN":0,"STRENGTH":0,"SOCCER":0}"""),
+        )
+        assertThat(violations(candidate(SessionType.EASY_RUN, day(4)), allZero)).doesNotContain(ConstraintId.C10)
+        assertThat(violations(candidate(SessionType.STRENGTH_UPPER, day(4)), allZero))
+            .doesNotContain(ConstraintId.C10)
+
+        // A single sport left at 0 alongside a real cap is still a deliberate cap on that sport.
+        val oneZero = SuggestFixtures.input(
+            profile = SuggestFixtures.profile(preferredSportsJson = """{"RUN":0,"STRENGTH":2}"""),
+        )
+        assertThat(violations(candidate(SessionType.EASY_RUN, day(4)), oneZero)).contains(ConstraintId.C10)
+
+        assertThat(SportPreferences.capsOf("""{"RUN":0,"STRENGTH":0,"SOCCER":0}""")).isEmpty()
+    }
+
+    @Test
     fun c11_minimum_spacing_between_repeated_hard_work() {
         val hardRun = SuggestFixtures.input(
             lockedPlanned = listOf(

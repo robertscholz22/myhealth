@@ -10,7 +10,8 @@ import org.junit.Test
 /**
  * [Periodization] against PLAN §3.5.2 — the phase table, the factors, the 25 % ramp cap and the
  * ACWR / recovery multipliers. Named cases `sug09`–`sug12`, `sug17` and `per01`–`per03` come from
- * §3.5.7 / P6.2; `per04`–`per06` cover the remaining branches of the same section.
+ * §3.5.7 / P6.2; `per04`–`per07` cover the remaining branches of the same section, including the
+ * POLISH-10 starter-week target (`per04`).
  */
 class PeriodizationTest {
 
@@ -116,7 +117,33 @@ class PeriodizationTest {
     }
 
     @Test
-    fun per04_high_acwr_scales_target_to_75_percent() {
+    fun per04_starter_target_when_no_history() {
+        // POLISH-10: CTL < 5 and nothing logged last week (a brand-new athlete, or right after the
+        // first sync) must not collapse the target to ~0 — it gets the 150 AU starter target.
+        assertThat(Periodization.isStarterWeek(ctl = 0.0, lastWeekActual = 0.0)).isTrue()
+        assertThat(Periodization.isStarterWeek(ctl = 4.9, lastWeekActual = 0.0)).isTrue()
+        // ctl >= 5 (even barely) is "has some history" and skips the starter branch.
+        assertThat(Periodization.isStarterWeek(ctl = 5.0, lastWeekActual = 0.0)).isFalse()
+        // Any load logged last week means there is history, starter or not.
+        assertThat(Periodization.isStarterWeek(ctl = 2.0, lastWeekActual = 10.0)).isFalse()
+
+        val target = Periodization.weeklyTarget(
+            phase = TrainingPhase.BASE,
+            ctl = 0.0,
+            lastWeekActual = 0.0,
+            acwr = null,
+            band = null,
+        )
+        assertThat(target).isWithin(0.01).of(Periodization.STARTER_TARGET_AU)
+        assertThat(target).isWithin(0.01).of(150.0)
+
+        // The starter target still yields to a strained/fatigued recovery signal (R13: never raise).
+        val strained = Periodization.weeklyTarget(TrainingPhase.BASE, 0.0, 0.0, null, RecoveryBand.STRAINED)
+        assertThat(strained).isWithin(0.01).of(150.0 * 0.60)
+    }
+
+    @Test
+    fun per07_high_acwr_scales_target_to_75_percent() {
         val calm = Periodization.weeklyTarget(TrainingPhase.BASE, ctl, 400.0, 1.4, null)
         val spiking = Periodization.weeklyTarget(TrainingPhase.BASE, ctl, 400.0, 1.6, null)
         assertThat(spiking).isWithin(0.01).of(calm * 0.75)

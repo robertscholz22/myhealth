@@ -27,6 +27,8 @@ data class RationaleContext(
     val sportUsed: Int = 0,
     /** P11.2: where the candidate's day sits in the cycle; `null` when tracking is off. */
     val cycleStatus: CycleStatus? = null,
+    /** POLISH-10: true when [Periodization.isStarterWeek] fired for this batch. */
+    val isStarterWeek: Boolean = false,
 )
 
 /**
@@ -45,6 +47,7 @@ object Rationale {
     const val RULE_SPORT_CAP: String = "SPORT_CAP"
     const val RULE_MOBILITY_REST_DAY: String = "MOBILITY_REST_DAY"
     const val RULE_DOWNGRADED: String = "DOWNGRADED_BEFORE_EVENT"
+    const val RULE_STARTER_WEEK: String = "STARTER_WEEK"
 
     fun phaseRuleId(phase: TrainingPhase): String = "PHASE_${phase.name}"
 
@@ -58,8 +61,20 @@ object Rationale {
         recoveryEntry(ctx)?.let { entries += it }
         capEntry(candidate.sportGroup, ctx)?.let { entries += it }
         cycleEntry(ctx)?.let { entries += it }
+        if (ctx.isStarterWeek) entries += starterWeekEntry()
         return entries
     }
+
+    /**
+     * POLISH-10: the "why is this week so light" line for a brand-new athlete (§3.5.2's starter
+     * target). The text itself lives in `res/values/strings.xml` (`R.string.rationale_starter_week`,
+     * wired the same way the `CYCLE_*` copy is) — this literal is the domain-layer fallback, since
+     * `domain/` cannot reference Android string resources (R6).
+     */
+    fun starterWeekEntry(): RationaleEntry = RationaleEntry(
+        ruleId = RULE_STARTER_WEEK,
+        text = "Starter week: no training history yet, so this is a gentle first week.",
+    )
 
     /**
      * The `CYCLE_*` line of P11.2 — one entry per phase, or none outside the four phases the rules
@@ -94,13 +109,20 @@ object Rationale {
         }
 
     /** The rationale of a mobility session added by post-pass 7c. */
-    fun forMobility(phase: TrainingPhase): List<RationaleEntry> = listOf(
-        RationaleEntry(
-            ruleId = RULE_MOBILITY_REST_DAY,
-            text = "Rest day: 20 minutes of mobility keeps the day easy and still useful.",
-        ),
-        RationaleEntry(ruleId = phaseRuleId(phase), text = "${phaseLabel(phase)}: no training load on rest days."),
-    )
+    fun forMobility(phase: TrainingPhase, isStarterWeek: Boolean = false): List<RationaleEntry> {
+        val entries = mutableListOf(
+            RationaleEntry(
+                ruleId = RULE_MOBILITY_REST_DAY,
+                text = "Rest day: 20 minutes of mobility keeps the day easy and still useful.",
+            ),
+            RationaleEntry(
+                ruleId = phaseRuleId(phase),
+                text = "${phaseLabel(phase)}: no training load on rest days.",
+            ),
+        )
+        if (isStarterWeek) entries += starterWeekEntry()
+        return entries
+    }
 
     /** Appended when post-pass 7b downgrades a session on the eve of a match or race. */
     fun downgradeEntry(label: String): RationaleEntry = RationaleEntry(

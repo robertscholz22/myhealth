@@ -75,7 +75,9 @@ class SuggestionEngine(private val clock: Clock) {
 
         grid = enforceRestDay(grid)
         grid = downgradeBeforeKeyEvent(grid, ctx)
-        if (input.profile.mobilityOnRestDays) grid = addMobilityToRestDays(grid, periodization.phase)
+        if (input.profile.mobilityOnRestDays) {
+            grid = addMobilityToRestDays(grid, periodization.phase, periodization.isStarterWeek)
+        }
         return resultOf(input, periodization, grid)
     }
 
@@ -173,7 +175,11 @@ class SuggestionEngine(private val clock: Clock) {
     }
 
     /** 7c — `profile.mobilityOnRestDays`: every rest day gets mobility; a rest day stays a rest day. */
-    internal fun addMobilityToRestDays(grid: SuggestionGrid, phase: TrainingPhase): SuggestionGrid {
+    internal fun addMobilityToRestDays(
+        grid: SuggestionGrid,
+        phase: TrainingPhase,
+        isStarterWeek: Boolean = false,
+    ): SuggestionGrid {
         val entry = SessionCatalog.entryFor(SessionType.MOBILITY) ?: return grid
         var current = grid
         grid.days.forEach { plan ->
@@ -183,7 +189,7 @@ class SuggestionEngine(private val clock: Clock) {
                 plan.day,
                 Candidate(entry, plan.day).asPlacedItem(
                     score = MOBILITY_SCORE,
-                    rationale = Rationale.forMobility(phase),
+                    rationale = Rationale.forMobility(phase, isStarterWeek),
                 ),
             )
         }
@@ -217,6 +223,7 @@ class SuggestionEngine(private val clock: Clock) {
                 Scorer.sessionsThisWeekForSport(candidate.sportGroup, candidate.day, grid)
             },
             cycleStatus = input.cycleStatusByDay[candidate.day],
+            isStarterWeek = periodization.isStarterWeek,
         )
     }
 
