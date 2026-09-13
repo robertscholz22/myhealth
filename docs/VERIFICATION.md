@@ -445,3 +445,13 @@ Owner redid onboarding, re-imported the 600-row CSV and ran the Health Connect b
 | Load note "Not enough training history yet for a reliable ACWR" persists — legitimate: fewer than `MIN_DAYS_WITH_DATA` of the last 28 days carry a session (the owner's real September schedule), not a data gap | PASS (expected) | — |
 | Training → Generate suggestions after the recompute: "Base · target 262 AU · 310 AU suggested" (target = CTL 36 × 7), week = long run, strength full, mobility — still **no ride**: with the ride cap at 2 rides are *eligible*, but in the BASE phase the run/strength rows outscore them and the 262 AU budget is spent before a ride is placed; a `BIKE_*` goal switches to the cycling phase table (verified on the emulator, session 10). Owner can add a bike goal (Goals → New goal → Bike FTP / Bike volume / Bike event) to get rides planned | PASS (by design) | phone_61_suggestions_after.png, phone_62_suggestions_header.png |
 - NOTE-16: consider a "rides per week" *floor* (not only a cap) or letting a non-zero ride cap count as a soft preference, so a rider without a bike goal still sees a ride in a run-dominated base week.
+
+## Session 12 — 2026-09-13 (emulator, 0.3.0 debug build: active recovery on rest days)
+Fresh profile (onboarding: run 2 / strength 1 / ride 2 sessions per week, mobility on rest days on), no sync → starter week.
+
+| Step | Result | Evidence |
+|---|---|---|
+| Training → Generate suggestions: "Base · target 150 AU · 304 AU suggested", 11 items: Sun long run, Mon strength full, Tue **recovery spin** + mobility ("Active recovery: an easy 30-minute spin keeps the legs moving without adding load."), Wed **recovery run** + mobility, the remaining rest days alternate the same way with one mobility-only true rest day | PASS | emu_p13_03_active_recovery.png, emu_p13_04_active_recovery_2.png |
+- The fillers show the mobility-style nominal score and 30 min; the header's "304 AU suggested" includes them (they are real minutes on the calendar), while the budget lines ("150 AU still unallocated") only count the greedy loop's sessions — by design (§3.5.6 step 7c).
+- NOTE-17: with both sports available the first filler's sport is decided by the epoch-day parity (deterministic, but arbitrary); a "preferred recovery sport" setting could replace it.
+- 0.3.0 was published (https://github.com/robertscholz22/myhealth/releases/tag/v0.3.0) but **not yet installed on the Pixel** — the phone was unplugged when the build finished.
