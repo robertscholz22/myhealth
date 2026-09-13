@@ -103,6 +103,7 @@ internal object NutritionFixtures {
         distanceMeters: Double? = null,
         avgSpeedMps: Double? = null,
         trimp: Double? = null,
+        avgPowerW: Int? = null,
     ): ActivitySummary {
         val start = day.atStartOfDay(Fixtures.ZONE).toInstant().toEpochMilli() +
             startMinuteOfDay * 60_000L
@@ -125,6 +126,7 @@ internal object NutritionFixtures {
             maxSpeedMps = null,
             avgCadenceSpm = null,
             elevationGainM = null,
+            avgPowerW = avgPowerW,
             trimp = trimp,
             loadMethod = null,
             rpe = null,

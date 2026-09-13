@@ -182,6 +182,7 @@ class AppGraph(private val app: Application) {
             activityRepo = activityRepo,
             loadRepo = loadRepo,
             runningBestRepo = runningBestRepo,
+            rideBestRepo = rideBestRepo,
             profileRepo = profileRepo,
             healthRepo = healthRepo,
             settingsRepo = settings,

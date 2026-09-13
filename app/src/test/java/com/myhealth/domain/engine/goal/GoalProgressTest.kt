@@ -6,7 +6,12 @@ import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.model.Goal
 import com.myhealth.domain.model.GoalStatus
 import com.myhealth.domain.model.GoalType
+import com.myhealth.domain.model.RideBest
+import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.model.RunningBest
+import com.myhealth.domain.model.SportType
+import com.myhealth.domain.engine.bike.FtpEstimate
+import com.myhealth.domain.engine.bike.FtpSource
 import com.myhealth.domain.engine.suggest.SuggestFixtures
 import com.myhealth.testutil.Fixtures
 import org.junit.Test
@@ -205,6 +210,133 @@ class GoalProgressTest {
         assertThat(GoalProgress.distanceLabel(1609.34)).isEqualTo("mile")
         assertThat(GoalProgress.distanceLabel(800.0)).isEqualTo("800 m")
     }
+
+    @Test
+    fun goal09_bike_ftp_percent_and_on_track_at_95pct() {
+        val goal = SuggestFixtures.goal(type = GoalType.BIKE_FTP, title = "300 W", targetValue = 300.0)
+
+        val atThreshold = GoalProgress.compute(
+            goal = goal,
+            bests = emptyList(),
+            weights = emptyList(),
+            today = today,
+            ftp = FtpEstimate(285, FtpSource.STREAM_20MIN, basisActivityId = 4L, basisDay = todayDay - 3),
+        )
+        assertThat(atThreshold.percent).isWithin(1e-9).of(0.95)
+        assertThat(atThreshold.onTrack).isTrue()
+        assertThat(atThreshold.statusText).contains("285 W")
+        assertThat(atThreshold.isManual).isFalse()
+
+        // One watt below the 95 % threshold is behind.
+        val behind = GoalProgress.compute(
+            goal, emptyList(), emptyList(), today,
+            ftp = FtpEstimate(284, FtpSource.SESSION_NP),
+        )
+        assertThat(behind.onTrack).isFalse()
+        assertThat(behind.statusText).contains("behind")
+
+        // No estimate at all is 0 %, not manual.
+        val none = GoalProgress.compute(goal, emptyList(), emptyList(), today)
+        assertThat(none.percent).isWithin(1e-9).of(0.0)
+        assertThat(none.onTrack).isFalse()
+        assertThat(none.isManual).isFalse()
+    }
+
+    @Test
+    fun goal10_bike_volume_hours_over_4_weeks() {
+        val goal = SuggestFixtures.goal(type = GoalType.BIKE_VOLUME, title = "4 h a week", targetValue = 4.0)
+        // Eight 90-minute rides inside the window = 12 h over 4 weeks = 3 h/week.
+        val rides = (0L until 8L).map {
+            SuggestFixtures.activity(
+                day = todayDay - it * 3,
+                trimp = 60.0,
+                sportType = SportType.CYCLING,
+                id = it,
+                durationSec = 90 * 60,
+            )
+        }
+        val noise = listOf(
+            // A long run does not count towards riding hours.
+            SuggestFixtures.activity(todayDay - 1, trimp = 80.0, sportType = SportType.RUN_OUTDOOR, id = 50L, durationSec = 5 * 3600),
+            // A ride outside the four weeks does not either.
+            SuggestFixtures.activity(todayDay - 40, trimp = 60.0, sportType = SportType.CYCLING, id = 51L, durationSec = 5 * 3600),
+        )
+
+        val progress = GoalProgress.compute(goal, emptyList(), emptyList(), today, rides + noise)
+
+        assertThat(progress.percent).isWithin(1e-9).of(0.75)
+        assertThat(progress.onTrack).isFalse()
+        assertThat(progress.statusText).contains("3.0 h/week")
+
+        // Four more rides reach the target.
+        val more = rides + (10L until 14L).map {
+            SuggestFixtures.activity(todayDay - it, trimp = 60.0, sportType = SportType.CYCLING_INDOOR, id = it, durationSec = 60 * 60)
+        }
+        val met = GoalProgress.compute(goal, emptyList(), emptyList(), today, more)
+        assertThat(met.percent).isWithin(1e-9).of(1.0)
+        assertThat(met.onTrack).isTrue()
+    }
+
+    @Test
+    fun goal11_bike_event_time_from_ride_best() {
+        val goal = SuggestFixtures.goal(
+            type = GoalType.BIKE_EVENT,
+            title = "40 km time trial",
+            targetDay = todayDay + 30,
+            targetDistanceMeters = 40_000.0,
+            targetTimeSec = 4_200,
+        )
+
+        val behind = GoalProgress.compute(
+            goal, emptyList(), emptyList(), today,
+            rideBests = listOf(rideBest(RideBestKind.TIME_40K, 4_478.0), rideBest(RideBestKind.TIME_10K, 1_000.0)),
+        )
+        assertThat(behind.percent).isWithin(1e-9).of(4_200.0 / 4_478.0)
+        assertThat(behind.onTrack).isFalse()
+        assertThat(behind.statusText).contains("1:14:38")
+        assertThat(behind.isManual).isFalse()
+
+        val met = GoalProgress.compute(
+            goal, emptyList(), emptyList(), today,
+            rideBests = listOf(rideBest(RideBestKind.TIME_40K, 4_100.0)),
+        )
+        assertThat(met.percent).isWithin(1e-9).of(1.0)
+        assertThat(met.onTrack).isTrue()
+
+        // No 40 km effort yet: 0 %, and the text says which distance is missing.
+        val none = GoalProgress.compute(goal, emptyList(), emptyList(), today)
+        assertThat(none.percent).isWithin(1e-9).of(0.0)
+        assertThat(none.statusText).contains("40 km")
+    }
+
+    @Test
+    fun goal12_bike_event_date_only_is_manual() {
+        val goal = SuggestFixtures.goal(
+            type = GoalType.BIKE_EVENT,
+            title = "Gran fondo",
+            targetDay = todayDay + 60,
+            targetDistanceMeters = 100_000.0,
+        )
+
+        val progress = GoalProgress.compute(
+            goal, emptyList(), emptyList(), today,
+            rideBests = listOf(rideBest(RideBestKind.TIME_100K, 12_000.0)),
+        )
+
+        assertThat(progress.isManual).isTrue()
+        assertThat(progress.onTrack).isTrue()
+        assertThat(progress.percent).isWithin(1e-9).of(0.0)
+    }
+
+    private fun rideBest(kind: RideBestKind, value: Double): RideBest = RideBest(
+        id = value.toLong(),
+        kind = kind,
+        value = value,
+        activityId = 1L,
+        day = todayDay - 7,
+        isEstimated = false,
+        createdAtMillis = 0L,
+    )
 
     private fun weightGoal(targetKg: Double, createdOffset: Long, targetDayOffset: Long): Goal =
         SuggestFixtures.goal(

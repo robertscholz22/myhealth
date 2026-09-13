@@ -61,6 +61,16 @@ object TrimpDefaults {
     const val TRIMP_MAX: Double = 600.0
 
     /**
+     * TSS → Banister-AU factor for the `POWER_TSS` rung (§3.2.2, P12.2). Calibrated against the
+     * HR rungs rather than invented: the Banister-to-TSS ratio of the same session sits at
+     * ≈ 1.47–1.58 across IF 0.6–0.85, and 1.5 puts an hour at IF 0.85 (72.25 TSS) at 108.4 AU,
+     * which is `load01`'s 108.1 AU for the same hour at 150 bpm. So a threshold hour costs the
+     * same whether it is measured by heart rate or by power, and the load series stays comparable
+     * across a ride with a strap and a ride with a power meter.
+     */
+    const val TSS_TO_TRIMP: Double = 1.5
+
+    /**
      * Default session RPE per sport (§3.2.2). Sports **absent** from this table have no default,
      * which is what makes the `DURATION_ONLY` rung of the ladder reachable: the table's "other 5.0"
      * row of the plan is implemented as [FALLBACK_RPE] on that rung, not as a default here (see the

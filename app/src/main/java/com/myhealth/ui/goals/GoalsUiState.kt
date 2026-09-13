@@ -1,10 +1,12 @@
 package com.myhealth.ui.goals
 
+import com.myhealth.domain.engine.bike.FtpEstimate
 import com.myhealth.domain.engine.goal.GoalProgress
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.model.Goal
 import com.myhealth.domain.model.GoalStatus
+import com.myhealth.domain.model.RideBest
 import com.myhealth.domain.model.RunningBest
 import com.myhealth.ui.common.UiMessage
 import java.time.LocalDate
@@ -37,10 +39,13 @@ fun goalRows(
     weights: List<BodyMeasurement>,
     activities: List<ActivitySummary>,
     today: LocalDate,
+    /** `ride_best` PR rows and the current FTP estimate — the cycling goals' inputs (P12.2). */
+    rideBests: List<RideBest> = emptyList(),
+    ftp: FtpEstimate? = null,
 ): List<GoalRow> = goals.map { goal ->
     GoalRow(
         goal = goal,
-        progress = GoalProgress.compute(goal, bests, weights, today, activities),
+        progress = GoalProgress.compute(goal, bests, weights, today, activities, rideBests, ftp),
     )
 }
 

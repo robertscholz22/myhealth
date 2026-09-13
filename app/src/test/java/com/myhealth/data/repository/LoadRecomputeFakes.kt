@@ -2,9 +2,12 @@ package com.myhealth.data.repository
 
 import com.myhealth.domain.model.AppSettings
 import com.myhealth.domain.model.DailyLoad
+import com.myhealth.domain.model.RideBest
+import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.model.RunningBest
 import com.myhealth.domain.model.ThemeMode
 import com.myhealth.domain.repository.LoadRepository
+import com.myhealth.domain.repository.RideBestRepository
 import com.myhealth.domain.repository.RunningBestRepository
 import com.myhealth.domain.repository.SettingsRepository
 import com.myhealth.domain.util.Outcome
@@ -69,6 +72,57 @@ internal class FakeRunningBestRepository : RunningBestRepository {
     }
 
     override suspend fun upsertAll(bests: List<RunningBest>): Outcome<Unit> {
+        bests.forEach { best ->
+            val key = best.activityId ?: -1L
+            byActivity[key] = byActivity[key].orEmpty() + best
+        }
+        return Outcome.Ok(Unit)
+    }
+
+    override suspend fun delete(id: Long): Outcome<Unit> {
+        byActivity.replaceAll { _, rows -> rows.filterNot { it.id == id } }
+        return Outcome.Ok(Unit)
+    }
+}
+
+/** `ride_best` in memory (P12.2). [reads] records every FTP look-back read, in call order. */
+internal class FakeRideBestRepository : RideBestRepository {
+
+    val byActivity = mutableMapOf<Long, List<RideBest>>()
+    val replacedActivities = mutableListOf<Long>()
+    val reads = mutableListOf<Long>()
+
+    private fun all(): List<RideBest> = byActivity.values.flatten()
+
+    override fun observeBestPerKind(): Flow<List<RideBest>> = flowOf(
+        all().groupBy { it.kind }
+            .mapNotNull { (kind, rows) ->
+                if (kind.isPower) rows.maxByOrNull { it.value } else rows.minByOrNull { it.value }
+            }
+            .sortedBy { it.kind.ordinal },
+    )
+
+    override fun observeByKind(kind: RideBestKind, limit: Int): Flow<List<RideBest>> = flowOf(
+        all().filter { it.kind == kind }
+            .sortedWith(if (kind.isPower) compareByDescending { it.value } else compareBy { it.value })
+            .take(limit),
+    )
+
+    override suspend fun getForActivity(activityId: Long): List<RideBest> =
+        byActivity[activityId].orEmpty()
+
+    override suspend fun getSince(day: Long): List<RideBest> {
+        reads += day
+        return all().filter { it.day >= day }
+    }
+
+    override suspend fun replaceForActivity(activityId: Long, bests: List<RideBest>): Outcome<Unit> {
+        replacedActivities += activityId
+        byActivity[activityId] = bests
+        return Outcome.Ok(Unit)
+    }
+
+    override suspend fun upsertAll(bests: List<RideBest>): Outcome<Unit> {
         bests.forEach { best ->
             val key = best.activityId ?: -1L
             byActivity[key] = byActivity[key].orEmpty() + best

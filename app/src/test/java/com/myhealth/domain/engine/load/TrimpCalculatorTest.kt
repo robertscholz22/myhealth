@@ -1,6 +1,8 @@
 package com.myhealth.domain.engine.load
 
 import com.google.common.truth.Truth.assertThat
+import com.myhealth.domain.engine.bike.FtpEstimate
+import com.myhealth.domain.engine.bike.FtpSource
 import com.myhealth.domain.model.ActivityStreams
 import com.myhealth.domain.model.EngineWarningCode
 import com.myhealth.domain.model.LoadMethod
@@ -23,6 +25,9 @@ class TrimpCalculatorTest {
         avgHr: Int? = null,
         rpe: Int? = null,
         streams: ActivityStreams? = null,
+        avgPowerW: Int? = null,
+        normalizedPowerW: Int? = null,
+        ftp: FtpEstimate? = null,
     ) = TrimpInput(
         sportType = sportType,
         durationSec = durationSec,
@@ -31,6 +36,29 @@ class TrimpCalculatorTest {
         avgHr = avgHr,
         rpe = rpe,
         streams = streams,
+        avgPowerW = avgPowerW,
+        normalizedPowerW = normalizedPowerW,
+        ftp = ftp,
+    )
+
+    private fun ftp(watts: Int = 300, source: FtpSource = FtpSource.STREAM_20MIN) =
+        FtpEstimate(watts = watts, source = source)
+
+    private fun ride(
+        durationSec: Int = 3600,
+        normalizedPowerW: Int? = 255,
+        avgPowerW: Int? = null,
+        avgHr: Int? = null,
+        ftp: FtpEstimate? = ftp(),
+        streams: ActivityStreams? = null,
+    ) = input(
+        sportType = SportType.CYCLING_INDOOR,
+        durationSec = durationSec,
+        avgHr = avgHr,
+        streams = streams,
+        avgPowerW = avgPowerW,
+        normalizedPowerW = normalizedPowerW,
+        ftp = ftp,
     )
 
     private fun streams(offsets: IntArray, hr: List<Int?>) = ActivityStreams(
@@ -165,6 +193,86 @@ class TrimpCalculatorTest {
         )
 
         assertThat(result.method).isEqualTo(LoadMethod.HR_AVERAGE)
+    }
+
+    // ---- POWER_TSS rung (P12.2, §3.2.2) --------------------------------------------------------
+
+    @Test
+    fun pw01_tss_60min_if_0_85_gives_108_4_au() {
+        val result = TrimpCalculator.compute(ride())
+
+        // IF = 255/300 = 0.85; TSS = 3600*255*0.85/(300*3600)*100 = 72.25; AU = 72.25 * 1.5.
+        assertThat(TrimpCalculator.powerTss(ride())!!).isWithin(1e-6).of(72.25)
+        assertThat(result.method).isEqualTo(LoadMethod.POWER_TSS)
+        assertThat(result.trimp).isWithin(0.05).of(108.375)
+        // The same threshold hour by heart rate (load01) costs 108.1 AU.
+        assertThat(result.trimp).isWithin(0.5).of(108.1)
+    }
+
+    @Test
+    fun pw02_no_ftp_falls_to_rpe() {
+        val result = TrimpCalculator.compute(ride(ftp = null))
+
+        // CYCLING_INDOOR's default RPE is 5.0: 0.30 * 5 * 60 = 90.0.
+        assertThat(result.method).isEqualTo(LoadMethod.RPE_ESTIMATE)
+        assertThat(result.trimp).isWithin(0.001).of(90.0)
+        assertThat(result.warnings.map { it.code }).contains(EngineWarningCode.MISSING_HR)
+    }
+
+    @Test
+    fun pw03_avg_hr_beats_power() {
+        val withHr = TrimpCalculator.compute(ride(avgHr = 150))
+
+        assertThat(withHr.method).isEqualTo(LoadMethod.HR_AVERAGE)
+        assertThat(withHr.trimp).isWithin(0.5).of(108.1)
+
+        // A stream of HR samples outranks power as well.
+        val offsets = IntArray(21) { it * 60 }
+        val streamed = TrimpCalculator.compute(
+            ride(durationSec = 1200, avgHr = 150, streams = streams(offsets, List(21) { 150 })),
+        )
+        assertThat(streamed.method).isEqualTo(LoadMethod.HR_SAMPLES)
+    }
+
+    @Test
+    fun pw04_np_null_uses_avg_power() {
+        val result = TrimpCalculator.compute(ride(normalizedPowerW = null, avgPowerW = 255))
+
+        assertThat(result.method).isEqualTo(LoadMethod.POWER_TSS)
+        assertThat(result.trimp).isWithin(0.05).of(108.375)
+
+        // With both present, normalized power wins.
+        val both = TrimpCalculator.compute(ride(normalizedPowerW = 255, avgPowerW = 150))
+        assertThat(both.trimp).isWithin(0.05).of(108.375)
+    }
+
+    @Test
+    fun pw05_4_5h_at_if_1_clamped_600_implausible() {
+        // 4.5 h at FTP is 450 TSS = 675 AU, above the 600 AU ceiling.
+        val result = TrimpCalculator.compute(
+            ride(durationSec = (4.5 * 3600).toInt(), normalizedPowerW = 300),
+        )
+
+        assertThat(result.method).isEqualTo(LoadMethod.POWER_TSS)
+        assertThat(result.trimp).isEqualTo(600.0)
+        assertThat(result.warnings.map { it.code }).contains(EngineWarningCode.IMPLAUSIBLE_VALUE)
+    }
+
+    @Test
+    fun pw06_session_np_ftp_warns_estimated_stream_ftp_does_not() {
+        val fromSession = TrimpCalculator.compute(ride(ftp = ftp(source = FtpSource.SESSION_NP)))
+        val fromStream = TrimpCalculator.compute(ride(ftp = ftp(source = FtpSource.STREAM_20MIN)))
+        val fromManual = TrimpCalculator.compute(ride(ftp = ftp(source = FtpSource.MANUAL)))
+
+        assertThat(fromSession.warnings.map { it.code }).contains(EngineWarningCode.ESTIMATED_LOAD)
+        assertThat(fromStream.warnings.map { it.code })
+            .doesNotContain(EngineWarningCode.ESTIMATED_LOAD)
+        assertThat(fromManual.warnings.map { it.code })
+            .doesNotContain(EngineWarningCode.ESTIMATED_LOAD)
+        // The power rung is a measurement, not a stand-in for a missing HR reading.
+        assertThat(fromStream.warnings.map { it.code }).doesNotContain(EngineWarningCode.MISSING_HR)
+        // All three produce the same load; only the confidence differs.
+        assertThat(fromSession.trimp).isEqualTo(fromStream.trimp)
     }
 
     @Test

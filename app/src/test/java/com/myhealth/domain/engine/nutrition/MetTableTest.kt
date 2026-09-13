@@ -61,6 +61,27 @@ class MetTableTest {
     }
 
     @Test
+    fun nut22_power_kcal_250w_1h_900kcal_when_no_recorded_energy() {
+        // 250 W x 3600 s = 900 kJ, and a cyclist's ~24 % gross efficiency makes that ~900 kcal.
+        val ride = activity(sportType = SportType.CYCLING, durationMin = 60, avgPowerW = 250)
+
+        assertThat(TrainingEnergyCalculator.completedKcal(ride, 80.0)).isWithin(1e-9).of(900.0)
+
+        // A recorded active energy still wins over the power estimate.
+        val recorded = activity(
+            sportType = SportType.CYCLING,
+            durationMin = 60,
+            avgPowerW = 250,
+            activeEnergyKcal = 700.0,
+        )
+        assertThat(TrainingEnergyCalculator.completedKcal(recorded, 80.0)).isEqualTo(700.0)
+
+        // Without power the MET table still applies: (8 - 1) x 80 kg x 1 h.
+        val noPower = activity(sportType = SportType.CYCLING, durationMin = 60)
+        assertThat(TrainingEnergyCalculator.completedKcal(noPower, 80.0)).isWithin(1e-9).of(560.0)
+    }
+
+    @Test
     fun an_executed_plan_is_counted_once() {
         val completed = activity(sportType = SportType.RUN_OUTDOOR, durationMin = 60, activeEnergyKcal = 500.0)
         val overlapping = planned(

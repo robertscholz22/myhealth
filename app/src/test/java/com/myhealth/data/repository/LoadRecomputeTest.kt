@@ -3,10 +3,12 @@ package com.myhealth.data.repository
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.data.healthconnect.FakeHealthRepository
 import com.myhealth.domain.model.ActivitySession
+import com.myhealth.domain.model.ActivityStreams
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.LoadMethod
 import com.myhealth.domain.model.Profile
+import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.model.Sex
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
@@ -37,6 +39,7 @@ class LoadRecomputeTest {
     )
     private val loadRepo = FakeLoadRepository()
     private val runningBestRepo = FakeRunningBestRepository()
+    private val rideBestRepo = FakeRideBestRepository()
     private val profileRepo = FakeTargetProfileRepository(testProfile())
     private val healthRepo = FakeHealthRepository()
     private val settingsRepo = FakeLoadSettingsRepository()
@@ -46,6 +49,7 @@ class LoadRecomputeTest {
         activityRepo = activityRepo,
         loadRepo = loadRepo,
         runningBestRepo = runningBestRepo,
+        rideBestRepo = rideBestRepo,
         profileRepo = profileRepo,
         healthRepo = healthRepo,
         settingsRepo = settingsRepo,
@@ -129,6 +133,85 @@ class LoadRecomputeTest {
         // Generous bound to avoid flakiness on a loaded CI box (PLAN §5 P5.5); the value above is
         // what actually gets reported.
         assertThat(elapsedMillis).isLessThan(2_000L)
+    }
+
+    @Test
+    fun ride_bests_are_refreshed_and_the_ftp_resolved_before_trimp_for_a_power_only_ride() = runTest {
+        // One hour on the trainer, no HR at all: 200 W with a 20-minute 300 W block, NP 255.
+        val id = seedRide(day = today, durationSec = 3600, normalizedPowerW = 255)
+
+        service.recompute(today)
+
+        // 1. `ride_best` was refreshed from the power stream.
+        val bests = rideBestRepo.byActivity.getValue(id).associateBy { it.kind }
+        assertThat(bests.getValue(RideBestKind.POWER_20MIN).value).isEqualTo(300.0)
+        assertThat(bests.getValue(RideBestKind.POWER_5MIN).value).isEqualTo(300.0)
+
+        // 2. The FTP was read back over the 90-day window, after that refresh.
+        assertThat(rideBestRepo.reads).containsExactly(today - 90)
+        assertThat(rideBestRepo.replacedActivities).contains(id)
+
+        // 3. TRIMP used it: FTP = 0.95 * 300 = 285 W (STREAM_20MIN), so
+        //    TSS = (255/285)^2 * 100 = 80.06 and AU = 80.06 * 1.5 = 120.08.
+        //    Had the ride bests not been refreshed first, the session-NP rung would have produced
+        //    FTP = 242 W and 166.5 AU instead.
+        val stored = activityDao.getById(id)
+        assertThat(stored?.loadMethod).isEqualTo(LoadMethod.POWER_TSS)
+        assertThat(stored?.trimp!!).isWithin(0.05).of(120.08)
+    }
+
+    /** A trainer ride with a power stream: 200 W, with 300 W from 10:00 to 30:00. */
+    private suspend fun seedRide(
+        day: Long,
+        durationSec: Int,
+        normalizedPowerW: Int?,
+    ): Long {
+        val startAtMillis = day * 86_400_000L + 18 * 3_600_000L
+        val offsets = IntArray(durationSec / 5) { it * 5 }
+        val streams = ActivityStreams(
+            sampleOffsetsSec = offsets,
+            hr = List(offsets.size) { null },
+            powerW = IntArray(offsets.size) { if (offsets[it] in 600 until 1_800) 300 else 200 },
+            sampleCount = offsets.size,
+            medianIntervalSec = 5.0,
+        )
+        val session = ActivitySession(
+            id = 0L,
+            startAtMillis = startAtMillis,
+            endAtMillis = startAtMillis + durationSec * 1_000L,
+            day = day,
+            sportType = SportType.CYCLING_INDOOR,
+            sportGroup = SportGroup.CYCLE,
+            title = null,
+            durationSec = durationSec,
+            elapsedSec = durationSec,
+            distanceMeters = null,
+            activeEnergyKcal = null,
+            totalEnergyKcal = null,
+            avgHr = null,
+            maxHr = null,
+            avgSpeedMps = null,
+            maxSpeedMps = null,
+            avgCadenceSpm = null,
+            elevationGainM = null,
+            avgPowerW = 233,
+            maxPowerW = 300,
+            normalizedPowerW = normalizedPowerW,
+            trimp = null,
+            loadMethod = null,
+            rpe = null,
+            note = null,
+            primarySource = ActivitySource.HEALTH_CONNECT,
+            mergedSources = listOf(ActivitySource.HEALTH_CONNECT),
+            dedupeBucket = "${SportGroup.CYCLE}|${startAtMillis / 300_000}",
+            userEditedFields = emptyList(),
+            hasStreams = true,
+            streams = streams,
+            laps = emptyList(),
+            createdAtMillis = startAtMillis,
+            updatedAtMillis = startAtMillis,
+        )
+        return (activityRepo.upsert(session) as Outcome.Ok).value
     }
 
     private suspend fun seedActivity(

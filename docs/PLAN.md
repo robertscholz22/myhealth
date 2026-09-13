@@ -830,8 +830,18 @@ require(hrMax - hrRest >= 30) else hrMax = hrRest + 30
 |---|---|---|
 | `HR_SAMPLES` | stream has ≥ 10 HR samples | `Σ_i dt_i * trimpRate(meanHr_i)` where `dt_i = min(t_{i+1} - t_i, 60s) / 60.0` min and `meanHr_i = (hr_i + hr_{i+1}) / 2`; samples with null HR skipped and their interval excluded |
 | `HR_AVERAGE` | `avgHr != null` | `durationMin * trimpRate(avgHr)` |
+| `POWER_TSS` (P12.2) | an FTP estimate exists **and** `normalizedPowerW ?: avgPowerW` is set | `TSS * 1.5` (below) |
 | `RPE_ESTIMATE` | `rpe != null` or a sport default exists | `0.30 * rpe * durationMin` |
 | `DURATION_ONLY` | nothing else | `0.30 * 5 * durationMin` and warning `ESTIMATED_LOAD` |
+
+**`POWER_TSS` (P12.2, `domain/engine/load/TrimpCalculator.powerTss`)** — the cycling rung, below both HR rungs because a heart rate says what the session cost *this* athlete today while TSS says what work was done; it exists for the trainer ride with no strap.
+```
+NP  = normalizedPowerW ?: avgPowerW                          // watts, from the source or PowerMath
+IF  = NP / ftp.watts                                         // ftp from FtpEstimator (§3.8.1)
+TSS = durationSec * NP * IF / (ftp.watts * 3600) * 100
+AU  = TSS * TrimpDefaults.TSS_TO_TRIMP,  TSS_TO_TRIMP = 1.5
+```
+Calibration of the 1.5: the Banister-to-TSS ratio of one session sits at ≈ 1.47–1.58 across IF 0.6–0.85, and 1.5 puts an hour at IF 0.85 (72.25 TSS) at 108.4 AU — `load01`'s 108.1 AU for the same threshold hour by heart rate, so the load series stays comparable across rides with and without a strap. `ESTIMATED_LOAD` is added **only** when the FTP's own source is `SESSION_NP` (§3.8.1); a manual or 20-minute-test FTP is treated as solid. Unlike the RPE rungs this rung does **not** add `MISSING_HR` — it is a measurement, not a stand-in for one. The result is clamped to `[0, 600]` AU like every other rung.
 
 Default RPE per sport when `rpe == null`: `SOCCER_MATCH 8.5`, `SOCCER_TRAINING 6.5`, `HIIT 8.0`, `RUN_* 6.0`, `STRENGTH 6.0`, `CYCLING 5.0`, `SWIM 6.0`, `WALK 2.0`, `HIKE 4.0`, `MOBILITY 2.0`, other 5.0.
 Calibration note for the 0.30 factor: a 60-min session at `hrr = 0.75` gives `60·0.75·0.64·e^1.44 ≈ 121.6` AU; sRPE for the same session ≈ `7·60 = 420` ⇒ `k ≈ 0.29`. Use `0.30` (constant `TrimpDefaults.RPE_TO_TRIMP = 0.30`).
@@ -898,6 +908,12 @@ strain = weeklyLoad * monotony
 | `load16_ramp_high_flag` | week 2 = 1.20 × week 1 → `RAMP_HIGH` |
 | `load17_insufficient_history_warning` | 10 days of data → `INSUFFICIENT_HISTORY` |
 | `load18_tanaka_hrmax_and_observed_override` | age 30 → 187; observed 195 → hrMax = 195 |
+| `pw01_tss_60min_if_0_85_gives_108_4_au` (P12.2) | NP 255, FTP 300, 60 min → TSS 72.25 → 108.4 AU (± 0.05), method `POWER_TSS` |
+| `pw02_no_ftp_falls_to_rpe` | same ride without an FTP → `RPE_ESTIMATE`, 0.30·5·60 = 90.0 AU |
+| `pw03_avg_hr_beats_power` | the same ride with `avgHr` → `HR_AVERAGE`; with an HR stream → `HR_SAMPLES` |
+| `pw04_np_null_uses_avg_power` | `normalizedPowerW = null`, `avgPowerW = 255` → the same 108.4 AU |
+| `pw05_4_5h_at_if_1_clamped_600_implausible` | 4.5 h at FTP = 450 TSS = 675 AU → 600 AU + `IMPLAUSIBLE_VALUE` |
+| `pw06_session_np_ftp_warns_estimated_stream_ftp_does_not` | `SESSION_NP` FTP → `ESTIMATED_LOAD`; `STREAM_20MIN`/`MANUAL` → none; same AU |
 
 ### 3.3 Recovery-state engine
 
@@ -1307,6 +1323,53 @@ MacroTotals for a meal = Σ over items; for a day = Σ over meals.
 Rounding: totals are displayed with `kcal` as `Int` (round half-up) and macros to 1 decimal; **stored** unrounded in `meal_log_item`.
 
 Named tests — `MealMathTest`: `meal01_per100g_scaling`, `meal02_piece_based_ingredient`, `meal03_serving_unit_falls_back_to_100g`, `meal04_ml_treated_as_grams_for_per_100ml`, `meal05_totals_sum_across_items`, `meal06_missing_piece_grams_warns_and_contributes_zero`, `meal07_editing_ingredient_does_not_change_past_logs` (repository-level test with fakes).
+
+### 3.8 Cycling engines (P12.2)
+
+**Location** `domain/engine/bike/` — `PowerMath.kt` (P12.1), `FtpEstimator.kt`, `BikeBestEngine.kt`, `BikeDefaults.kt`; the split scan they share with §3.4 lives in `domain/engine/common/SplitFinder.kt` (moved verbatim out of `RunningBestEngine`, which delegates to it — `pr01…pr12` unchanged).
+**Eligible sports:** `CYCLING`, `CYCLING_INDOOR`. All rounding is half-up (amendment A4).
+
+#### 3.8.1 FTP estimate (`FtpEstimator`)
+
+`estimate(manualWatts, powerBests, rides, todayDay) -> FtpEstimate?` with
+`FtpEstimate(watts, source ∈ {MANUAL, STREAM_20MIN, SESSION_NP}, basisActivityId?, basisDay?)`, first match wins:
+
+| Rung | Rule |
+|---|---|
+| `MANUAL` | `profile.ftpWattsManual` |
+| `STREAM_20MIN` | `0.95 × max(ride_best.POWER_20MIN)` over rows with `day >= today - 90` |
+| `SESSION_NP` | `0.95 × max(normalizedPowerW ?: avgPowerW)` over eligible rides with `durationSec >= 40 min` and `day >= today - 90` |
+
+Sanity `50…600 W`, else **`null`** rather than a clamp: a number that far out means the input was junk, and a clamped 50 W would silently drive every ride's TSS. The estimate is **never cached or stored** — `LoadRecomputeService` resolves it once per run and the UI recomputes it from flows — so it cannot go stale behind a changed override. `basisActivityId`/`basisDay` name the effort it came from (`null` for `MANUAL`) so the Bike screen can link to that ride. Until FIT files exist on the phone the session-NP rung is what the real data reaches; the manual override is the expected path.
+
+#### 3.8.2 Power bests (`BikeBestEngine`, `POWER_5/20/60MIN`)
+
+Maximum time-weighted mean power over a window of **exactly** the kind's length (300 / 1200 / 3600 s). The samples become a step function in which each sample stands for the gap to the next one, **capped at 60 s** (same convention as `PowerMath`), so a pause cannot stretch an effort across it; a ride whose capped coverage is shorter than the window yields no best for that kind. The window slides continuously — the window integral is piecewise linear, so its maximum sits on a sample boundary of either edge and both edges are enumerated (the same trick as §3.4's split scan).
+`isEstimated = medianIntervalSec > 10.0`. Sanity `30…1500 W`; a value outside is dropped, not clamped.
+
+#### 3.8.3 Time bests (`BikeBestEngine`, `TIME_10/20/40/100K`)
+
+Two candidates per canonical distance `D <= max(totalDistance, streamDistance)`:
+- **split** — `SplitFinder.bestSplitSec(offsets, cumulativeDistance, D)`, `isEstimated = medianIntervalSec > 10.0`;
+- **full ride** — when `|total - D| <= max(0.01*D, 50 m)`: `timeSec = durationSec * D / total`, `isEstimated = |total - D| > 5 m`.
+
+The non-estimated candidate wins; between two equally trustworthy ones the faster does. Sanity `8…70 km/h`.
+**Known limitation:** Health Connect exposes no cumulative distance stream, so an HC-only ride has **no split candidate at all** — its `TIME_*` bests can only come from the full-ride method, and are therefore estimated unless the ride ends within 5 m of the canonical distance. FIT imports carry the distance stream and get real splits.
+
+Persistence: one `ride_best` row per `(activityId, kind)`; PR per kind is `MAX(value)` for `POWER_*` and `MIN(value)` for `TIME_*` (§2.2.6). `LoadRecomputeService` rebuilds the rows of every `CYCLE` session in its window (delete-then-insert, idempotent) **before** resolving the FTP, which happens **before** the TRIMP pass — a ride imported minutes ago must be able to raise today's FTP before that FTP is used to score it.
+
+#### 3.8.4 Other consumers
+
+- Nutrition `completedKcal` (§3.1.2): recorded `activeEnergyKcal` > `avgPowerW * durationSec / 1000` > MET table. Mechanical kilojoules are numerically ≈ metabolic kilocalories at ~24 % gross efficiency (`1 / 0.24 / 4.184 ≈ 1.00`).
+- Goal progress (§4.2): `BIKE_FTP` = `currentFtp / targetValue`, on track from **95 %**; `BIKE_VOLUME` = riding hours over the last 4 weeks ÷ 4 vs `targetValue` h/week; `BIKE_EVENT` with a `targetTimeSec` = best `TIME_*` row of `targetDistanceMeters` vs that time (no Riegel equivalent exists for rides, so "on track" means the time has actually been ridden), date-only = manual.
+
+#### 3.8.5 Named tests
+
+`FtpEstimatorTest`: `ftp01_manual_wins`, `ftp02_stream_20min_300_gives_285`, `ftp03_session_np_only_rides_over_40min_260_gives_247`, `ftp04_nothing_gives_null`, `ftp05_91_day_old_best_ignored` (90 days still counts), plus the NP-over-average preference and the 50/600 W gate.
+`BikeBestEngineTest`: `rb01_constant_250w_30min_5_and_20_min_250_no_60min`, `rb02_5min_400_inside_300_gives_5min_400_20min_325`, `rb03_sparse_samples_estimated`, `rb04_time_10k_at_30kmh_1200s`, `rb05_90kmh_split_rejected`, `rb06_full_ride_40_2km_in_4000s_scaled_3980s_estimated`, `rb07_non_bike_sport_empty`, plus the 60-s gap cap and the 1500 W gate.
+`GoalProgressTest`: `goal09_bike_ftp_percent_and_on_track_at_95pct`, `goal10_bike_volume_hours_over_4_weeks`, `goal11_bike_event_time_from_ride_best`, `goal12_bike_event_date_only_is_manual`.
+`MetTableTest`: `nut22_power_kcal_250w_1h_900kcal_when_no_recorded_energy`.
+`LoadRecomputeTest`: `ride_bests_are_refreshed_and_the_ftp_resolved_before_trimp_for_a_power_only_ride` (a power-only trainer ride scores 120.08 AU off `FTP = 285 W`, which is only reachable if the 300 W `POWER_20MIN` row was written first).
 
 ---
 

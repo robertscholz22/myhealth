@@ -70,7 +70,15 @@ fun GoalsScreen(
     modifier: Modifier = Modifier,
 ) {
     val vm = rememberVm { graph ->
-        GoalsViewModel(graph.goalRepo, graph.runningBestRepo, graph.bodyRepo, graph.activityRepo, graph.clock)
+        GoalsViewModel(
+            goalRepo = graph.goalRepo,
+            runningBestRepo = graph.runningBestRepo,
+            bodyRepo = graph.bodyRepo,
+            activityRepo = graph.activityRepo,
+            rideBestRepo = graph.rideBestRepo,
+            profileRepo = graph.profileRepo,
+            clock = graph.clock,
+        )
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }

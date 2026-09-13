@@ -1,11 +1,16 @@
 package com.myhealth.domain.engine.goal
 
+import com.myhealth.domain.engine.bike.FtpEstimate
+import com.myhealth.domain.engine.bike.FtpSource
 import com.myhealth.domain.engine.running.RiegelPredictor
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.model.Goal
 import com.myhealth.domain.model.GoalType
+import com.myhealth.domain.model.RideBest
+import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.model.RunningBest
+import com.myhealth.domain.model.SportGroup
 import java.time.LocalDate
 import java.util.Locale
 import kotlin.math.abs
@@ -20,6 +25,11 @@ import kotlin.math.min
  * - `BODY_WEIGHT` — linear from the weight at creation to `targetWeightKg`; `onTrack` when the
  *   achieved rate is at least 80 % of the rate needed to hit `targetDay`.
  * - `CONSISTENCY` — sessions/week over the last 4 weeks against `targetValue`.
+ * - `BIKE_FTP` — `percent = clamp(currentFtp / targetWatts, 0, 1)`; `onTrack` from 95 % of the
+ *   target (P12.2). The FTP itself comes from `FtpEstimator`, which the caller resolves.
+ * - `BIKE_VOLUME` — riding hours over the last 4 weeks ÷ 4 against `targetValue` (hours/week).
+ * - `BIKE_EVENT` — with a target time, the best `ride_best` `TIME_*` row of that distance against
+ *   it; with only a date, **manual** (there is nothing to measure before the event).
  * - `STRENGTH_LIFT` / `SOCCER_AVAILABILITY` — no measurable series exists in the data model, so
  *   these are **manual**: `percent = 0`, `isManual = true`, and the text names the target. They are
  *   completed by the owner pressing "mark achieved" on the Goals screen.
@@ -43,6 +53,12 @@ object GoalProgress {
     /** The consistency goal averages over four weeks. */
     const val CONSISTENCY_WEEKS: Int = 4
 
+    /** The bike-volume goal averages over the same four weeks (P12.2). */
+    const val VOLUME_WEEKS: Int = 4
+
+    /** A `BIKE_FTP` goal counts as on track from 95 % of the target watts (P12.2). */
+    const val FTP_ON_TRACK_FRACTION: Double = 0.95
+
     /** "At least 80 % of the required rate" (P6.1's body-weight rule). */
     const val WEIGHT_ON_TRACK_FRACTION: Double = 0.8
 
@@ -63,15 +79,108 @@ object GoalProgress {
         weights: List<BodyMeasurement>,
         today: LocalDate,
         activities: List<ActivitySummary> = emptyList(),
+        /** `ride_best` rows, as the PR table (P12.2) — only the `TIME_*` kinds are read here. */
+        rideBests: List<RideBest> = emptyList(),
+        /** The current FTP estimate (P12.2); `null` means none could be derived yet. */
+        ftp: FtpEstimate? = null,
     ): Progress = when (goal.type) {
         GoalType.RACE_TIME -> raceTime(goal, bests, today)
         GoalType.BODY_WEIGHT -> bodyWeight(goal, weights, today)
         GoalType.CONSISTENCY -> consistency(goal, activities, today)
         GoalType.STRENGTH_LIFT, GoalType.SOCCER_AVAILABILITY -> manual(goal)
-        // P12.1 placeholder: the cycling goals need the FTP estimate and the ride bests, which
-        // P12.2 adds to this engine's inputs. Until then they report as manual, which is exactly
-        // how an unmeasurable goal already behaves, rather than as "0 % and behind".
-        GoalType.BIKE_FTP, GoalType.BIKE_VOLUME, GoalType.BIKE_EVENT -> manual(goal)
+        GoalType.BIKE_FTP -> bikeFtp(goal, ftp)
+        GoalType.BIKE_VOLUME -> bikeVolume(goal, activities, today)
+        GoalType.BIKE_EVENT -> bikeEvent(goal, rideBests)
+    }
+
+    // ---- BIKE_FTP / BIKE_VOLUME / BIKE_EVENT (P12.2) --------------------------------------------
+
+    private fun bikeFtp(goal: Goal, ftp: FtpEstimate?): Progress {
+        val target = goal.targetValue
+        if (target == null || target <= 0.0) {
+            return Progress(0.0, "Set a target FTP in watts.", onTrack = false, isManual = true)
+        }
+        if (ftp == null) {
+            return Progress(
+                percent = 0.0,
+                statusText = "No FTP estimate yet — ride with a power meter or set the override.",
+                onTrack = false,
+            )
+        }
+        val percent = clamp01(ftp.watts / target)
+        val onTrack = percent >= FTP_ON_TRACK_FRACTION
+        return Progress(
+            percent = percent,
+            statusText = "${ftp.watts} W ${ftpSourceLabel(ftp)} · target ${fmtShort(target)} W — " +
+                (if (onTrack) "on track" else "behind") + ".",
+            onTrack = onTrack,
+        )
+    }
+
+    private fun bikeVolume(goal: Goal, activities: List<ActivitySummary>, today: LocalDate): Progress {
+        val target = goal.targetValue
+        if (target == null || target <= 0.0) {
+            return Progress(0.0, "Set a target of riding hours per week.", onTrack = false, isManual = true)
+        }
+        val todayDay = today.toEpochDay()
+        val from = todayDay - VOLUME_WEEKS * DAYS_PER_WEEK.toLong() + 1
+        val hours = activities
+            .filter { it.sportGroup == SportGroup.CYCLE && it.day in from..todayDay }
+            .sumOf { it.durationSec / 3600.0 }
+        val perWeek = hours / VOLUME_WEEKS
+        val onTrack = perWeek >= target
+        return Progress(
+            percent = clamp01(perWeek / target),
+            statusText = "${fmt1(perWeek)} h/week over the last $VOLUME_WEEKS weeks " +
+                "(target ${fmt1(target)} h) — " + (if (onTrack) "on track" else "behind") + ".",
+            onTrack = onTrack,
+        )
+    }
+
+    /**
+     * A bike event with a target time is measured against the best `TIME_*` effort of that
+     * distance; one with only a date is manual. There is no Riegel-style predictor for rides (the
+     * exponent is a running result and a ride's time depends on the course), so "on track" here
+     * means the target time has actually been ridden, not that it is projected to be.
+     */
+    private fun bikeEvent(goal: Goal, rideBests: List<RideBest>): Progress {
+        val targetSec = goal.targetTimeSec
+        val distance = goal.targetDistanceMeters
+        if (targetSec == null || targetSec <= 0 || distance == null || distance <= 0.0) {
+            return Progress(
+                percent = 0.0,
+                statusText = "Tracked manually — mark it achieved after the event.",
+                onTrack = true,
+                isManual = true,
+            )
+        }
+        val current = rideBests
+            .filter { !it.kind.isPower && matches(it.kind, distance) && it.value > 0.0 }
+            .minByOrNull { it.value }
+            ?: return Progress(
+                percent = 0.0,
+                statusText = "No ${distanceLabel(distance)} ride recorded yet.",
+                onTrack = false,
+            )
+        val currentSec = current.value
+        val percent = clamp01(targetSec / currentSec)
+        val onTrack = percent >= 1.0
+        val estimated = if (current.isEstimated) " (estimated)" else ""
+        return Progress(
+            percent = percent,
+            statusText = "Best ${formatTime(currentSec.toInt())}$estimated · " +
+                "target ${formatTime(targetSec)} — " + (if (onTrack) "on track" else "behind") + ".",
+            onTrack = onTrack,
+        )
+    }
+
+    private fun matches(kind: RideBestKind, distanceMeters: Double): Boolean =
+        kind.distanceMeters?.let { abs(it - distanceMeters) < 1.0 } ?: false
+
+    private fun ftpSourceLabel(ftp: FtpEstimate): String = when (ftp.source) {
+        FtpSource.MANUAL -> "(set manually)"
+        FtpSource.STREAM_20MIN -> "(from a 20-minute best)"
+        FtpSource.SESSION_NP -> "(estimated from a ride's average power)"
     }
 
     // ---- RACE_TIME -----------------------------------------------------------------------------

@@ -116,10 +116,23 @@ object TrainingEnergyCalculator {
         return TrainingEnergy(kcal = kcal, durationMin = minutes, hasStrength = hasStrength)
     }
 
-    /** `activeEnergyKcal` when the source recorded one, otherwise the MET estimate (§3.1.2). */
+    /**
+     * `activeEnergyKcal` when the source recorded one, else cycling power, else the MET estimate
+     * (§3.1.2, extended by P12.2).
+     *
+     * The power rung is `avgPowerW * durationSec / 1000`: a rider's mechanical work in kilojoules
+     * is numerically almost exactly their metabolic cost in kilocalories, because gross cycling
+     * efficiency sits near 24 % and 1 kcal = 4.184 kJ (`1 / 0.24 / 4.184 ≈ 1.00`). It beats the MET
+     * table because it is measured work rather than a table row, and loses to a recorded
+     * `activeEnergyKcal`, which is the source's own (usually HR-informed) number.
+     */
     fun completedKcal(activity: ActivitySummary, weightKg: Double): Double {
         val recorded = activity.activeEnergyKcal
         if (recorded != null && recorded > 0.0) return recorded
+        val power = activity.avgPowerW
+        if (power != null && power > 0 && activity.durationSec > 0) {
+            return power.toDouble() * activity.durationSec / 1000.0
+        }
         val met = MetTable.met(activity.sportType, completedSpeedKmh(activity))
         return MetTable.metKcal(met, weightKg, activity.durationSec / 3600.0)
     }

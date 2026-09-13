@@ -1,6 +1,10 @@
 package com.myhealth.data.repository
 
 import com.myhealth.data.db.dao.ActivityDao
+import com.myhealth.domain.engine.bike.BikeBestEngine
+import com.myhealth.domain.engine.bike.BikeDefaults
+import com.myhealth.domain.engine.bike.FtpEstimate
+import com.myhealth.domain.engine.bike.FtpEstimator
 import com.myhealth.domain.engine.load.HrBounds
 import com.myhealth.domain.engine.load.LoadSeriesEngine
 import com.myhealth.domain.engine.load.DayLoadDetail
@@ -23,6 +27,7 @@ import com.myhealth.domain.repository.HealthRepository
 import com.myhealth.domain.repository.LoadRepository
 import com.myhealth.domain.repository.PlanRepository
 import com.myhealth.domain.repository.ProfileRepository
+import com.myhealth.domain.repository.RideBestRepository
 import com.myhealth.domain.repository.RunningBestRepository
 import com.myhealth.domain.repository.SettingsRepository
 import com.myhealth.domain.util.Outcome
@@ -37,19 +42,24 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 /**
- * Recomputes `activity_session.trimp`, `daily_load` and `running_best` after new or changed
- * activity/health data (PLAN P5.5).
+ * Recomputes `activity_session.trimp`, `daily_load`, `running_best` and `ride_best` after new or
+ * changed activity/health data (PLAN P5.5, extended by P12.2).
  *
  * Pipeline for [recompute]`(fromDay)`:
  * 1. Resolve [HrBounds] once for the whole run: resting HR from the last 7 days
  *    ([TrimpDefaults.REST_HR_WINDOW_DAYS]), observed max HR from the last 365 days
  *    ([TrimpDefaults.OBSERVED_MAX_HR_WINDOW_DAYS]), both from [HealthRepository] / [ActivityRepository].
- * 2. For every activity in `[fromDay − 28, today]` — the EWMA prefix `LoadSeriesEngine` needs —
- *    run [TrimpCalculator.computeForSession] and persist via [ActivityRepository.setTrimp] only
- *    when the value or method actually changed (this is what makes a rerun idempotent and cheap);
- *    refresh `running_best` for every `RUN` activity via [RunningBestEngine.computeRows] +
- *    [RunningBestRepository.replaceForActivity], which is idempotent on its own (delete-then-insert).
- * 3. Rebuild the day series from [ActivityDao.sumTrimpPerDay] (the just-written ground truth) via
+ * 2. Refresh `ride_best` for every `CYCLE` activity in the window via [BikeBestEngine.computeRows] +
+ *    [RideBestRepository.replaceForActivity] (idempotent, delete-then-insert), then resolve the FTP
+ *    **once** for the whole run with [FtpEstimator] off the refreshed bests of the last 90 days plus
+ *    the rides themselves (P12.2). The order matters: a ride imported minutes ago must be able to
+ *    raise today's FTP before that FTP is used to score it.
+ * 3. For every activity in `[fromDay − 28, today]` — the EWMA prefix `LoadSeriesEngine` needs —
+ *    run [TrimpCalculator.computeForSession] with that FTP and persist via
+ *    [ActivityRepository.setTrimp] only when the value or method actually changed (this is what
+ *    makes a rerun idempotent and cheap); refresh `running_best` for every `RUN` activity via
+ *    [RunningBestEngine.computeRows] + [RunningBestRepository.replaceForActivity].
+ * 4. Rebuild the day series from [ActivityDao.sumTrimpPerDay] (the just-written ground truth) via
  *    [LoadSeriesEngine.computeDetailed], then layer [RecoveryEngine] on top per day using sleep,
  *    resting HR and HRV history, and write the result via [LoadRepository.upsertAll].
  *
@@ -61,6 +71,7 @@ class LoadRecomputeService(
     private val activityRepo: ActivityRepository,
     private val loadRepo: LoadRepository,
     private val runningBestRepo: RunningBestRepository,
+    private val rideBestRepo: RideBestRepository,
     private val profileRepo: ProfileRepository,
     private val healthRepo: HealthRepository,
     private val settingsRepo: SettingsRepository,
@@ -102,8 +113,13 @@ class LoadRecomputeService(
 
         val includeTreadmill = settingsRepo.settings.first().includeTreadmillInPrs
         val sessions = allSessions.filter { it.day in windowStart..today }
+
+        // P12.2: ride bests first, then the FTP they feed, then the TRIMP that FTP scores.
+        refreshRideBests(sessions)
+        val ftp = resolveFtp(profile, allSessions, today)
+
         for (session in sessions) {
-            recomputeOne(session, profile, bounds, includeTreadmill)
+            recomputeOne(session, profile, bounds, includeTreadmill, ftp)
         }
 
         val trimpByDay = activityDao.sumTrimpPerDay(windowStart, today).first().associate { it.day to it.trimp }
@@ -145,13 +161,39 @@ class LoadRecomputeService(
         }
     }
 
+    /** Every `CYCLE` session in the window gets its `ride_best` rows rebuilt (P12.2). */
+    private suspend fun refreshRideBests(sessions: List<ActivitySession>) {
+        for (session in sessions) {
+            if (session.sportGroup != SportGroup.CYCLE) continue
+            // `createdAtMillis` for the same reason as the running bests below.
+            val rows = BikeBestEngine.computeRows(session, session.createdAtMillis)
+            rideBestRepo.replaceForActivity(session.id, rows)
+        }
+    }
+
+    /**
+     * The FTP for this run (P12.2) — resolved **once**, never cached: the manual override, else the
+     * refreshed `ride_best` rows of the last 90 days, else the rides of that window themselves.
+     */
+    private suspend fun resolveFtp(
+        profile: Profile,
+        allSessions: List<ActivitySession>,
+        today: Long,
+    ): FtpEstimate? {
+        val since = today - BikeDefaults.FTP_WINDOW_DAYS
+        val bests = rideBestRepo.getSince(since)
+        val rides = allSessions.filter { it.sportGroup == SportGroup.CYCLE && it.day >= since }
+        return FtpEstimator.estimateFromSessions(profile.ftpWattsManual, bests, rides, today)
+    }
+
     private suspend fun recomputeOne(
         session: ActivitySession,
         profile: Profile,
         bounds: HrBounds,
         includeTreadmill: Boolean,
+        ftp: FtpEstimate?,
     ) {
-        val result = TrimpCalculator.computeForSession(session, profile.sex, bounds)
+        val result = TrimpCalculator.computeForSession(session, profile.sex, bounds, ftp)
         if (session.trimp != result.trimp || session.loadMethod != result.method) {
             activityRepo.setTrimp(session.id, result.trimp, result.method)
         }

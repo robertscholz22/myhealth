@@ -3,10 +3,15 @@ package com.myhealth.ui.goals
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myhealth.R
+import com.myhealth.domain.engine.bike.FtpEstimator
 import com.myhealth.domain.model.GoalStatus
+import com.myhealth.domain.model.RideBest
+import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.repository.BodyRepository
 import com.myhealth.domain.repository.GoalRepository
+import com.myhealth.domain.repository.ProfileRepository
+import com.myhealth.domain.repository.RideBestRepository
 import com.myhealth.domain.repository.RunningBestRepository
 import com.myhealth.domain.util.Outcome
 import com.myhealth.ui.common.UiMessage
@@ -19,9 +24,20 @@ import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.LocalDate
 
-/** The windows the progress engine needs: 4 weeks of sessions, a year of weights. */
-private const val ACTIVITY_WINDOW_DAYS = 28L
+/**
+ * The windows the progress engine needs: a year of weights, and 90 days of sessions — four weeks
+ * for the `CONSISTENCY` and `BIKE_VOLUME` averages, the full `FtpEstimator` look-back for the
+ * session-NP rung of the FTP estimate (P12.2). Both averages filter their own four weeks out again.
+ */
+private const val ACTIVITY_WINDOW_DAYS = 90L
 private const val WEIGHT_WINDOW_DAYS = 365L
+
+/**
+ * How many `POWER_20MIN` rows the FTP estimate considers. The repository hands them out best
+ * first, and the estimator then drops everything older than 90 days, so this only has to be deep
+ * enough that a recent effort is still in the list behind older, stronger ones.
+ */
+private const val FTP_BEST_CANDIDATES = 50
 
 /**
  * Backs [GoalsScreen] (PLAN §4.2 "Goals", P6.1): the goal list with the progress
@@ -32,6 +48,8 @@ class GoalsViewModel(
     private val runningBestRepo: RunningBestRepository,
     private val bodyRepo: BodyRepository,
     private val activityRepo: ActivityRepository,
+    private val rideBestRepo: RideBestRepository,
+    private val profileRepo: ProfileRepository,
     private val clock: Clock,
 ) : ViewModel() {
 
@@ -39,14 +57,35 @@ class GoalsViewModel(
 
     private fun today(): LocalDate = LocalDate.now(clock)
 
+    /** The cycling goals' inputs (P12.2): the ride PR table, the FTP candidates and the override. */
+    private data class BikeInputs(
+        val prPerKind: List<RideBest>,
+        val twentyMinuteBests: List<RideBest>,
+        val manualFtpWatts: Int?,
+    )
+
+    private val bikeInputs = combine(
+        rideBestRepo.observeBestPerKind(),
+        rideBestRepo.observeByKind(RideBestKind.POWER_20MIN, FTP_BEST_CANDIDATES),
+        profileRepo.observeProfile(),
+    ) { prPerKind, twentyMinute, profile ->
+        BikeInputs(prPerKind, twentyMinute, profile?.ftpWattsManual)
+    }
+
     val state: StateFlow<GoalsUiState> = combine(
         goalRepo.observeAll(),
         runningBestRepo.observeBestPerDistance(),
         bodyRepo.observeRange(today().toEpochDay() - WEIGHT_WINDOW_DAYS, today().toEpochDay()),
         activityRepo.observeRange(today().toEpochDay() - ACTIVITY_WINDOW_DAYS, today().toEpochDay()),
-        message,
-    ) { goals, bests, weights, activities, msg ->
-        val rows = goalRows(goals, bests, weights, activities, today())
+        combine(bikeInputs, message) { bike, msg -> bike to msg },
+    ) { goals, bests, weights, activities, (bike, msg) ->
+        val ftp = FtpEstimator.estimateFromSummaries(
+            manualWatts = bike.manualFtpWatts,
+            powerBests = bike.twentyMinuteBests,
+            rides = activities,
+            todayDay = today().toEpochDay(),
+        )
+        val rows = goalRows(goals, bests, weights, activities, today(), bike.prPerKind, ftp)
         GoalsUiState(
             isLoading = false,
             active = rows.activeOnly().sortedForDisplay(),
