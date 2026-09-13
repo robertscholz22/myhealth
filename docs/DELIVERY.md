@@ -7,6 +7,7 @@
 
 ## Releases
 - `v1.0.0` (2026-09-13, versionCode 100): first stable release, verified on the Pixel 7a; installed on the phone. Install only from tags from now on (see README → Releases).
+- `v1.0.2` (2026-09-13, versionCode 102): Garmin CSV import reads German-header/English-number exports correctly (distances were ×100), maps all German sport names, reads avg/max HR; new "Undo import" in Import history; DB v4.
 - `v1.0.1` (2026-09-13, versionCode 101): accepting a suggested week replaces unlocked planned sessions in its horizon; locale-aware number formatting and comma/dot decimal input; training-load rows start at the first activity; stale sync-error banner cleared on success.
 
 ## Install on the Pixel 7A
