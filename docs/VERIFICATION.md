@@ -472,3 +472,4 @@ Upgrade path: the emulator carried the 0.3.0 build with a fresh profile, an acce
 
 - POLISH-16 (fixed): the Zones screen showed its empty state whenever there were no runs and no VDOT, hiding the zone table that follows from the profile alone → `hasAnyData` now counts a zone model.
 - POLISH-17 (fixed): the polarisation hint printed "70%%" (an escaped percent in a string used without format arguments) → "70 %".
+- POLISH-18: the body figure is a set of flat rectangles (readable, tests pin the highlight map, K4 in the plan); a rounded silhouette would look closer to Garmin's muscle map.
