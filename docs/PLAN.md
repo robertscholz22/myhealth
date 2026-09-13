@@ -297,8 +297,16 @@ Converter rule: unknown strings decode to the enum's `UNKNOWN`/last-resort membe
 | `PlannedStatus` | `PLANNED, COMPLETED, SKIPPED, MOVED` |
 | `SuggestionStatus` | `PROPOSED, ACCEPTED, REJECTED, SUPERSEDED` |
 | `EngineWarningCode` | `MISSING_WEIGHT, MISSING_HR, ESTIMATED_LOAD, INSUFFICIENT_HISTORY, CLAMPED_TO_FLOOR, CLAMPED_TO_CEILING, ENERGY_MISMATCH, IMPLAUSIBLE_VALUE, COLUMN_AMBIGUOUS, NO_NUTRIENTS_FOUND, LOW_CONFIDENCE` |
+| `HrZoneScheme` | P14: `HRR_KARVONEN, LTHR_FRIEL, MANUAL` — how `HrZoneModel` derives its five boundaries |
+| `MuscleGroup` | P14, 16 members front/back: `CHEST, SHOULDERS_FRONT, SHOULDERS_REAR, BICEPS, TRICEPS, FOREARMS, ABS, OBLIQUES, TRAPS, LATS, LOWER_BACK, GLUTES, QUADS, HAMSTRINGS, ADDUCTORS, CALVES`; carries `side: BodySide {FRONT, BACK, BOTH}` and `isLowerBody: Boolean` (`GLUTES, QUADS, HAMSTRINGS, ADDUCTORS, CALVES`) |
+| `Equipment` | P14: `BODYWEIGHT, DUMBBELL, BARBELL, MACHINE, CABLE, KETTLEBELL, BAND, MEDICINE_BALL` |
+| `MovementPattern` | P14: `SQUAT, HINGE, LUNGE, HORIZONTAL_PUSH, VERTICAL_PUSH, HORIZONTAL_PULL, VERTICAL_PULL, CARRY, CORE, ISOLATION, PLYOMETRIC` |
+| `StrengthWorkoutKind` | P14: `FULL, UPPER, LOWER, CORE, CUSTOM` |
+| `MuscleLoadBand` | P14: `FRESH, LOADED, FATIGUED` |
+| `WorkoutStepKind` | P14: `WARMUP, WORK, RECOVERY, COOLDOWN, REPEAT` |
+| `WorkoutTargetKind` | P14: `ZONE, PACE, POWER, EFFORT, NONE` |
 
-P12 enum members are **appended** to their enum classes so every existing ordinal is unchanged (Room stores `name()`, but the suggestion fixtures and the UI dropdowns iterate in declaration order).
+P12 enum members are **appended** to their enum classes so every existing ordinal is unchanged (Room stores `name()`, but the suggestion fixtures and the UI dropdowns iterate in declaration order). P14 adds only new enum classes (the eight above); `SessionType`, `GoalType` and `LoadMethod` are unchanged.
 
 `SportType.group` mapping: `SOCCER_MATCH,SOCCER_TRAINING → SOCCER`; `RUN_* → RUN`; `STRENGTH,HIIT → STRENGTH`; `CYCLING,CYCLING_INDOOR → CYCLE`; `WALK,HIKE → WALK`; `SWIM → SWIM`; rest `OTHER`.
 
@@ -335,6 +343,8 @@ Common column conventions:
 | `mobilityOnRestDays` | `Boolean` | default true |
 | `ftpWattsManual` | `Int?` | P12 (DB v5); manual FTP override, wins over every estimate |
 | `indoorTrainerAvailable` | `Boolean` | P12 (DB v5); `NOT NULL DEFAULT 0` |
+| `hrZoneBoundsJson` | `String?` | P14 (DB v6); manual zone override — JSON array of **four ascending bpm** values `[z2Start,z3Start,z4Start,z5Start]`. Null ⇒ derived (§3.9). A non-ascending or wrong-length blob is ignored with `IMPLAUSIBLE_VALUE` |
+| `lactateThresholdHrManual` | `Int?` | P14 (DB v6); anchors the Friel scheme (§3.9) when no manual bounds exist |
 | `createdAtMillis`,`updatedAtMillis` | `Long` | |
 
 **`body_measurement`**
@@ -502,6 +512,8 @@ Occurrence expansion happens in `domain/engine/calendar/RecurrenceExpander.kt` (
 
 `id`, `type: GoalType`, `title`, `targetDay: Long?`, `targetDistanceMeters: Double?`, `targetTimeSec: Int?`, `targetWeightKg: Double?`, `targetValue: Double?`, `priority: Int` (1 = primary), `status: GoalStatus`, `linkedEventId: Long?`, `notes`, timestamps. Index `(status, priority)`.
 
+**P14 additions (DB v6).** `planned_session` += `structureJson: String?` (the `WorkoutStructure` of §3.11, null for unstructured sessions) and `workoutId: Long?` FK → `strength_workout.id` `SET_NULL`, index `idx_planned_workout` (the strength workout this session runs). `suggested_session` += `targetPaceSecPerKm: Int?`, `structureJson: String?`, `workoutTemplateId: String?` (the last names a built-in `StrengthTemplates` id, materialised into a `strength_workout` row on accept).
+
 #### 2.2.5 Nutrition
 
 **`ingredient`**
@@ -588,6 +600,33 @@ Implementation:
 - Merge is a pure function `ActivityMerger.merge(records: List<SourceRecord>, existing: ActivitySession?): ActivitySession` — unit-tested with cases T-DEDUP-01..08.
 
 ---
+
+#### 2.2.7 Strength (P14, DB v6)
+
+**`strength_workout`** — a named, ordered list of exercises.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `Long` PK | |
+| `name` | `String` | user-visible; built-ins ship English names (same domain-text exemption as rationale copy) |
+| `kind` | `StrengthWorkoutKind` | `FULL/UPPER/LOWER/CORE/CUSTOM` |
+| `templateId` | `String?` | stable id of a built-in (`UPPER_A`, `LOWER_A`, …); **unique** where not null |
+| `isBuiltIn` | `Boolean` | seeded by `StrengthWorkoutSeeder`, user-editable copies get `false` |
+| `notes` | `String?` | |
+| `createdAtMillis`,`updatedAtMillis` | `Long` | |
+
+Unique index `uq_strength_workout_template (templateId)`. `estimatedMinutes` is **computed**, not stored (§3.12.3).
+
+**`strength_workout_exercise`** — ordered children, `CASCADE`.
+
+`id` · `workoutId: Long` FK CASCADE, index `idx_swe_workout` · `orderIndex: Int` · `exerciseId: String` (an `ExerciseCatalog` id, **not** an FK — the catalog is code, not a table) · `sets: Int` · `reps: Int?` · `seconds: Int?` · `loadKg: Double?` · `isBodyweight: Boolean` · `restSec: Int?` · `note: String?`.
+Unique index `uq_swe_order (workoutId, orderIndex)`. Exactly one of `reps`/`seconds` is set (validated in the repository, not by SQL).
+
+**`strength_set_log`** — optional per-set logging when a session is marked done. One flat table: the planned session or the activity is the header.
+
+`id` · `day: Long` index `idx_ssl_day` · `plannedSessionId: Long?` FK → `planned_session` `SET_NULL`, index · `activityId: Long?` FK → `activity_session` `SET_NULL`, index · `exerciseId: String` · `setIndex: Int` · `reps: Int?` · `seconds: Int?` · `loadKg: Double?` · `rpe: Int?` · `completedAtMillis: Long`.
+
+**No `muscle_load` table.** Per-group load is recomputed on demand from ≤ 14 days of sessions (§3.12.4) — a handful of multiplications. A cache would add a fourth table, an invalidation path in `LoadRecomputeService` and a migration risk for microseconds of work.
 
 ## 3. Domain engines (normative specifications)
 
@@ -1425,6 +1464,304 @@ Persistence: one `ride_best` row per `(activityId, kind)`; PR per kind is `MAX(v
 
 ---
 
+### 3.9 Heart-rate zones (P14.1)
+
+**Location** `domain/engine/load/HrZoneModel.kt`, `HrZones.kt` (extended), `SessionZoneTargets.kt`.
+
+Five zones, derived once per athlete from `HrBounds` (§3.2.1). Scheme resolution, first match wins:
+
+| Scheme | Condition | Boundaries (bpm, lower bound of Z2…Z5) |
+|---|---|---|
+| `MANUAL` | `profile.hrZoneBoundsJson` decodes to four strictly ascending bpm in `(hrRest, hrMax]` | as given |
+| `LTHR_FRIEL` | `profile.lactateThresholdHrManual != null` | `roundHalfUp(LTHR × [0.81, 0.90, 0.94, 1.00])` |
+| `HRR_KARVONEN` | always (the default) | `hrRest + roundHalfUp(reserve × [0.60, 0.70, 0.80, 0.90])` |
+
+The Karvonen boundaries are **exactly** the bands the existing `timeInZones` already used (`<60 / 60-70 / 70-80 / 80-90 / >=90` % HRR), so the default model reproduces every stored zone-time figure and the Activity-detail table byte-for-byte; P14 only gives the bands names, a scheme and an override. Z1 has no floor (a warm-up minute is Z1, not "below Z1"); Z5 has no ceiling.
+
+```kotlin
+data class HrZone(val index: Int, val lowBpm: Int, val highBpm: Int?, val nameKey: String)
+data class HrZoneModel(val scheme: HrZoneScheme, val zones: List<HrZone>, val bounds: HrBounds) {
+    fun zoneOf(hr: Int): Int            // 1..5, lower bound inclusive
+    fun rangeOf(index: Int): IntRange
+    fun minutesPerZone(streams: ActivityStreams): List<Double>   // delegates to timeInZones
+}
+```
+Zone names (UI strings, `hr_zone_1_name`…): Z1 Recovery · Z2 Endurance · Z3 Tempo · Z4 Threshold · Z5 VO2max.
+
+**Target zones per session type** (`SessionZoneTargets.targetFor(sessionType): IntRange?`):
+
+| Session type | Target | | Session type | Target |
+|---|---|---|---|---|
+| `RECOVERY_RUN` | Z1 | | `ENDURANCE_RIDE` | Z2 |
+| `EASY_RUN` | Z2 | | `BIKE_INTERVALS` | Z4–Z5 |
+| `LONG_RUN` | Z2 | | `TRAINER_SESSION` | Z3 |
+| `TEMPO_RUN` | Z3–Z4 | | `RECOVERY_SPIN` | Z1 |
+| `INTERVAL_RUN` | Z4–Z5 | | `MOBILITY` | Z1 |
+| `CROSS_TRAINING` | Z2 | | `STRENGTH_*`, `SOCCER_*`, `REST` | `null` (n/a) |
+
+`null` means the screens print nothing: soccer is intermittent by nature and a strength session's heart rate says little about the stimulus. `MOBILITY`'s Z1 is advisory only.
+
+**Where the recommendation is shown** (P14.6): the suggestion-review card, the planned-session card and editor, the Today plan card, the new **Zones & paces** screen (the full zone table with bpm ranges, the scheme in plain words, and the pace band per zone) and — as the *actual versus target* comparison — the Activity-detail zone table.
+
+**What zone time feeds.** (1) The Activity-detail table (unchanged). (2) A 28-day **polarisation split** on the Zones & paces screen: `easyShare = (Z1+Z2) / total`, `hardShare = (Z4+Z5) / total`, with a hint when `easyShare < 0.70`. (3) `PaceZoneEngine`'s samples (§3.10). Nothing is cached: zone minutes come from the stream on demand.
+
+**Named tests — `HrZoneModelTest`** (`hrMax = 190`, `hrRest = 50`, reserve 140 unless stated)
+
+| ID | Assertion |
+|---|---|
+| `hz01_karvonen_boundaries_190_50` | `[134, 148, 162, 176]` bpm |
+| `hz02_zone_of_150_is_z3` | HRR 0.7143 → 3 |
+| `hz03_boundary_bpm_belongs_to_the_upper_zone` | 148 → Z3, 147 → Z2, 176 → Z5 |
+| `hz04_manual_bounds_win` | `[130,145,160,172]` → `zoneOf(147) == 3`, scheme `MANUAL` |
+| `hz05_lthr_friel_170` | `[138, 153, 160, 170]`, scheme `LTHR_FRIEL` |
+| `hz06_default_model_reproduces_time_in_zones` | same fixture stream → `minutesPerZone` equals the legacy `timeInZones` list exactly |
+| `hz07_session_targets_table` | the whole table above, incl. `null` for `STRENGTH_FULL`/`SOCCER_MATCH` |
+| `hz08_non_ascending_manual_bounds_are_ignored` | falls back to Karvonen + `IMPLAUSIBLE_VALUE` |
+| `hz09_z5_has_no_upper_bound` | `highBpm == null` |
+| `hz10_polarisation_split` | 300 min Z1+Z2, 40 Z3, 60 Z4+Z5 → `easyShare = 0.75`, `hardShare = 0.15` |
+
+### 3.10 Zone ↔ pace correlation (P14.2)
+
+**Location** `domain/engine/running/PaceZoneEngine.kt`, `DanielsPaces.kt`.
+
+#### 3.10.1 Daniels paces from the existing VDOT (`DanielsPaces`)
+
+The §3.4 `vo2(v) = -4.60 + 0.182258 v + 0.000104 v²` inverted for a target fraction of VDOT:
+```
+v(pct) = (-0.182258 + sqrt(0.182258² + 4·0.000104·(4.60 + vdot·pct))) / (2·0.000104)   // m/min
+paceSecPerKm = 60000 / v
+```
+Fractions: `E 0.63 · M 0.83 · T 0.88 · I 0.98 · R 1.06`. At VDOT 50 that is **E 334 · M 268 · T 255 · I 234 · R 220 s/km**.
+
+#### 3.10.2 Measured pace bands per zone (`PaceZoneEngine.compute`)
+
+Input: the last `N = 90` days of runs (`SportGroup.RUN`), each either with streams (`sampleOffsetsSec`, `hr`, `speedMps` — Health Connect supplies speed, not cumulative distance, so speed is the axis) or, when it has none, its summary (`avgHr`, `distanceMeters/durationSec`), plus `HrZoneModel` and the optional `vdot`.
+
+Sample-level rules, all applied before aggregation:
+
+| # | Rule | Constant |
+|---|---|---|
+| 1 | Skip the first minutes of every activity (warm-up, HR still rising) | `WARMUP_SKIP_SEC = 600` |
+| 2 | Pair a **speed** sample at `t` with the HR sample nearest `t + lag` (HR lags effort); no HR within ±5 s ⇒ skip | `HR_LAG_SEC = 20` |
+| 3 | Drop samples with `speed < 1.50 m/s` (walking, stopped, lights) or `> 7.00 m/s` (GPS spike) | |
+| 4 | Weight each sample by its interval to the next, capped at 60 s (the `timeInZones` convention) | |
+| 5 | Grade is **ignored** — no altitude correction; documented, not modelled | |
+| 6 | Treadmill runs are excluded unless `settings.includeTreadmillInPrs` (belt calibration ≠ ground pace) | |
+| 7 | A stream-less activity contributes **one** point `(avgHr, durationSec/distanceKm)` weighted by `durationSec`; such points cap the zone's confidence at `MEDIUM` (a per-activity average smears several zones into one) | |
+
+Per zone, over the weighted pace samples: `centre = weighted median`, `band = [weighted p25, weighted p75]`, all in whole `s/km` (half-up). Confidence from accumulated in-zone time `T` and distinct activities `A`:
+
+| Confidence | Condition | Blend with the Daniels anchor |
+|---|---|---|
+| `HIGH` | `T ≥ 1200 s` and `A ≥ 3` | measured only |
+| `MEDIUM` | `T ≥ 300 s` and `A ≥ 2` | `0.75·measured + 0.25·anchor` |
+| `LOW` | `T ≥ 120 s` | `0.50·measured + 0.50·anchor` |
+| `MODELLED` | no samples, VDOT exists | anchor only, band `centre × [1∓w]` |
+| `NONE` | no samples, no VDOT | no band; the UI shows "not enough data yet" |
+
+Anchor per zone and modelled half-width `w`: **Z1 → E × 1.08, w 5 % · Z2 → E, w 5 % · Z3 → M, w 4 % · Z4 → T, w 3 % · Z5 → I, w 3 %.** Blending is on `centre`; the band is re-derived as `centre × [1∓w]` whenever an anchor took part. With no VDOT the blend degrades to measured-only at the measured confidence.
+
+**Pace recommendation per session type** = the band of the *first* zone of `SessionZoneTargets.targetFor(type)` (the training intent sits at the bottom of the target range), except `INTERVAL_RUN`, which takes Z5's band, and `TEMPO_RUN`, which takes Z4's. `null` target ⇒ no pace shown. The chosen value fills `planned_session.targetPaceSecPerKm` / `suggested_session.targetPaceSecPerKm`.
+
+**Named tests — `PaceZoneEngineTest` / `DanielsPacesTest`**
+
+| ID | Assertion |
+|---|---|
+| `vd01_vdot50_easy_334` | 334 s/km ± 1 |
+| `vd02_vdot50_marathon_268` | 268 ± 1 |
+| `vd03_vdot50_threshold_255` | 255 ± 1 |
+| `vd04_vdot50_interval_234` | 234 ± 1 |
+| `vd05_vdot50_repetition_220` | 220 ± 1 |
+| `vd06_paces_are_strictly_monotone` | E > M > T > I > R in s/km, for VDOT 35…75 |
+| `pz01_single_run_median_per_zone` | 40-min 1 Hz run: 10–25 min HR 140 @ 3.00 m/s, 25–40 min HR 165 @ 4.00 m/s → Z2 centre 333 s/km, Z4 centre 250 s/km, Z1/Z3/Z5 `MODELLED` |
+| `pz02_hr_lag_shift` | speed steps at `t`, HR follows 20 s later → zero fast samples land in the low zone (without the shift there are 20) |
+| `pz03_first_ten_minutes_excluded` | a 9-minute run yields no samples at all |
+| `pz04_walking_and_stopped_samples_dropped` | 1.2 m/s and 0.0 m/s contribute nothing |
+| `pz05_band_is_the_weighted_iqr` | equal-weight paces 300/310/320/330/340 → centre 320, band 310…330 |
+| `pz06_120s_is_low_confidence` | `LOW` |
+| `pz07_two_activities_five_minutes_is_medium` | `MEDIUM` |
+| `pz08_three_activities_twenty_minutes_is_high` | `HIGH` |
+| `pz09_low_confidence_blends_half_with_vdot` | measured 300, anchor 340 → 320 |
+| `pz10_no_samples_falls_back_to_vdot` | VDOT 50, Z4 → centre 255, band 247…263, `MODELLED` |
+| `pz11_treadmill_excluded_by_default` | treadmill-only history → `NONE`/`MODELLED` |
+| `pz12_csv_only_activity_caps_at_medium` | 10 km / 50:00, avgHr 150 → Z3 centre 300 s/km, confidence ≤ `MEDIUM` |
+
+### 3.11 Structured workouts and interval suggestions (P14.3)
+
+**Location** `domain/model/Workout.kt` (model + `WorkoutStructureCodec`), `domain/engine/suggest/IntervalCatalog.kt`, `IntervalBuilder.kt`.
+
+```kotlin
+@Serializable data class WorkoutStructure(
+    val version: Int = 1, val templateId: String? = null, val steps: List<WorkoutStep>)
+@Serializable data class WorkoutStep(
+    val kind: WorkoutStepKind, val repeat: Int = 1,
+    val durationSec: Int? = null, val distanceMeters: Double? = null,
+    val target: WorkoutTargetKind = WorkoutTargetKind.NONE,
+    val zone: Int? = null, val paceLowSecPerKm: Int? = null, val paceHighSecPerKm: Int? = null,
+    val powerLowW: Int? = null, val powerHighW: Int? = null,
+    val children: List<WorkoutStep> = emptyList(), val note: String? = null)
+```
+`REPEAT` steps carry `children` and **exactly one level of nesting** is allowed (enough for `2 × (10 × 30/30)`; the codec rejects deeper trees). Serialised with `kotlinx.serialization` into `planned_session.structureJson` / `suggested_session.structureJson`. Decoding a newer `version` yields `null` (forward-compatible, never crashes) — same rule as the enum converters.
+
+**Catalog** (`IntervalCatalog.ALL`, each with `minReps`/`maxReps`, a work step and a recovery step):
+
+| id | Shape | Target | For |
+|---|---|---|---|
+| `RUN_400_R` | 8–12 × 400 m, 400 m jog | R pace ± 2 %, Z5 | `INTERVAL_RUN`, 5 k goals, PEAK |
+| `RUN_800_I` | 4–8 × 800 m, 90 s jog | I pace ± 2 %, Z5 | `INTERVAL_RUN` |
+| `RUN_1000_I` | 4–6 × 1000 m, 2:00 jog | I pace ± 2 %, Z5 | `INTERVAL_RUN`, 10 k goals |
+| `RUN_4X4` | 3–5 × 4 min, 3 min jog | Z4–Z5 | `INTERVAL_RUN` without a VDOT, IN_SEASON |
+| `RUN_HILL_60` | 8–12 × 60 s hill, jog down | Z5, effort | BASE |
+| `RUN_CRUISE_T` | 3–5 × 8 min, 2 min jog | T pace ± 2 %, Z4 | `TEMPO_RUN`, ≥ 21.1 km goals |
+| `RUN_TEMPO_CONT` | 1 × 20–35 min continuous | T pace ± 2 %, Z4 | `TEMPO_RUN` |
+| `BIKE_4X8_FTP` | 3–5 × 8 min, 4 min easy | 95–105 % FTP, Z4 | `BIKE_INTERVALS` |
+| `BIKE_5X3_VO2` | 4–6 × 3 min, 3 min easy | 110–120 % FTP, Z5 | `BIKE_INTERVALS`, PEAK |
+| `BIKE_30_30` | 2–3 × (10 × 30 s / 30 s) | 130 % / 50 % FTP | `BIKE_INTERVALS`, IN_SEASON |
+| `BIKE_2X20_SST` | 2–3 × 20 min, 5 min easy | 88–94 % FTP, Z3 | `TRAINER_SESSION` |
+
+Every structure is framed by `WARMUP` (15 min run / 10 min ride, Z1–Z2) and `COOLDOWN` (10 min / 5 min, Z1).
+
+**Selection (`IntervalBuilder.buildFor(candidate, ctx)`), deterministic, first match wins:**
+1. Only for `INTERVAL_RUN`, `TEMPO_RUN`, `BIKE_INTERVALS`, `TRAINER_SESSION`. Everything else gets `null` — no other session type's output can change.
+2. Phase: `PEAK` → `RUN_400_R` (goal ≤ 5 km) else `RUN_1000_I`; `BUILD` → `RUN_1000_I` / `BIKE_4X8_FTP`; `BASE` → `RUN_HILL_60` / `RUN_CRUISE_T`; `IN_SEASON` → `RUN_4X4` / `BIKE_30_30`; `TAPER`/`RACE_WEEK` → the phase's template with `reps = max(minReps, roundHalfUp(reps × 0.6))` and rationale `INTERVAL_SHORTENED_TAPER`; `RECOVERY_WEEK`/`OFF_SEASON` → `null`.
+3. Goal distance overrides the phase choice: `≥ 21 097 m` → `RUN_CRUISE_T`; `≤ 5 000 m` in `PEAK` → `RUN_400_R`.
+4. Reps fit the placed duration: `workBudgetSec = minutes×60 − warmup − cooldown`; `reps = clamp(floor(workBudgetSec / repCycleSec), minReps, maxReps)` where `repCycleSec = workSec + recoverySec` (a distance rep's `workSec` comes from the pace band centre).
+5. `acwr > 1.30`, `recovery.band ∈ {MODERATE, FATIGUED}` or `isStarterWeek` ⇒ `reps = minReps`.
+6. No VDOT ⇒ pace targets omitted, `target = ZONE` only. No FTP ⇒ the bike templates fall back to `ZONE`.
+7. Total work distance is capped at `6 000 m` (runs); reps are reduced until it fits.
+
+Rationale ids: `INTERVAL_STRUCTURE` ("5 × 1000 m at 3:54/km with 2:00 jog — interval pace from VDOT 50"), `INTERVAL_SHORTENED_TAPER`, `PACE_TARGET` ("Target pace 4:15/km, zone 4 (162–175 bpm)"). C-constraints are untouched: `INTERVAL_RUN` is already `HIGH`, so C1/C5/C9/C11 already govern it.
+
+**Named tests — `IntervalBuilderTest` / `WorkoutStructureTest`**
+
+| ID | Assertion |
+|---|---|
+| `iv01_five_by_1000_from_vdot_50` | `RUN_1000_I`, 5 reps, work pace band 229…239 s/km |
+| `iv02_reps_fit_the_placed_minutes` | 55 min → warm-up 15 + cool-down 10 + 5 × (234 s + 120 s) = 29.5 min ⇒ 5 reps |
+| `iv03_taper_shortens_to_three` | `RACE_WEEK`, 5 → 3 reps, `INTERVAL_SHORTENED_TAPER` present |
+| `iv04_high_acwr_uses_min_reps` | acwr 1.4 → `minReps` |
+| `iv05_no_vdot_is_zone_only` | every work step `target == ZONE`, `zone == 5`, no pace fields |
+| `iv06_bike_4x8_at_285w` | FTP 285 → 271…299 W |
+| `iv07_thirty_thirty_is_one_nesting_level` | outer `REPEAT` 2 with a child `REPEAT` 10; deeper nesting rejected by the codec |
+| `iv08_structure_json_round_trips` | encode → decode → equal |
+| `iv09_unknown_version_decodes_to_null` | `version = 99` → `null`, no throw |
+| `iv10_half_marathon_goal_prefers_cruise_intervals` | `RUN_CRUISE_T` |
+| `iv11_five_k_goal_in_peak_prefers_400s` | `RUN_400_R` |
+| `iv12_work_distance_capped_at_six_km` | 12 × 1000 m never produced |
+| `iv13_only_four_session_types_get_a_structure` | `EASY_RUN`/`LONG_RUN`/`STRENGTH_*` → `null` |
+| `sug34_interval_run_carries_a_structure_and_a_pace` | placed `INTERVAL_RUN` has `structureJson` and `targetPaceSecPerKm` |
+| `sug35_structure_survives_accept` | suggested → `planned_session.structureJson` identical |
+| `sug36_no_vdot_no_ftp_output_is_zone_only` | no crash, no pace/power fields |
+
+### 3.12 Strength: exercises, workouts and body-part load (P14.4/P14.5)
+
+**Location** `domain/engine/strength/` — `ExerciseCatalog*.kt`, `StrengthTemplates.kt`, `MuscleLoadEngine.kt`, `MuscleDistribution.kt`; `domain/engine/suggest/StrengthRules.kt`.
+
+#### 3.12.1 Exercise catalog — a Kotlin object, not a JSON asset
+
+```kotlin
+data class Exercise(
+    val id: String, val name: String,
+    val primary: Set<MuscleGroup>, val secondary: Set<MuscleGroup>,
+    val equipment: Equipment, val pattern: MovementPattern,
+    val unilateral: Boolean = false, val isTimed: Boolean = false, val cue: String)
+```
+**Decision: a Kotlin object** (`ExerciseCatalog.ALL`, ≈ 52 entries, split across `ExerciseCatalogUpper/Lower/Core.kt` for R10). Reasons: `domain/` is Android-free and cannot open `assets/`; a JSON asset would need a loader in `data/`, a parse step, error handling and its own tests, and would move a compile-time-checked `Set<MuscleGroup>` into a stringly-typed blob. Ids are stable (`BARBELL_BACK_SQUAT`, `PUSH_UP`, …) because `strength_workout_exercise.exerciseId` stores them. English names live in the domain object under the same exemption as rationale copy; the UI renders `exercise.name` verbatim and only *its own* chrome comes from `strings.xml`.
+
+Coverage requirement: every one of the 16 `MuscleGroup`s is the **primary** of at least one exercise; ≥ 12 are bodyweight-only (the owner trains at home and in a gym).
+
+#### 3.12.2 Body figure (P14.7, UI)
+
+`ui/common/body/MusclePaths.kt` holds, per `MuscleGroup` and per side, a list of closed `Path`s in a normalised 100 × 220 box; `BodyFigure(front, back, highlight: Map<MuscleGroup, Float>)` in `ui/common/body/BodyFigure.kt` scales them to the composable and fills each group by intensity: primary = `colorScheme.primary`, secondary = the same at 35 % alpha, unused = `surfaceVariant`, silhouette outline = `outline`. Pure Compose `Canvas`, no images, no new dependency. The same composable is the Load screen's heat map with `highlight = load/ref` clamped to `0..1`.
+
+#### 3.12.3 Strength workouts
+
+`StrengthWorkout(id, name, kind, templateId?, isBuiltIn, notes?, exercises: List<StrengthWorkoutExercise>)`.
+`estimatedMinutes = ceil((Σ sets × (workSec + restSec) + 480) / 60)` with `workSec = seconds ?: reps × 3` and a default `restSec = 90`.
+Built-ins in `StrengthTemplates` (`UPPER_A`, `UPPER_B`, `LOWER_A`, `LOWER_B`, `FULL_A`, `CORE_A`), materialised into rows by `StrengthWorkoutSeeder` (idempotent on `templateId`) the first time the Workouts screen opens or a strength suggestion is accepted — not by the migration, so a template can be corrected in code later.
+`plannedSession.workoutId` links a `STRENGTH_*` session to a workout; a suggested strength session proposes `workoutTemplateId`, and `accept` seeds/looks up the row and writes `workoutId`.
+
+#### 3.12.4 Muscle load (`MuscleLoadEngine`)
+
+Input: `MuscleLoadInput(today, ctl, sessions: List<MuscleSession(day, sportGroup, sessionType?, trimp, workout?)>)` over the last 14 days (assembled by the caller, `domain/` stays pure).
+
+**Endurance distribution** — each session's TRIMP is split over groups by a fixed share table (`MuscleDistribution`), each row summing to 1.00:
+
+| Group → | QUADS | HAMS | GLUTES | CALVES | ADDUCT | LOW_BACK | ABS | other |
+|---|---|---|---|---|---|---|---|---|
+| `RUN` | 0.22 | 0.20 | 0.18 | 0.25 | 0.05 | 0.05 | 0.05 | — |
+| `SOCCER` | 0.24 | 0.22 | 0.18 | 0.16 | 0.12 | 0.03 | 0.05 | — |
+| `CYCLE` | 0.38 | 0.16 | 0.26 | 0.12 | — | 0.08 | — | — |
+| `WALK` | 0.20 | 0.15 | 0.15 | 0.35 | — | 0.15 | — | — |
+| `SWIM` | — | — | 0.06 | — | — | 0.06 | 0.10 | LATS 0.28, SHOULDERS_FRONT 0.14, SHOULDERS_REAR 0.14, TRICEPS 0.12, CHEST 0.10 |
+| `OTHER` | — | — | — | — | — | — | — | nothing (unknown sport contributes no muscle load) |
+
+**Strength distribution** — with a workout: `w(g) = Σ_exercises sets × (1.0 if g ∈ primary, 0.5 if g ∈ secondary)`, then `muscleAu(g) = trimp × w(g) / Σw`. Without one (Garmin strength sessions carry **no** exercise detail): the linked planned session's `SessionType` picks a generic table — `STRENGTH_UPPER` (CHEST .20, LATS .20, SHOULDERS_FRONT .12, SHOULDERS_REAR .10, TRICEPS .12, BICEPS .12, TRAPS .07, ABS .07), `STRENGTH_LOWER` (QUADS .30, GLUTES .25, HAMSTRINGS .22, CALVES .10, ADDUCTORS .08, LOWER_BACK .05), `STRENGTH_FULL`/unknown = the mean of the two, renormalised.
+
+**Decay and bands.**
+```
+load(g) = Σ_sessions muscleAu(g, s) · 0.5 ^ ((today − s.day) / 2.0)      // 48 h half-life, 14-day window
+ref     = max(0.35 · ctl, 12.0)
+band(g) = FRESH    when load < 0.75·ref
+          LOADED   when 0.75·ref ≤ load ≤ 1.50·ref
+          FATIGUED when load > 1.50·ref
+```
+`ctl` is the latest `daily_load.ctl`; 0.35 is the share the single hardest-hit group takes on a typical day, so the bands mean the same thing for a 20-CTL beginner and a 60-CTL athlete. The 12.0 AU floor stops a fresh install from calling every group fatigued. Output `MuscleLoadState(byGroup, bands, ref, lowerBody = max over the five lower groups, upperBody = max over the rest)`.
+
+#### 3.12.5 Strength suggestion rules (`StrengthRules`, constraint `C15`)
+
+The whole layer is **inert when `SuggestionInput.muscleLoad == null`** (the default), which is what keeps every existing fixture — `sug01…sug33`, `ar01…ar08` — byte-identical.
+
+| Rule | Definition |
+|---|---|
+| `C15` | A `STRENGTH_LOWER`/`STRENGTH_FULL` candidate is discarded when **(a)** the day's projected lower-body band is `FATIGUED`, **or (b)** a *hard leg day* falls within 36 h **before** it — a completed activity with `trimp ≥ 150` in `RUN`/`SOCCER`/`CYCLE`, or a grid item of `HIGH`/`MAX` intensity in those groups — **or (c)** a hard run (`TEMPO_RUN`/`INTERVAL_RUN`/`LONG_RUN`) or a match/race sits within 48 h **after** it. (c) extends C2, which only covered matches and races. |
+| bonus | `Scorer.muscleBonus` (unweighted, folded in like `cycleBonus`, total capped at 1.0): `+0.10` for `STRENGTH_UPPER` when `lowerBody != FRESH` **and** `upperBody == FRESH`; `+0.10` for `STRENGTH_LOWER`/`STRENGTH_FULL` when `lowerBody == FRESH` and no match/hard run in the next 48 h. |
+| workout | A placed `STRENGTH_*` session proposes `workoutTemplateId` — `UPPER_A`/`UPPER_B` alternating for upper, `LOWER_A`/`LOWER_B` for lower, `FULL_A` for full — alternating by the most recently accepted template of that kind. |
+
+Rationale ids: `MUSCLE_LOWER_LOADED` ("Legs are still loaded from Saturday's long run — upper body works today"), `MUSCLE_LEGS_FRESH`, `C15_RESPECTED`, `STRENGTH_WORKOUT` ("Workout: Upper A — 6 exercises, about 44 min").
+`SuggestionInputsHash` gains a `muscle=` line **only when `muscleLoad != null`** (the `bike=` trick), so an upgrade does not force a regeneration of an open batch.
+
+**Named tests**
+
+| ID | Assertion |
+|---|---|
+| `ex01_catalog_size_and_unique_ids` | ≥ 40 entries, ids unique |
+| `ex02_every_exercise_has_a_primary` | none empty |
+| `ex03_primary_and_secondary_disjoint` | per exercise |
+| `ex04_every_muscle_group_is_someone_s_primary` | all 16 |
+| `ex05_bench_press_muscles` | primary `{CHEST}`, secondary `{TRICEPS, SHOULDERS_FRONT}` |
+| `ex06_back_squat_muscles` | primary `{QUADS, GLUTES}`, secondary `{HAMSTRINGS, LOWER_BACK, ABS}` |
+| `ex07_unilateral_flags` | lunges / single-leg RDL / split squat are `unilateral` |
+| `ex08_timed_exercises_use_seconds` | plank, side plank, hollow hold: `isTimed`, template rows carry `seconds`, not `reps` |
+| `ex09_search_matches_name_and_muscle` | "squat" and "quads" both find the back squat |
+| `ex10_equipment_filter` | `BODYWEIGHT` filter ≥ 12 results |
+| `sw01_six_builtin_templates` | `UPPER_A/UPPER_B/LOWER_A/LOWER_B/FULL_A/CORE_A` |
+| `sw02_upper_template_has_no_lower_primary` | and vice versa (`sw03`) |
+| `sw04_estimated_minutes_upper_a_is_44` | 6 × 3 × (30 + 90) s + 480 s = 2640 s → 44 |
+| `sw05_seeder_is_idempotent` | seeding twice leaves 6 rows |
+| `sw06_workout_round_trips` | entity ⇄ domain with children in `orderIndex` order |
+| `sw07_set_log_links_to_planned_session` | |
+| `ml01_run_trimp_100_distribution` | CALVES 25.0, QUADS 22.0, HAMSTRINGS 20.0, GLUTES 18.0, CHEST 0.0 |
+| `ml02_ride_trimp_100_quads_38` | 38.0 |
+| `ml03_workout_shares_primary_one_secondary_half` | bench 3 sets + row 3 sets, TRIMP 81 → CHEST 20.25, TRICEPS 10.125 |
+| `ml04_half_life_48h` | 100 AU two days ago → 50.0; four days → 25.0 |
+| `ml05_two_runs_sum` | additive |
+| `ml06_bands_from_ctl_60` | ref 21.0; 15.0 `FRESH`, 21.0 `LOADED`, 40.0 `FATIGUED` |
+| `ml07_ref_floor_is_twelve` | CTL 10 → ref 12.0 |
+| `ml08_strength_without_workout_uses_session_type_table` | `STRENGTH_LOWER` → QUADS 30 % of TRIMP |
+| `ml09_soccer_loads_adductors` | 12 % |
+| `ml10_lower_body_is_the_max_of_five_groups` | |
+| `ml11_empty_input_all_fresh` | |
+| `ml12_unknown_sport_contributes_nothing` | `SportGroup.OTHER` |
+| `c17_lower_strength_blocked_36h_after_a_hard_leg_day` | `C15` |
+| `c18_upper_strength_allowed_when_legs_are_loaded` | not discarded, bonus applied |
+| `c19_lower_strength_blocked_48h_before_a_hard_run` | `C15` (c) |
+| `sug37_upper_body_after_a_long_run` | long run day 0 → day +1 strength is `STRENGTH_UPPER` |
+| `sug38_fresh_legs_allow_strength_lower` | |
+| `sug39_null_muscle_load_output_unchanged` | full `sug28`-style diff against the 0.3.0 baseline |
+| `sug40_hash_line_only_when_muscle_load_present` | digest unchanged for `null` |
+| `sug41_strength_session_names_a_template` | `workoutTemplateId` set, `STRENGTH_WORKOUT` rationale present |
+
 ## 4. Screens & navigation
 
 ### 4.1 Navigation graph
@@ -1463,6 +1800,11 @@ Type-safe routes with `kotlinx.serialization` (`androidx.navigation:navigation-c
 @Serializable data object GarminDirectRoute                  // P9 only
 @Serializable data object MoreRoute
 @Serializable data object BikeRoute                          // P12.4: FTP card + power/time PR tables
+@Serializable data object ZonesRoute                          // P14.6: zones & paces table
+@Serializable data object WorkoutsRoute                       // P14.7: strength workouts
+@Serializable data class WorkoutEditRoute(val id: Long = -1)  // P14.7
+@Serializable data object ExercisesRoute                      // P14.7: exercise catalog + body map
+@Serializable data class ExerciseDetailRoute(val exerciseId: String)
 ```
 
 **Bottom navigation (5 items):** `Today` · `Calendar` · `Nutrition` · `Training` · `More`.
@@ -1507,6 +1849,13 @@ MoreRoute ──▶ everything else
 | **Load & recovery** | ATL/CTL/ACWR chart, TRIMP bars per day, monotony/strain, recovery score history, active flags with explanations | `range`, `series`, `flags` | change range |
 | **Running PRs** | Table of PRs per canonical distance (time, pace, date, link to activity, estimated badge) + Riegel predictions + VDOT | `bests`, `predictions`, `vdot` | tap → activity, add manual PR |
 | **Bike & power** (P12.4, More → "Bike & power") | FTP card (value, source in plain words, basis date + link to the basis ride, or a hint to set the override); power bests (5/20/60 min, max wins) and time bests (10/20/40/100 km, min wins) from `ride_best`, each with a date and a link to its ride, `isEstimated` marked | `ftp`, `powerBests`, `timeBests` | tap a row → activity |
+| **Zones & paces** (P14.6, More) | The five HR zones with bpm ranges, scheme in plain words, per-zone pace band with its confidence, the Daniels paces from the current VDOT, a 28-day polarisation bar (easy/moderate/hard share) and a per-session-type table of target zone + target pace | `model: HrZoneModel`, `bands: List<PaceZoneBand>`, `vdot`, `polarisation` | edit zone bounds / LTHR (→ Settings) |
+| **Strength workouts** (P14.7, More) | Built-in and user workouts with kind chip, exercise count and estimated minutes; a body figure thumbnail per workout showing its muscles | `workouts`, `query` | new, duplicate, edit, delete, "plan for a day" |
+| **Workout edit** (P14.7) | Name, kind, ordered exercise rows (exercise picker, sets, reps/seconds, load/bodyweight, rest, note), live body-figure highlight and estimated minutes | draft, `highlight` | add/remove/reorder exercise, save |
+| **Exercises** (P14.7, More) | Searchable catalog with equipment/pattern/muscle filters; front+back body figure as a filter (tap a muscle) | `query`, `filters`, `items` | open detail, add to a workout |
+| **Exercise detail** (P14.7) | Large front/back figure with primary (strong green) and secondary (light green) muscles, equipment, pattern, unilateral flag, cue text | `exercise` | add to a workout |
+
+P14 also extends four existing rows: *Activity detail* — the HR-zone table is labelled Z1–Z5 with bpm ranges and, when the activity is linked to a planned session, its target zone is marked (P14.6). *Load & recovery* — a **Muscle load** card (P14.8): the body figure as a heat map per muscle group with a fresh/loaded/fatigued legend and the three most-loaded groups listed. *Settings* — a **Heart-rate zones** section (P14.6): scheme (auto/LTHR/manual), lactate-threshold HR, and four zone-boundary bpm fields with a live preview. *Today* — the plan card shows the target zone ("Z4 · 162–175 bpm"), target pace and, for a structured session, a one-line structure summary ("5 × 1000 m @ 3:54").
 | **Goals** | List of goals with progress (e.g. "5k 20:00 by 15 Nov — current best 21:14, on track/behind"); a hint when a `BIKE_*` goal is active but the `CYCLE` cap is 0 (P12.4) | `goals`, `progress`, `showCycleCapHint` | new, edit, mark achieved |
 | **Goal edit** | Type-dependent form (race time: distance + target time + date + link event; body weight: target + date; P12.4: `BIKE_FTP` watts, `BIKE_VOLUME` h/week, `BIKE_EVENT` distance choice 10/20/40/100 km + optional time + optional date) | draft | save, delete |
 | **Import** | Pick a `.fit`, `.csv`, or `.zip` via `ActivityResultContracts.OpenDocument`; shows parse progress and a result summary (parsed / inserted / duplicates / errors); history of `import_record` | `state: Idle\|Running(progress)\|Done(summary)\|Error` | pick file, retry, view log |
@@ -2297,6 +2646,101 @@ Seeder rides with `PowerRecord` + pedal cadence (Tuesday trainer ride, no HR) an
 
 ---
 
+### P13 — Active recovery on rest days (owner request, 2026-09-13 → release 0.3.0) — DONE
+
+Post-pass 7c of §3.5.6 (`ActiveRecovery.apply`), lead-implemented; tests `ar01…ar08`; VERIFICATION.md sessions 12 + owner confirmation on the Pixel. Releases were renumbered the same day (1.0.0…1.1.1 → 0.1.0…0.2.1; 0.3.0 = this).
+
+### P14 — Heart-rate zones, paces, intervals and strength (owner request, 2026-09-13 → release 0.4.0)
+
+> "Heart Rate Zones and Heart Rate Zone recommendation for trainings · Heart Rate Zone vs Pace korrelation and Pace recommendation for trainings · Interval training suggestions · Strenght exercises with a human body and highlighting which muscles are used (similar to as it's shown in Garmin) · Strength trainings composed by exercises · Strength trainings suggested according to body part specific load — e.g. no leg day after intense runs, but upper body would be ok"
+
+**Design.** The six wishes are one feature in two halves. The *endurance* half turns the numbers the app already has into prescriptions: `HrBounds` becomes a named five-zone model (§3.9) whose default boundaries are literally the bands `timeInZones` has been drawing since P2.9, so nothing that exists changes value — only gains a name, a target per session type and an override; the zone model plus the last 90 days of HR+speed streams gives an empirical pace per zone (§3.10), blended with the Daniels paces the existing `VdotCalculator` can already produce, so a new user gets a sensible recommendation on day one and an accurate one after three quality sessions; and a zone plus a pace is exactly what an interval session needs to stop being "55 minutes, hard" and become "5 × 1000 m at 3:54/km" (§3.11) — a `WorkoutStructure` JSON blob on the planned and suggested rows, filled by a template catalog whose selection is a deterministic function of phase, goal distance, VDOT/FTP and recent load. The *strength* half gives the app the vocabulary it has been missing: 16 muscle groups, a code-resident catalog of ~52 exercises, workouts as ordered exercise rows, and a Compose-`Canvas` body figure (front and back silhouettes, primary in strong green, secondary in light green) that is reused three times — exercise detail, workout editor, and the Load screen's heat map. Those two halves meet in `MuscleLoadEngine` (§3.12.4): every session, endurance or strength, deposits its TRIMP onto muscle groups through a fixed share table, the deposits decay with a 48-hour half-life, and the resulting fresh/loaded/fatigued band per group is what finally answers the owner's last sentence — `C15` discards a leg day inside 36 h after a hard run, ride or match and inside 48 h before one, while `STRENGTH_UPPER` scores a bonus in exactly that window. Everything new is **gated on absence**: `SuggestionInput.muscleLoad` defaults to `null`, `IntervalBuilder` returns `null` for every session type but four, and the `muscle=`/`paces=` hash lines are omitted when there is nothing to hash — so `sug01…sug33`, `ar01…ar08`, `pr01…pr12` and `load01…load18` stay byte-identical, as `sug28` already guards for P12.
+
+**Decisions taken here** (defaults, stated once): five zones on heart-rate reserve (Karvonen) with a manual bpm override and an optional Friel/LTHR anchoring, §3.9 · pace per zone as a weighted median with an IQR band, 20 s HR-lag shift, first 10 min excluded, grade ignored, treadmill excluded, per-activity CSV points capped at `MEDIUM` confidence, §3.10 · `WorkoutStructure` as JSON on a new nullable column with one level of repeat nesting, §3.11 · the exercise catalog as a **Kotlin object** (not a JSON asset — `domain/` cannot read `assets/`), §3.12.1 · built-in workouts **seeded from code** (not from the migration) so they stay correctable, §3.12.3 · muscle load computed **on the fly**, no cache table, §2.2.7 · bands relative to `0.35 × CTL` with a 12 AU floor, §3.12.4 · `planned_session.workoutId` added by `ALTER TABLE … ADD COLUMN … REFERENCES` (table recreation only as the fallback), §6.4 row 6.
+
+| Task | Title | Model | Size | Deps |
+|---|---|---|---|---|
+| **P14.1** | Zone model, schema v6, strength storage | opus | L | — |
+| **P14.2** | Zone ↔ pace engine + Daniels paces | opus | M | P14.1 |
+| **P14.3** | Structured workouts + interval catalog + suggester wiring | opus | M | P14.1, P14.2 |
+| **P14.4** | Exercise catalog, muscle groups, workout templates + repository | opus | M | P14.1 |
+| **P14.5** | Muscle-load engine + strength suggestion rules (C15) | opus | M | P14.4 |
+| **P14.6** | Zones & paces screen; zone/pace across plan UI + Settings | sonnet | M | P14.2, P14.3 |
+| **P14.7** | Body figure, exercises, workouts, set logging | sonnet | L | P14.4 |
+| **P14.8** | Muscle-load card on Load & Recovery + Today hint | sonnet | S | P14.5, P14.7 |
+| **P14.9** | Instrumented + emulator pass | sonnet + lead | M | P14.6–P14.8 |
+| **P14.10** | Release 0.4.0 | lead | S | P14.9 |
+
+#### P14.1 — Zone model, schema v6, strength storage (opus, L)
+- **Create**: `domain/engine/load/HrZoneModel.kt`, `domain/engine/load/SessionZoneTargets.kt`, `domain/model/Workout.kt` (structure model + codec, no builder yet), `data/db/entity/{StrengthWorkoutEntity,StrengthWorkoutExerciseEntity,StrengthSetLogEntity}.kt`, `data/db/dao/StrengthDao.kt`, `data/db/relation/StrengthWorkoutWithExercises.kt`, `data/mapper/StrengthMappers.kt`, `domain/repository/StrengthRepository.kt`, `data/repository/RoomStrengthRepository.kt`.
+- **Modify**: `domain/model/Enums.kt` (the eight new enums of §2.1), `domain/model/Profile.kt` (+`hrZoneBoundsJson`, `lactateThresholdHrManual`), `domain/model/Plan.kt` (+`structureJson`, `workoutId` on `PlannedSession`; +`targetPaceSecPerKm`, `structureJson`, `workoutTemplateId` on `SuggestedSession`), `domain/engine/load/HrZones.kt` (keep `timeInZones` verbatim; add the model-driven overload), `data/db/entity/{ProfileEntity,PlannedSessionEntity,SuggestedSessionEntity}.kt`, `data/db/converter/Converters.kt`, `data/db/MyHealthDatabase.kt` (**version 6**, +3 entities, +DAO), `data/db/migration/Migrations.kt` (`MIGRATION_5_6`), `data/mapper/PlanMappers.kt`, `data/mapper/ProfileMappers.kt`, `data/backup/{BackupModel,BackupMerge,BackupService}.kt` (`CURRENT_SCHEMA_VERSION` 5 → **6**, three new lists), `di/AppGraph.kt` (`strengthRepo`), `app/schemas/…/6.json` (generated), `app/src/androidTest/.../MyHealthDatabaseTest.kt`.
+- **Migration** (§6.4 row 6): create `strength_workout`, `strength_workout_exercise`, `strength_set_log` **first** (with their indices), then the `ALTER TABLE … ADD COLUMN` statements for `profile`, `suggested_session` and `planned_session` (`workoutId INTEGER REFERENCES strength_workout(id) ON DELETE SET NULL` + `CREATE INDEX idx_planned_workout`). Verify with the `MigrationTestHelper` case that Room's schema validation accepts the added foreign key; if it does not, recreate `planned_session` the Room way (`CREATE TABLE planned_session_new …` copied verbatim from `6.json`, `INSERT … SELECT`, `DROP`, `RENAME`, indices). `1.json`…`5.json` are never edited.
+- **Tests**: `HrZoneModelTest` `hz01`…`hz10` (§3.9 values); `WorkoutStructureTest` `iv08`, `iv09`; `StrengthMappersTest` `sw06`, `sw07`; `MapperRoundTripTest` + one more case; androidTest `migration_5_to_6_adds_strength_tables_and_session_columns` (compiles; runs on the emulator).
+- **Accept**: `ALL` green; `SCHEMA` lists `6.json`; `hz01`…`hz10` present; `HrZonesTest` unchanged.
+
+#### P14.2 — Zone ↔ pace engine + Daniels paces (opus, M)
+- **Create**: `domain/engine/running/DanielsPaces.kt`, `domain/engine/running/PaceZoneEngine.kt` (+`PaceZoneBand`, `PaceConfidence`), `domain/engine/running/PaceZoneInput.kt`.
+- **Modify**: `domain/engine/running/VdotCalculator.kt` (expose the inverse `velocityFor(vdot, pct)` the pace table needs; `pr11` unchanged).
+- **Do**: §3.10 verbatim — the seven sample rules, the weighted median/IQR, the confidence ladder and the blend. Treadmill exclusion reads `settings.includeTreadmillInPrs` through the input object, not a repository (the engine stays pure).
+- **Tests**: `DanielsPacesTest` `vd01`…`vd06`; `PaceZoneEngineTest` `pz01`…`pz12` with the exact expected values of §3.10.
+- **Accept**: `ALL`; `pr01`…`pr12` unchanged; `TEST` run twice, identical (V8).
+- **Risk**: HC gives speed, not cumulative distance — the engine must never require `streams.distanceMeters` (FIT-only). Pinned by `pz01`, whose fixture has speed only.
+
+#### P14.3 — Structured workouts + interval catalog + suggester wiring (opus, M)
+- **Create**: `domain/engine/suggest/IntervalCatalog.kt`, `domain/engine/suggest/IntervalBuilder.kt`.
+- **Modify**: `domain/engine/suggest/SuggestionEngine.kt` (attach a structure and a target pace when building the `SuggestedSession`; **no** change to candidate generation, scoring or constraints), `domain/engine/suggest/SuggestionInput.kt` (`+vdot: Double? = null`, `+paceBands: List<PaceZoneBand> = emptyList()`, `+ftpWatts: Int? = null`), `domain/engine/suggest/Rationale.kt` (`INTERVAL_STRUCTURE`, `INTERVAL_SHORTENED_TAPER`, `PACE_TARGET`), `SuggestionInputsHash.kt` (a `paces=` line, **omitted when `vdot == null` and `paceBands` is empty**), `data/repository/RoomSuggestionRepository.kt` (fill the three new inputs; carry `structureJson`/`targetPaceSecPerKm`/`workoutTemplateId` through `toPlannedSession`), `data/mapper/PlanMappers.kt`.
+- **Tests**: `IntervalBuilderTest` `iv01`…`iv07`, `iv10`…`iv13`; `SuggestionEngineIntervalTest` `sug34`…`sug36`.
+- **Accept**: `ALL`; **`sug01`…`sug33` and `ar01`…`ar08` unchanged**, `sug28`'s baseline file untouched (the new inputs default to empty, so the digest is identical).
+
+#### P14.4 — Exercise catalog, muscle groups, workout templates (opus, M)
+- **Create**: `domain/engine/strength/ExerciseCatalog.kt` (+`ExerciseCatalogUpper/Lower/Core.kt` for R10), `domain/model/Strength.kt` (`Exercise`, `StrengthWorkout`, `StrengthWorkoutExercise`, `StrengthSetLog`, `estimatedMinutes`), `domain/engine/strength/StrengthTemplates.kt`, `data/repository/StrengthWorkoutSeeder.kt`.
+- **Modify**: `di/AppGraph.kt` (seeder), `data/repository/RoomStrengthRepository.kt` (validation: exactly one of `reps`/`seconds`; `orderIndex` compaction on delete/reorder).
+- **Tests**: `ExerciseCatalogTest` `ex01`…`ex10`; `StrengthTemplatesTest` `sw01`…`sw05`.
+- **Accept**: `ALL`; `ArchitectureTest` green (the catalog must not import anything Android).
+
+#### P14.5 — Muscle-load engine + strength suggestion rules (opus, M)
+- **Create**: `domain/engine/strength/MuscleDistribution.kt`, `domain/engine/strength/MuscleLoadEngine.kt` (+`MuscleLoadInput`, `MuscleLoadState`), `domain/engine/suggest/StrengthRules.kt`.
+- **Modify**: `domain/engine/suggest/Constraints.kt` (`ConstraintId.C15` **appended**; the rule per §3.12.5), `Scorer.kt` (`muscleBonus`, unweighted, total capped at 1.0 — the `cycleBonus` seam), `SuggestionInput.kt` (`+muscleLoad: MuscleLoadState? = null`), `SuggestionInputsHash.kt` (`muscle=` line, omitted when null), `Rationale.kt` (`MUSCLE_LOWER_LOADED`, `MUSCLE_LEGS_FRESH`, `C15_RESPECTED`, `STRENGTH_WORKOUT`), `SuggestionEngine.kt` (propose `workoutTemplateId`), `data/repository/RoomSuggestionRepository.kt` (assemble `MuscleLoadInput` from the last 14 days of activities + their linked workouts; materialise the template on `accept`).
+- **Tests**: `MuscleLoadEngineTest` `ml01`…`ml12`; `ConstraintsStrengthTest` `c17`, `c18`, `c19`; `SuggestionEngineStrengthTest` `sug37`…`sug41`.
+- **Accept**: `ALL`; `sug39` proves the 0.3.0 output is reproduced with `muscleLoad = null`; `sug28` baseline untouched.
+
+#### P14.6 — Zones & paces screen; zone/pace across the plan UI (sonnet, M)
+- **Create**: `ui/zones/{ZonesUiState,ZonesViewModel,ZonesScreen,ZoneTable,PaceBandRow}.kt`.
+- **Modify**: `ui/nav/{Routes,MyHealthNavHost}.kt` (`ZonesRoute`), `ui/more/MoreScreen.kt`, `ui/settings/SettingsSections.kt` (Heart-rate zones section: scheme, LTHR, four bpm fields with a live preview and an "ascending" validation message), `ui/training/{SuggestionReviewScreen,PlannedSessionCard,PlannedSessionEditScreen}.kt` (target zone chip, target pace, structure summary + expandable step list), `ui/today/TodayPlanCard.kt`, `ui/activities/{ActivityDetailUiState,ActivityDetailScreen}.kt` (zone names, bpm ranges, target-zone marker), `res/values/strings.xml` (~45 new strings; `HardcodedText` stays an **error**).
+- **Tests**: pure `ZonesUiStateTest` `zui01`…`zui08` (zone row labels "Z4 · Threshold · 162–175 bpm", pace band label "4:09–4:22 /km", confidence line, polarisation percentages, structure summary "5 × 1000 m @ 3:54"); `SettingsZoneValidationTest` `zui09`/`zui10` (non-ascending input rejected).
+- **Accept**: `ALL`; lint 0 errors; screenshots of Zones & paces + Today in the report.
+
+#### P14.7 — Body figure, exercises, workouts, set logging (sonnet, L)
+- **Create**: `ui/common/body/{MusclePaths,BodyFigure,BodyFigureLegend}.kt`, `ui/strength/{ExercisesUiState,ExercisesViewModel,ExercisesScreen,ExerciseDetailScreen,WorkoutsUiState,WorkoutsViewModel,WorkoutsScreen,WorkoutEditUiState,WorkoutEditViewModel,WorkoutEditScreen,ExercisePickerSheet,SetLogSheet}.kt`.
+- **Modify**: `ui/nav/{Routes,MyHealthNavHost}.kt`, `ui/more/MoreScreen.kt`, `ui/training/{PlannedSessionCard,PlannedSessionEditScreen,PlannedSessionDraft}.kt` (pick/see the workout; "Mark done" opens the optional set-log sheet, pre-filled from the workout, one row per set, skippable), `res/values/strings.xml`.
+- **Do**: silhouettes drawn as `Path`s in a normalised 100 × 220 box; ~24 paths front, ~20 back; primary `colorScheme.primary`, secondary at 35 % alpha, rest `surfaceVariant`. `@Preview` on every stateless `…Content`.
+- **Tests**: `MusclePathsTest` `bf01`…`bf05` (every `MuscleGroup` has ≥ 1 path; every path's points are inside the box; front/back coverage; highlight map clamps to 0..1); pure `WorkoutEditUiStateTest` `swui01`…`swui06` (reorder, add/remove, estimated minutes = 44 for `UPPER_A`, validation of reps-xor-seconds).
+- **Risk**: the figure is the one genuinely artistic piece here. If the silhouette does not read well, ship it anyway with the legend and refine in a POLISH item — correctness of the highlight map is what the tests pin, not the aesthetics.
+
+#### P14.8 — Muscle-load card (sonnet, S)
+- **Modify**: `ui/load/{LoadUiState,LoadViewModel,LoadScreen}.kt` (a "Muscle load" `SectionCard`: `BodyFigure` as a heat map, a fresh/loaded/fatigued legend, the three most-loaded groups with their AU and band, and a one-line hint "Legs are loaded — an upper-body day fits today"), `ui/today/TodayLoadCards.kt` (the same hint as a chip when any lower group is `FATIGUED`), `res/values/strings.xml`.
+- **Tests**: `MuscleLoadUiStateTest` `mlui01`…`mlui04` (top-three ordering and ties by enum ordinal, band label, heat intensity = `load/ref` clamped, empty state).
+- **Accept**: `ALL`; screenshot of Load & Recovery.
+
+#### P14.9 — Instrumented + emulator (sonnet + lead)
+- Instrumented: `ZonesScreenTest` (More → Zones & paces shows five rows and a pace band), `WorkoutScreenTest` (create a workout from `UPPER_A`, reorder, save, attach it to a planned session), `MuscleLoadCardTest` (the card renders after a seeded hard run).
+- Lead: seed a week with a Saturday long run + Sunday, upgrade **0.3.0 → 0.4.0 on populated data** (DB 5 → 6 in place, no data loss, backup taken first), verify zones against the watch's own zones, generate a week and check that Sunday's strength is `STRENGTH_UPPER` with the `MUSCLE_LOWER_LOADED` rationale, and that the interval session shows "5 × 1000 m @ …".
+- **R13/R14 apply**: instrumented tests only via `bash tools/connected.sh <emulator-serial>`; no agent runs anything while the Pixel is attached.
+
+#### P14.10 — Release 0.4.0 (lead)
+`versionCode 130 / versionName "0.4.0"`, tag `v0.4.0`, GitHub release with the APK, install on the Pixel from the tag **after a JSON backup** (schema 5 → 6 is one-way). Owner checklist: Settings → Heart-rate zones (check against the Garmin zones, set the LTHR if known) · More → Zones & paces shows measured bands after a couple of quality runs · a generated week's interval session shows reps and a pace · More → Strength workouts → duplicate `UPPER_A`, edit, plan it · Load & Recovery shows the muscle heat map after a hard run.
+
+**Risks**
+
+| # | Risk | Mitigation |
+|---|---|---|
+| K1 | `MIGRATION_5_6` touches `planned_session`, the most-referenced table in the app | `ADD COLUMN` first; recreation only if Room rejects the added FK, with the SQL copied verbatim from `6.json`; FKs are `SET_NULL`; androidTest migration case; the release checklist takes a JSON backup first |
+| K2 | A behaviour change leaks into the existing suggestion fixtures | Every new input defaults to empty/null and every new hash line is omitted when empty; `sug39` diffs the whole 0.3.0 output; `sug28`'s baseline file is not regenerated |
+| K3 | Pace bands are garbage on a watch that reports smoothed speed | Median + IQR (not mean), 1.5–7.0 m/s gate, 10-minute warm-up skip, confidence ladder that refuses to overstate; `MODELLED` is a perfectly usable fallback |
+| K4 | 16 groups × 2 silhouettes is a lot of hand-drawn `Path` data | R10 splits (`MusclePaths` front/back), the figure is data-driven per `MuscleGroup` (not per exercise), and `bf01`…`bf05` pin the coverage rather than the shape |
+| K5 | Muscle-load bands are a modelling guess | They are relative to the athlete's own CTL, only three bands wide, and only ever *reorder* strength suggestions — never block a session the user planned themselves (C15 filters candidates, not `locked` sessions) |
+| K6 | APK growth from the new screens | Expect +2–3 MB debug (Compose screens + strings, no new dependency). A jump > 5 MB must be explained |
+
 ## 6. Verification strategy
 
 ### 6.1 After every task (the lead runs this)
@@ -2354,6 +2798,7 @@ If a phase ends below its floor, the lead rejects the phase and orders the missi
 | 3 | P11.1 | `cycle_entry` table (`id`, `periodStartDay`, `periodEndDay?`, `note?`, `createdAtMillis`, `updatedAtMillis`) + unique index `uq_cycle_entry_start` over `periodStartDay`, so exactly one logged period can be anchored on a given day | `MIGRATION_2_3` |
 | 4 | BUG-11 follow-up (Undo import) | `activity_source_record.importRecordId` (nullable back-link to `import_record`) + index `idx_asr_import`, so one import's arrivals can be removed and the file re-imported | `MIGRATION_3_4` |
 | 5 | P12.1 (Bike & power) | `activity_session.avgPowerW/maxPowerW/normalizedPowerW` (`INTEGER`, nullable), `activity_stream.powerWJson` (`TEXT`, nullable), `profile.ftpWattsManual` (`INTEGER`) + `profile.indoorTrainerAvailable` (`INTEGER NOT NULL DEFAULT 0`), and the new `ride_best` table with `idx_ride_best_kind_value` + unique `uq_ride_best_activity_kind`. Existing rows keep `NULL`/`0`: nothing before 1.1.0 ever recorded a watt. `BackupFile.CURRENT_SCHEMA_VERSION` is raised 3 → **5** here, correcting the drift that left it at 3 when the database moved to 4 | `MIGRATION_4_5` |
+| 6 | P14.1 (Zones & strength) | `profile.hrZoneBoundsJson` (`TEXT`) + `profile.lactateThresholdHrManual` (`INTEGER`); `suggested_session.targetPaceSecPerKm` (`INTEGER`) + `structureJson` (`TEXT`) + `workoutTemplateId` (`TEXT`); `planned_session.structureJson` (`TEXT`) + `planned_session.workoutId` (`INTEGER`, FK → `strength_workout` `SET_NULL`, index `idx_planned_workout`) — added with `ALTER TABLE … ADD COLUMN workoutId INTEGER REFERENCES strength_workout(id) ON DELETE SET NULL` (SQLite allows a `REFERENCES` clause on an added column whose default is NULL, and it shows up in `PRAGMA foreign_key_list`; only if Room's migration test rejects that is the table recreated the Room way); new tables `strength_workout` (unique `uq_strength_workout_template`), `strength_workout_exercise` (`idx_swe_workout`, unique `uq_swe_order`) and `strength_set_log` (`idx_ssl_day` + the two link indices). Existing rows keep `NULL`: nothing before 0.4.0 knew a muscle. `BackupFile.CURRENT_SCHEMA_VERSION` 5 → **6** | `MIGRATION_5_6` |
 
 ### 6.5 Manual smoke test (phone attached)
 
