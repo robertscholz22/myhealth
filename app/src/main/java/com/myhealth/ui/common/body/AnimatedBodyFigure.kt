@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -88,11 +89,13 @@ fun AnimatedBodyFigure(
             .semantics { contentDescription = toggleDescription }
     }
 
+    val viewport = remember(clip) { clipViewport(clip) }
     SizedFigureBox(
         pose = pose,
         face = clip.face,
         highlight = highlight,
         sizeDp = sizeDp,
+        viewport = viewport,
         modifier = modifier.then(tapModifier),
     )
 }
@@ -110,7 +113,8 @@ fun StaticBodyFigure(
     sizeDp: Dp = 56.dp,
 ) {
     val pose = remember(clip) { midpointPose(clip) }
-    SizedFigureBox(pose = pose, face = clip.face, highlight = highlight, sizeDp = sizeDp, modifier = modifier)
+    val viewport = remember(clip) { clipViewport(clip) }
+    SizedFigureBox(pose = pose, face = clip.face, highlight = highlight, sizeDp = sizeDp, viewport = viewport, modifier = modifier)
 }
 
 /**
@@ -132,12 +136,26 @@ private fun SizedFigureBox(
     highlight: Map<MuscleGroup, Float>,
     sizeDp: Dp,
     modifier: Modifier = Modifier,
+    viewport: BodyViewport = BodyViewport.FULL,
 ) {
-    val widthDp = sizeDp * (MusclePaths.WIDTH / MusclePaths.HEIGHT)
-    Box(modifier = modifier.width(widthDp).height(sizeDp)) {
-        BodyFigure(highlight = highlight, pose = pose, faces = listOf(face), modifier = Modifier.fillMaxSize())
+    // POLISH-21: the box takes the viewport's aspect ratio — a horizontal clip gets a landscape
+    // box (capped at MAX_WIDTH_FACTOR × sizeDp so it never outgrows a phone's width) — and the
+    // figure is scaled uniformly inside it, so a plank is drawn as large as a standing figure.
+    val ratio = viewport.width / viewport.height
+    val widthDp = (sizeDp * ratio).coerceAtMost(sizeDp * MAX_WIDTH_FACTOR)
+    Box(modifier = modifier.width(widthDp).height(sizeDp), contentAlignment = Alignment.Center) {
+        BodyFigure(
+            highlight = highlight,
+            pose = pose,
+            faces = listOf(face),
+            viewport = viewport,
+            modifier = Modifier.fillMaxSize(),
+        )
     }
 }
+
+/** A horizontal clip may be at most this many times wider than it is tall (≈ 1.5 × 220 dp on a phone). */
+private const val MAX_WIDTH_FACTOR = 1.5f
 
 /** `true` when the device's "Remove animations" developer option is on. Read once per composition
  * — the setting does not change while a figure is on screen, and there is no change listener to

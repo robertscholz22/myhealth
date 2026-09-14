@@ -533,3 +533,13 @@ JSON backup exported first (2719 rows over 17 tables, `myhealth-backup-2026-09-1
 | Exercises → kind chips All / Strength / Mobility; Mobility shows rows like "Mobility · Glutes, Adductors"; Pigeon stretch detail: glutes primary + adductors secondary on the figure, "One side at a time", "Timed hold", Progression "~30 s" | PASS | emu_p17_01_exercises_mobility.png, emu_p17_02_pigeon.png |
 | Strength workouts: "Mobility · lower / upper / full" kinds, "8 exercises · about 21 min", rows "Cat-cow 2 × 45 s, Thread the needle 2 × 45 s…" | PASS | emu_p17_03_workouts.png, emu_p17_04_mobility_lower.png |
 | Training → Generate: the rest-day mobility session carries "Mobility: a full-body routine keeps everything moving." (muscle load present, legs not loaded → full); Accept → card "Routine: Mobility full A"; Mark done → "Mobility full A — log your sets" with Seconds pre-filled (30) and the feedback buttons | PASS | emu_p17_05_week_routine.png, emu_p17_06_mobility_setlog.png |
+
+## Session 17 — 2026-09-14 (emulator, 0.7.0 debug build: exercise animations)
+| Step | Result | Evidence |
+|---|---|---|
+| Exercise detail → "Animation" section above the muscle map: Goblet squat animates in profile (goblet hold, hips/knees flex and extend, quads highlighted on the moving segments) | PASS | emu_p18_squat_a.png, emu_p18_squat_b.png |
+| Pigeon stretch: profile kneeling hip stretch with a held end pose, glutes highlighted | PASS | emu_p18_pigeon_a.png, emu_p18_pigeon_b.png |
+| Push-up: horizontal body with the arm extending and bending — first render was tiny (a 213-unit body inside the 100-wide portrait box) → POLISH-21 fixed: the renderer takes a `BodyViewport`, `clipViewport` fits each clip to the union of its silhouettes, horizontal clips get a landscape box | PASS after fix | emu_p18_pushup_a.png (before), emu_p18_pushup2_a.png / _b.png (after) |
+| Lateral raise: front view, arms sweep out to horizontal, deltoids highlighted, fills the frame | PASS | emu_p18_lateral_a.png, emu_p18_lateral_b.png |
+- POLISH-21 (fixed in 0.7.0): fit-to-content viewport for animated and static figures; tests `anui04_viewport_contains_every_keyframe_silhouette`, `anui05_horizontal_clip_viewport_is_landscape`.
+- NOTE-22: the pigeon pose reads as a lunge more than a floor stretch (the figure floats; no ground line). A ground line under clips with a floor contact and a slightly lower kneeling pose would help.

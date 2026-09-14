@@ -73,6 +73,8 @@ fun BodyFigure(
     faces: List<BodyFace> = FIGURE_FACES,
     onFrontTap: ((MuscleGroup) -> Unit)? = null,
     onBackTap: ((MuscleGroup) -> Unit)? = null,
+    /** The part of the 100 × 220 box to show (POLISH-21): the animations fit each clip to its content. */
+    viewport: BodyViewport = BodyViewport.FULL,
 ) {
     Row(modifier = modifier) {
         faces.forEach { face ->
@@ -93,7 +95,8 @@ fun BodyFigure(
                         BodyFace.BACK -> onBackTap
                         BodyFace.SIDE -> null
                     },
-                    modifier = Modifier.aspectRatio(MusclePaths.WIDTH / MusclePaths.HEIGHT),
+                    viewport = viewport,
+                    modifier = Modifier.aspectRatio(viewport.width / viewport.height),
                 )
             }
         }
@@ -112,6 +115,17 @@ private fun faceOutline(face: BodyFace) = when (face) {
     BodyFace.SIDE -> MusclePaths.SIDE_OUTLINE
 }
 
+/**
+ * A window onto the normalised 100 × 220 body box, in box units. [FULL] shows the whole box (the
+ * muscle maps); the exercise animations pass the bounds of their clip so a horizontal push-up or a
+ * wide lateral raise fills the view instead of shrinking into a portrait frame (POLISH-21).
+ */
+data class BodyViewport(val left: Float, val top: Float, val width: Float, val height: Float) {
+    companion object {
+        val FULL: BodyViewport = BodyViewport(0f, 0f, MusclePaths.WIDTH, MusclePaths.HEIGHT)
+    }
+}
+
 @Composable
 private fun BodyView(
     groups: Map<MuscleGroup, List<MusclePaths.Polygon>>,
@@ -119,6 +133,7 @@ private fun BodyView(
     highlight: Map<MuscleGroup, Float>,
     onTap: ((MuscleGroup) -> Unit)?,
     modifier: Modifier = Modifier,
+    viewport: BodyViewport = BodyViewport.FULL,
 ) {
     val unused = MaterialTheme.colorScheme.surfaceVariant
     val filled = MaterialTheme.colorScheme.primary
@@ -130,18 +145,21 @@ private fun BodyView(
     } else {
         Modifier.pointerInput(groups) {
             detectTapGestures { offset ->
-                val x = offset.x / size.width * MusclePaths.WIDTH
-                val y = offset.y / size.height * MusclePaths.HEIGHT
+                val x = viewport.left + offset.x / size.width * viewport.width
+                val y = viewport.top + offset.y / size.height * viewport.height
                 MusclePaths.groupAt(groups, x, y)?.let(onTap)
             }
         }
     }
 
     Canvas(modifier = modifier.then(tapModifier)) {
-        val scaleX = size.width / MusclePaths.WIDTH
-        val scaleY = size.height / MusclePaths.HEIGHT
-
-        val toScreen = Matrix().apply { scale(scaleX, scaleY) }
+        // Uniform scale so the viewport fills the canvas (its aspect ratio is the canvas's), then
+        // shift so the viewport's top-left lands at the origin.
+        val scale = minOf(size.width / viewport.width, size.height / viewport.height)
+        val toScreen = Matrix().apply {
+            scale(scale, scale)
+            translate(-viewport.left, -viewport.top)
+        }
 
         // One merged outline: only the body's own edge is stroked, never the joints inside it.
         val body = Path().apply {

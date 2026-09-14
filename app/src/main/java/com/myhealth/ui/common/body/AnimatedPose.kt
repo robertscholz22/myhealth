@@ -59,3 +59,39 @@ private fun smoothstep(x: Float): Float {
     val c = x.coerceIn(0f, 1f)
     return c * c * (3f - 2f * c)
 }
+
+/**
+ * POLISH-21: the smallest window onto the body box that contains the clip's silhouette in every
+ * phase of the movement (the keyframes and [VIEWPORT_SAMPLES] evenly spaced in-between poses),
+ * padded by [VIEWPORT_PADDING] on each side. Computed once per clip; a fixed window keeps the
+ * figure from swimming while it moves.
+ */
+fun clipViewport(clip: AnimationClip): BodyViewport {
+    val duration = clipDurationMs(clip).coerceAtLeast(1)
+    val poses = clip.keyframes.map { it.pose } +
+        (0 until VIEWPORT_SAMPLES).map { i -> poseAt(clip, duration.toLong() * i / VIEWPORT_SAMPLES) }
+    var minX = Float.MAX_VALUE; var minY = Float.MAX_VALUE
+    var maxX = -Float.MAX_VALUE; var maxY = -Float.MAX_VALUE
+    poses.forEach { pose ->
+        BodySkeleton.outlinePolygons(clip.face, pose).forEach { polygon ->
+            polygon.forEach { point ->
+                if (point.x < minX) minX = point.x
+                if (point.x > maxX) maxX = point.x
+                if (point.y < minY) minY = point.y
+                if (point.y > maxY) maxY = point.y
+            }
+        }
+    }
+    if (minX > maxX || minY > maxY) return BodyViewport.FULL
+    val padX = (maxX - minX) * VIEWPORT_PADDING
+    val padY = (maxY - minY) * VIEWPORT_PADDING
+    return BodyViewport(
+        left = minX - padX,
+        top = minY - padY,
+        width = (maxX - minX) + 2 * padX,
+        height = (maxY - minY) + 2 * padY,
+    )
+}
+
+private const val VIEWPORT_SAMPLES = 12
+private const val VIEWPORT_PADDING = 0.08f

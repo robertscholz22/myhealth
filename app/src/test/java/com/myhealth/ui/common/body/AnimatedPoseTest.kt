@@ -6,6 +6,7 @@ import com.myhealth.domain.engine.strength.Keyframe
 import com.myhealth.domain.model.BodyFace
 import com.myhealth.domain.model.BodyPose
 import com.myhealth.domain.model.BodySegmentId
+import com.myhealth.domain.engine.strength.AnimationClips
 import org.junit.Test
 
 /** P18.2's rendering-timing math (`AnimatedPose.kt`): `anui01`...`anui03`. */
@@ -52,4 +53,30 @@ class AnimatedPoseTest {
         ),
         transitionMs = 400,
     )
+
+    @Test
+    fun anui04_viewport_contains_every_keyframe_silhouette() {
+        AnimationClips.ALL.forEach { clip ->
+            val vp = clipViewport(clip)
+            clip.keyframes.forEach { keyframe ->
+                BodySkeleton.outlinePolygons(clip.face, keyframe.pose).forEach { polygon ->
+                    polygon.forEach { point ->
+                        assertThat(point.x).isAtLeast(vp.left)
+                        assertThat(point.x).isAtMost(vp.left + vp.width)
+                        assertThat(point.y).isAtLeast(vp.top)
+                        assertThat(point.y).isAtMost(vp.top + vp.height)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun anui05_horizontal_clip_viewport_is_landscape() {
+        val pushUp = AnimationClips.ALL.first { it.id == "PUSH_UP" }
+        val vp = clipViewport(pushUp)
+        assertThat(vp.width).isGreaterThan(vp.height)
+        val squat = AnimationClips.ALL.first { it.id == "SQUAT" }
+        assertThat(clipViewport(squat).height).isGreaterThan(clipViewport(squat).width)
+    }
 }
