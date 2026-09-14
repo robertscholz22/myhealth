@@ -5,6 +5,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +36,13 @@ fun NumberField(
     enabled: Boolean = true,
 ) {
     var text by remember { mutableStateOf(value.toDisplayText(decimals)) }
+    // POLISH-20: the field owns its text while the user types, but an *external* change of
+    // [value] (a prescription arriving after the sheet opened, a profile reloaded) must show up —
+    // only when it differs from what the current text already parses to, so typing "2." is
+    // never normalised away.
+    LaunchedEffect(value) {
+        if (parseDecimal(text) != value) text = value.toDisplayText(decimals)
+    }
 
     OutlinedTextField(
         value = text,

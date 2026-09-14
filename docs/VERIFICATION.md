@@ -499,3 +499,14 @@ the muscle-load engine a fortnight of load.
 - Note: the Load screen calls `BodyFigure(modifier = Modifier.fillMaxWidth())` with no height. Before
   P15.1 that let the front figure take the whole row and pushed the back one off the edge; `BodyFigure`
   now gives each silhouette half the width itself, so every call site is safe without changing them.
+
+## Session 14 — 2026-09-14 (emulator, 0.5.0 debug build: my equipment + progression)
+| Step | Result | Evidence |
+|---|---|---|
+| Strength workouts → Upper A editor: rows print the prescription ("Barbell bench press · 3 × 10 @ 30 kg" — 0.40 × the 75 kg fallback weight, the template's 10 reps) | PASS | emu_p16_01_upper_a.png |
+| Settings → Strength → My equipment: all chips selected by default; deselecting Barbell, Machine, Cable, Kettlebell, Band, Medicine ball → Exercises shows "Only my equipment" on and only Bodyweight/Dumbbell rows | PASS | emu_p16_02_settings_equipment.png, emu_p16_03_equipment_set.png, emu_p16_04_exercises_filtered.png |
+| Strength workouts → Upper A → More actions → "Plan for a day…" → today → Training shows "Strength upper · Workout: Upper A"; More actions → Mark done → set-log sheet with per-exercise Too easy / Easy / Hard / Too hard | PASS | emu_p16_05_training_card.png, emu_p16_06_setlog_sheet.png |
+| Bench press feedback "Too easy" → Save → session Completed; Exercises → Barbell bench press → Progression card: "7 reps @ 30 kg", "Last: Too easy on 14 Sep", history "14 Sep · 3 × 5 @ 30 kg" | PASS | emu_p16_07_after_save.png, emu_p16_08_progression_card.png |
+- POLISH-20 (fixed): `NumberField` initialised its text once, so the set-log sheet's fields kept showing the template's "10" / empty load after the prescriptions (5 reps @ 30 kg) arrived — the saved rows were right, the fields were stale. The field now resyncs when its external value changes to something its text does not already parse to.
+- After POLISH-20 (Full body A session): the sheet opens pre-filled ("Goblet squat · set 1 · 8 reps · 15.0 kg"); "Easy" for the goblet squat → Save → snackbar "Next time: Goblet squat 3 × 9 @ 15 kg; Push-up 3 × 8; Romanian deadlift 3 × 5 @ 35 kg; Inverted row 3 × 8; Overhead press 3 × 5 @ 17.5 kg; Plank 3 × 30 s" (emu_p16_09_sheet_prefilled.png, emu_p16_10_next_time.png). PASS.
+- NOTE-18: the planned-session card's workout line prints the template rows ("Barbell bench press 3 × 10") rather than the current prescription; the editor, the sheet and the snackbar do. Small follow-up.
