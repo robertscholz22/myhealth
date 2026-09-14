@@ -1080,6 +1080,10 @@
     <string name="exercise_detail_timed_flag">Timed hold</string>
     <string name="exercise_detail_section_cue">Cue</string>
     <string name="exercise_detail_pick_workout_title">Add to which workout?</string>
+    <!-- ===== Exercise animation (ui/common/body/AnimatedBodyFigure.kt, P18.2) ===== -->
+    <string name="exercise_detail_section_animation">Animation</string>
+    <string name="exercise_animation_play_cd">Play animation</string>
+    <string name="exercise_animation_pause_cd">Pause animation</string>
     <string name="exercise_detail_pick_workout_empty">No workouts yet — create one from Strength workouts first.</string>
     <string name="exercise_picker_title">Add an exercise</string>
     <string name="exercise_picker_show_all_label">Show all equipment</string>

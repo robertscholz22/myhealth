@@ -24,7 +24,7 @@ import com.myhealth.domain.model.BodyPose
 import com.myhealth.domain.model.MuscleGroup
 import com.myhealth.ui.theme.MyHealthTheme
 
-/** The two faces the double figure draws — `SIDE` is for the P18 animations, not for this. */
+/** The two faces the double figure draws by default. */
 private val FIGURE_FACES = listOf(BodyFace.FRONT, BodyFace.BACK)
 
 /** The silhouette's outline stroke. */
@@ -60,17 +60,22 @@ private const val REGION_STROKE_ALPHA = 0.45f
  * aspect ratio inside that half. Without the weight, a caller that constrains the width but not the
  * height — the Load screen's heat map — let the front figure take the whole row and pushed the back
  * one off the edge.
+ *
+ * [faces] picks which silhouette(s) are drawn, in order — the default front+back pair for the
+ * muscle map, or a single [BodyFace.SIDE] (or `FRONT`/`BACK` alone) for the P18.2 exercise
+ * animations, which only ever show the one face a clip was authored in.
  */
 @Composable
 fun BodyFigure(
     highlight: Map<MuscleGroup, Float>,
     modifier: Modifier = Modifier,
     pose: BodyPose = BodyPose.STANDING,
+    faces: List<BodyFace> = FIGURE_FACES,
     onFrontTap: ((MuscleGroup) -> Unit)? = null,
     onBackTap: ((MuscleGroup) -> Unit)? = null,
 ) {
     Row(modifier = modifier) {
-        FIGURE_FACES.forEach { face ->
+        faces.forEach { face ->
             val standing = pose == BodyPose.STANDING
             val groups = remember(face, pose) {
                 if (standing) faceGroups(face) else BodySkeleton.worldPolygons(face, pose)
@@ -83,7 +88,11 @@ fun BodyFigure(
                     groups = groups,
                     outline = outline,
                     highlight = highlight,
-                    onTap = if (face == BodyFace.FRONT) onFrontTap else onBackTap,
+                    onTap = when (face) {
+                        BodyFace.FRONT -> onFrontTap
+                        BodyFace.BACK -> onBackTap
+                        BodyFace.SIDE -> null
+                    },
                     modifier = Modifier.aspectRatio(MusclePaths.WIDTH / MusclePaths.HEIGHT),
                 )
             }
@@ -91,11 +100,17 @@ fun BodyFigure(
     }
 }
 
-private fun faceGroups(face: BodyFace) =
-    if (face == BodyFace.FRONT) MusclePaths.FRONT else MusclePaths.BACK
+private fun faceGroups(face: BodyFace) = when (face) {
+    BodyFace.FRONT -> MusclePaths.FRONT
+    BodyFace.BACK -> MusclePaths.BACK
+    BodyFace.SIDE -> MusclePaths.SIDE
+}
 
-private fun faceOutline(face: BodyFace) =
-    if (face == BodyFace.FRONT) MusclePaths.FRONT_OUTLINE else MusclePaths.BACK_OUTLINE
+private fun faceOutline(face: BodyFace) = when (face) {
+    BodyFace.FRONT -> MusclePaths.FRONT_OUTLINE
+    BodyFace.BACK -> MusclePaths.BACK_OUTLINE
+    BodyFace.SIDE -> MusclePaths.SIDE_OUTLINE
+}
 
 @Composable
 private fun BodyView(

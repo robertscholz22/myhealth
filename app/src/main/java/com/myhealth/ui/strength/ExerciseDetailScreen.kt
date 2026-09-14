@@ -2,6 +2,7 @@ package com.myhealth.ui.strength
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -38,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myhealth.R
 import com.myhealth.di.rememberVm
+import com.myhealth.domain.engine.strength.ExerciseAnimations
 import com.myhealth.domain.engine.strength.ExerciseCatalog
 import com.myhealth.domain.model.Equipment
 import com.myhealth.domain.model.Exercise
@@ -48,6 +51,7 @@ import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
+import com.myhealth.ui.common.body.AnimatedBodyFigure
 import com.myhealth.ui.common.body.BodyFigure
 import com.myhealth.ui.common.body.BodyFigureLegend
 import com.myhealth.ui.common.body.BodyFigureLegendKind
@@ -150,10 +154,20 @@ internal fun ExerciseDetailContent(
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                BodyFigure(
-                    highlight = highlightFor(exercise),
-                    modifier = Modifier.fillMaxWidth().height(220.dp),
+                Text(
+                    text = stringResource(R.string.exercise_detail_section_animation),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                val highlight = highlightFor(exercise)
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    AnimatedBodyFigure(
+                        clip = ExerciseAnimations.clipOrStanding(exercise.id),
+                        highlight = highlight,
+                        sizeDp = 220.dp,
+                    )
+                }
+                BodyFigure(highlight = highlight, modifier = Modifier.fillMaxWidth().height(220.dp))
                 BodyFigureLegend(kind = BodyFigureLegendKind.PRIMARY_SECONDARY)
             }
         }

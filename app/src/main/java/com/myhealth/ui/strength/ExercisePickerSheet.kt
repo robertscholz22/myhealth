@@ -28,10 +28,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.myhealth.R
+import com.myhealth.domain.engine.strength.ExerciseAnimations
 import com.myhealth.domain.engine.strength.ExerciseCatalog
 import com.myhealth.domain.engine.strength.ExerciseKind
 import com.myhealth.domain.model.Equipment
 import com.myhealth.domain.model.Exercise
+import com.myhealth.ui.common.body.StaticBodyFigure
+import com.myhealth.ui.common.body.highlightFor
 
 /**
  * Bottom sheet to add an exercise to the workout being edited (PLAN §4.2 "Workout edit", P14.7,
@@ -87,21 +90,29 @@ fun ExercisePickerSheet(
         }
         LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
             items(results, key = { it.id }) { exercise ->
-                Column(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onPick(exercise) }
                         .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text(exercise.name, style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        text = exerciseRowSubtitle(exercise),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                    StaticBodyFigure(
+                        clip = ExerciseAnimations.clipOrStanding(exercise.id),
+                        highlight = highlightFor(exercise),
+                        sizeDp = 48.dp,
                     )
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(exercise.name, style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            text = exerciseRowSubtitle(exercise),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
                 HorizontalDivider()
             }

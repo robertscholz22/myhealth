@@ -1,0 +1,55 @@
+package com.myhealth.ui.common.body
+
+import com.google.common.truth.Truth.assertThat
+import com.myhealth.domain.engine.strength.AnimationClip
+import com.myhealth.domain.engine.strength.Keyframe
+import com.myhealth.domain.model.BodyFace
+import com.myhealth.domain.model.BodyPose
+import com.myhealth.domain.model.BodySegmentId
+import org.junit.Test
+
+/** P18.2's rendering-timing math (`AnimatedPose.kt`): `anui01`...`anui03`. */
+class AnimatedPoseTest {
+
+    @Test
+    fun anui01_interpolation_midway_is_the_mean() {
+        val start = BodyPose(angles = mapOf(BodySegmentId.THIGH_L to 0f), rootOffsetY = 0f)
+        val end = BodyPose(angles = mapOf(BodySegmentId.THIGH_L to 40f), rootOffsetY = 10f)
+        val clip = AnimationClip(
+            id = "TEST_TWO_KEYFRAME",
+            face = BodyFace.SIDE,
+            keyframes = listOf(Keyframe(start, holdMs = 0), Keyframe(end, holdMs = 0)),
+            transitionMs = 1000,
+        )
+
+        val midway = poseAt(clip, elapsedMs = 500)
+
+        assertThat(midway.angleOf(BodySegmentId.THIGH_L)).isWithin(0.01f).of(20f)
+        assertThat(midway.rootOffsetY).isWithin(0.01f).of(5f)
+    }
+
+    @Test
+    fun anui02_reduced_motion_returns_midpoint_pose() {
+        val clip = threeKeyframeClip()
+
+        assertThat(midpointPose(clip)).isEqualTo(poseAt(clip, clipDurationMs(clip) / 2L))
+    }
+
+    @Test
+    fun anui03_loop_wraps_to_first_keyframe() {
+        val clip = threeKeyframeClip()
+
+        assertThat(poseAt(clip, clipDurationMs(clip).toLong())).isEqualTo(poseAt(clip, 0L))
+    }
+
+    private fun threeKeyframeClip(): AnimationClip = AnimationClip(
+        id = "TEST_THREE_KEYFRAME",
+        face = BodyFace.SIDE,
+        keyframes = listOf(
+            Keyframe(BodyPose(angles = mapOf(BodySegmentId.THIGH_L to 0f)), holdMs = 200),
+            Keyframe(BodyPose(angles = mapOf(BodySegmentId.THIGH_L to -30f)), holdMs = 300),
+            Keyframe(BodyPose(angles = mapOf(BodySegmentId.THIGH_L to 10f)), holdMs = 150),
+        ),
+        transitionMs = 400,
+    )
+}

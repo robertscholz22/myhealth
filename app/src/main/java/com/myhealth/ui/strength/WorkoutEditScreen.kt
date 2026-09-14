@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myhealth.R
 import com.myhealth.di.rememberVm
+import com.myhealth.domain.engine.strength.ExerciseAnimations
 import com.myhealth.domain.engine.strength.ExerciseCatalog
 import com.myhealth.domain.model.StrengthWorkoutKind
 import com.myhealth.ui.common.DropdownField
@@ -47,6 +48,8 @@ import com.myhealth.ui.common.NumberField
 import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.body.BodyFigure
+import com.myhealth.ui.common.body.StaticBodyFigure
+import com.myhealth.ui.common.body.highlightFor
 import com.myhealth.ui.common.resolve
 import com.myhealth.ui.theme.MyHealthTheme
 
@@ -220,12 +223,19 @@ private fun ExerciseRowCard(
             }
         },
     ) {
-        if (row.reps != null || row.seconds != null) {
-            Text(
-                text = prescriptionLabel(row.sets, row.asPrescription()),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StaticBodyFigure(
+                clip = ExerciseAnimations.clipOrStanding(row.exerciseId),
+                highlight = exercise?.let(::highlightFor) ?: emptyMap(),
+                sizeDp = 48.dp,
             )
+            if (row.reps != null || row.seconds != null) {
+                Text(
+                    text = prescriptionLabel(row.sets, row.asPrescription()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             NumberField(

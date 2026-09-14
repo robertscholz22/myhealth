@@ -30,10 +30,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.myhealth.R
+import com.myhealth.domain.engine.strength.ExerciseAnimations
+import com.myhealth.domain.engine.strength.ExerciseCatalog
 import com.myhealth.domain.model.ExercisePrescription
 import com.myhealth.domain.model.Feedback
 import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.ui.common.NumberField
+import com.myhealth.ui.common.body.AnimatedBodyFigure
+import com.myhealth.ui.common.body.highlightFor
 
 /**
  * The optional per-set log a "Mark done" on a `STRENGTH_*` session with a workout opens (PLAN
@@ -78,6 +82,7 @@ fun SetLogSheet(
             grouped.forEach { (exerciseId, indexed) ->
                 item(key = "header-$exerciseId") {
                     ExerciseFeedbackRow(
+                        exerciseId = exerciseId,
                         exerciseName = indexed.first().value.exerciseName,
                         selected = feedbackByExercise[exerciseId] ?: Feedback.HARD,
                         onSelect = { feedback -> feedbackByExercise = feedbackByExercise + (exerciseId to feedback) },
@@ -113,9 +118,22 @@ fun SetLogSheet(
  * four segmented buttons, default `HARD`"). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ExerciseFeedbackRow(exerciseName: String, selected: Feedback, onSelect: (Feedback) -> Unit) {
+private fun ExerciseFeedbackRow(
+    exerciseId: String,
+    exerciseName: String,
+    selected: Feedback,
+    onSelect: (Feedback) -> Unit,
+) {
     Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp)) {
-        Text(exerciseName, style = MaterialTheme.typography.titleSmall)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val exercise = ExerciseCatalog.byId(exerciseId)
+            AnimatedBodyFigure(
+                clip = ExerciseAnimations.clipOrStanding(exerciseId),
+                highlight = exercise?.let(::highlightFor) ?: emptyMap(),
+                sizeDp = 72.dp,
+            )
+            Text(exerciseName, style = MaterialTheme.typography.titleSmall)
+        }
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
             Feedback.entries.forEachIndexed { index, feedback ->
                 SegmentedButton(
