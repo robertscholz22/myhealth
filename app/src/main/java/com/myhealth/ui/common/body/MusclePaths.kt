@@ -1,6 +1,8 @@
 package com.myhealth.ui.common.body
 
 import com.myhealth.domain.engine.strength.ExerciseCatalog
+import com.myhealth.domain.model.BodyFace
+import com.myhealth.domain.model.BodyPose
 import com.myhealth.domain.model.Exercise
 import com.myhealth.domain.model.MuscleGroup
 import com.myhealth.domain.model.StrengthWorkout
@@ -31,11 +33,21 @@ object MusclePaths {
 
     val BACK_OUTLINE: List<Polygon> = BodySkeleton.outlinePolygons(BodyFace.BACK)
 
+    /** The P18.1 profile silhouette, facing +x — the standing pose of `BodySkeleton.SIDE`. */
+    val SIDE_OUTLINE: List<Polygon> = BodySkeleton.outlinePolygons(BodyFace.SIDE)
+
     /** The nine front-visible groups (§2.1: `side == FRONT` or `BOTH`). */
     val FRONT: Map<MuscleGroup, List<Polygon>> = BodySkeleton.worldPolygons(BodyFace.FRONT)
 
     /** The nine back-visible groups. */
     val BACK: Map<MuscleGroup, List<Polygon>> = BodySkeleton.worldPolygons(BodyFace.BACK)
+
+    /**
+     * The fifteen groups visible edge-on (everything but `ADDUCTORS`) — P18.1. Deliberately *not*
+     * part of [pathsFor]: the front/back pair is what the muscle map and the tap filter speak, and
+     * `bf01`/`bf03` pin that contract. The profile exists for the exercise animations.
+     */
+    val SIDE: Map<MuscleGroup, List<Polygon>> = BodySkeleton.worldPolygons(BodyFace.SIDE)
 
     /** Every polygon of [group], front and back combined — `bf01`. */
     fun pathsFor(group: MuscleGroup): List<Polygon> = FRONT[group].orEmpty() + BACK[group].orEmpty()

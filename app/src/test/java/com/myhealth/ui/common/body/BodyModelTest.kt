@@ -2,11 +2,20 @@ package com.myhealth.ui.common.body
 
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import com.myhealth.domain.engine.strength.AnimationClip
+import com.myhealth.domain.engine.strength.AnimationClips
+import com.myhealth.domain.model.BodyFace
+import com.myhealth.domain.model.BodyPose
+import com.myhealth.domain.model.BodySegmentId
 import com.myhealth.domain.model.MuscleGroup
 import org.junit.Test
 import kotlin.math.abs
 
-/** P15.1's `bm01`…`bm05`, over the jointed body model behind [MusclePaths]. */
+/**
+ * P15.1's `bm01`…`bm05` over the jointed body model behind [MusclePaths], plus P18.1's `an03`…`an07`
+ * — the geometry half of the exercise animations, which needs the skeleton and so lives here rather
+ * than next to the pure-data clips.
+ */
 class BodyModelTest {
 
     @Test
@@ -82,7 +91,8 @@ class BodyModelTest {
     @Test
     fun bm04_muscle_regions_lie_inside_their_segment_outline_bounds() {
         val tolerance = 0.5f
-        listOf(BodySkeleton.FRONT, BodySkeleton.BACK).forEach { segments ->
+        // P18.1 adds the profile skeleton to what this pins.
+        BodyFace.entries.map { BodySkeleton.segmentsOf(it) }.forEach { segments ->
             segments.forEach { segment ->
                 if (segment.muscles.isEmpty()) return@forEach
                 val outline = segment.outline
@@ -131,6 +141,161 @@ class BodyModelTest {
         assertThat(backBounds.maxOf { it.x }).isWithin(TOL).of(frontBounds.maxOf { it.x })
         assertThat(backBounds.maxOf { it.y }).isWithin(TOL).of(frontBounds.maxOf { it.y })
     }
+
+
+    @Test
+    fun an03_every_keyframe_pose_stays_inside_the_box() {
+        assertThat(AnimationClips.ALL).isNotEmpty()
+        AnimationClips.ALL.forEach { clip ->
+            clip.keyframes.forEachIndexed { index, frame ->
+                val polygons = BodySkeleton.outlinePolygons(clip.face, frame.pose) +
+                    BodySkeleton.worldPolygons(clip.face, frame.pose).values.flatten()
+                assertThat(polygons).isNotEmpty()
+                polygons.flatten().forEach { point ->
+                    assertWithMessage("${clip.id} keyframe $index at $point")
+                        .that(
+                            point.x >= 0f && point.x <= MusclePaths.WIDTH &&
+                                point.y >= 0f && point.y <= MusclePaths.HEIGHT,
+                        )
+                        .isTrue()
+                }
+                // …and the figure still fills a useful part of it, rather than hiding in a corner.
+                val ys = polygons.flatten().map { it.y }
+                assertWithMessage("${clip.id} keyframe $index is too small")
+                    .that(ys.max() - ys.min() + span(polygons))
+                    .isGreaterThan(60f)
+            }
+        }
+    }
+
+    @Test
+    fun an04_side_face_has_every_segment_and_muscle_coverage() {
+        val side = BodySkeleton.SIDE
+        assertThat(side.map { it.id }).containsExactlyElementsIn(BodySegmentId.entries)
+        // The profile is its own set of bones, not the front one re-labelled.
+        assertThat(side.first { it.id == BodySegmentId.TORSO }.parent).isNull()
+        side.forEach { segment ->
+            assertWithMessage("${segment.id} outline").that(segment.outline.size).isAtLeast(3)
+        }
+
+        val groups = MusclePaths.SIDE
+        assertWithMessage("groups visible in profile: ${groups.keys}")
+            .that(groups.size)
+            .isAtLeast(10)
+        groups.forEach { (group, polygons) ->
+            assertWithMessage("$group").that(polygons).isNotEmpty()
+            polygons.forEach { assertWithMessage("$group").that(it.size).isAtLeast(3) }
+        }
+        // What a profile can and cannot show: the flank and both sides of every limb, but not the
+        // adductors, which live on the inside of the far thigh.
+        assertThat(groups.keys).containsAtLeast(
+            MuscleGroup.CHEST, MuscleGroup.ABS, MuscleGroup.OBLIQUES, MuscleGroup.LATS,
+            MuscleGroup.LOWER_BACK, MuscleGroup.TRAPS, MuscleGroup.GLUTES, MuscleGroup.QUADS,
+            MuscleGroup.HAMSTRINGS, MuscleGroup.CALVES, MuscleGroup.BICEPS, MuscleGroup.TRICEPS,
+        )
+        assertThat(groups).doesNotContainKey(MuscleGroup.ADDUCTORS)
+        // The double figure of `BodyFigure` is still exactly front + back.
+        assertThat(MusclePaths.pathsFor(MuscleGroup.CHEST))
+            .isEqualTo(MusclePaths.FRONT.getValue(MuscleGroup.CHEST))
+    }
+
+    @Test
+    fun an05_root_offset_and_angle_move_the_whole_figure() {
+        val standing = BodySkeleton.outlinePolygons(BodyFace.SIDE, BodyPose.STANDING).flatten()
+
+        // A pure offset is a rigid translation: every point moves by exactly the same vector.
+        val shifted = BodySkeleton
+            .outlinePolygons(BodyFace.SIDE, BodyPose(rootOffsetX = 7f, rootOffsetY = -3f))
+            .flatten()
+        assertThat(shifted).hasSize(standing.size)
+        standing.zip(shifted).forEach { (before, after) ->
+            assertThat(after.x).isWithin(TOL).of(before.x + 7f)
+            assertThat(after.y).isWithin(TOL).of(before.y - 3f)
+        }
+
+        // A +90° root angle lays the figure down about the hip: the pelvis pivot stays put and the
+        // upright 100 x 220 figure becomes a wide, flat one.
+        val pivot = frames(BodySkeleton.SIDE, BodyPose.STANDING).getValue(BodySegmentId.PELVIS)
+            .apply(BodyPoint(0f, 0f))
+        assertThat(pivot.x).isWithin(0.01f).of(BodyPose.ROOT_PIVOT_X)
+        assertThat(pivot.y).isWithin(0.01f).of(BodyPose.ROOT_PIVOT_Y)
+        val lying = frames(BodySkeleton.SIDE, BodyPose(rootAngle = 90f))
+            .getValue(BodySegmentId.PELVIS).apply(BodyPoint(0f, 0f))
+        assertThat(lying.x).isWithin(0.01f).of(pivot.x)
+        assertThat(lying.y).isWithin(0.01f).of(pivot.y)
+
+        val flat = BodySkeleton.outlinePolygons(BodyFace.SIDE, BodyPose(rootAngle = 90f)).flatten()
+        val upright = standing
+        assertThat(width(flat)).isGreaterThan(width(upright) * 3f)
+        assertThat(height(flat)).isLessThan(height(upright) / 3f)
+        // …and the head, which was above the hip, is now to its right (+90° is clockwise, prone).
+        val head = frames(BodySkeleton.SIDE, BodyPose(rootAngle = 90f)).getValue(BodySegmentId.HEAD)
+            .apply(BodyPoint(0f, 0f))
+        assertThat(head.x).isGreaterThan(pivot.x + 50f)
+        assertThat(abs(head.y - pivot.y)).isLessThan(5f)
+
+        // Root scale shrinks about the same pivot, halving every distance from it.
+        val half = BodySkeleton.outlinePolygons(BodyFace.SIDE, BodyPose(rootScale = 0.5f)).flatten()
+        standing.zip(half).forEach { (before, after) ->
+            val px = BodyPose.ROOT_PIVOT_X
+            val py = BodyPose.ROOT_PIVOT_Y
+            assertThat(after.x).isWithin(TOL).of(px + (before.x - px) / 2f)
+            assertThat(after.y).isWithin(TOL).of(py + (before.y - py) / 2f)
+        }
+    }
+
+    @Test
+    fun an06_squat_bottom_lowers_the_pelvis_and_flexes_knees() {
+        val squat = AnimationClips.SQUAT
+        assertThat(squat.face).isEqualTo(BodyFace.SIDE)
+        val top = squat.keyframes.first().pose
+        val bottom = squat.keyframes.last().pose
+
+        // The knee really bends, and the hip flexes the other way (the plan's sign convention).
+        assertThat(bottom.angleOf(BodySegmentId.SHANK_R)).isGreaterThan(45f)
+        assertThat(bottom.angleOf(BodySegmentId.THIGH_R)).isLessThan(-45f)
+        assertThat(abs(top.angleOf(BodySegmentId.SHANK_R))).isLessThan(10f)
+
+        // The pelvis drops while the foot stays on the floor — the point of the root offset.
+        val topPelvis = origin(squat.face, top, BodySegmentId.PELVIS)
+        val bottomPelvis = origin(squat.face, bottom, BodySegmentId.PELVIS)
+        assertThat(bottomPelvis.y).isGreaterThan(topPelvis.y + 10f)
+        val topAnkle = origin(squat.face, top, BodySegmentId.FOOT_R)
+        val bottomAnkle = origin(squat.face, bottom, BodySegmentId.FOOT_R)
+        assertThat(bottomAnkle.x).isWithin(1f).of(topAnkle.x)
+        assertThat(bottomAnkle.y).isWithin(1f).of(topAnkle.y)
+        // …and the trunk tips forward, so the head ends up ahead of the hip (the subject faces +x).
+        assertThat(origin(squat.face, bottom, BodySegmentId.HEAD).x).isGreaterThan(bottomPelvis.x + 10f)
+    }
+
+    @Test
+    fun an07_plank_is_horizontal() {
+        val plank = AnimationClips.PLANK
+        assertThat(plank.face).isEqualTo(BodyFace.SIDE)
+        plank.keyframes.forEach { frame ->
+            assertThat(frame.pose.rootAngle).isEqualTo(90f)
+            // Head, hip and ankle all sit on one horizontal line…
+            val ys = listOf(BodySegmentId.HEAD, BodySegmentId.PELVIS, BodySegmentId.FOOT_R)
+                .map { origin(plank.face, frame.pose, it).y }
+            assertThat(ys.max() - ys.min()).isLessThan(8f)
+            // …with the head at the +x end, because +90° is clockwise and the profile faces +x.
+            assertThat(origin(plank.face, frame.pose, BodySegmentId.HEAD).x)
+                .isGreaterThan(origin(plank.face, frame.pose, BodySegmentId.FOOT_R).x + 40f)
+            val polygons = BodySkeleton.outlinePolygons(plank.face, frame.pose)
+            assertThat(width(polygons.flatten())).isGreaterThan(height(polygons.flatten()) * 2f)
+        }
+        // The supine clips lie the other way: head at the −x end (−90°).
+        assertThat(AnimationClips.BENCH_PRESS.keyframes.first().pose.rootAngle).isEqualTo(-90f)
+    }
+
+    private fun origin(face: BodyFace, pose: BodyPose, id: BodySegmentId): BodyPoint =
+        frames(BodySkeleton.segmentsOf(face), pose).getValue(id).apply(BodyPoint(0f, 0f))
+
+    private fun width(points: List<BodyPoint>) = points.maxOf { it.x } - points.minOf { it.x }
+
+    private fun height(points: List<BodyPoint>) = points.maxOf { it.y } - points.minOf { it.y }
+
+    private fun span(polygons: List<MusclePaths.Polygon>): Float = width(polygons.flatten())
 
     private fun distance(a: BodyPoint, b: BodyPoint): Float {
         val dx = a.x - b.x

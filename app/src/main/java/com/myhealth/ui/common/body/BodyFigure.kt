@@ -19,8 +19,13 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.myhealth.domain.model.BodyFace
+import com.myhealth.domain.model.BodyPose
 import com.myhealth.domain.model.MuscleGroup
 import com.myhealth.ui.theme.MyHealthTheme
+
+/** The two faces the double figure draws — `SIDE` is for the P18 animations, not for this. */
+private val FIGURE_FACES = listOf(BodyFace.FRONT, BodyFace.BACK)
 
 /** The silhouette's outline stroke. */
 private val SILHOUETTE_STROKE = 1.dp
@@ -65,7 +70,7 @@ fun BodyFigure(
     onBackTap: ((MuscleGroup) -> Unit)? = null,
 ) {
     Row(modifier = modifier) {
-        BodyFace.entries.forEach { face ->
+        FIGURE_FACES.forEach { face ->
             val standing = pose == BodyPose.STANDING
             val groups = remember(face, pose) {
                 if (standing) faceGroups(face) else BodySkeleton.worldPolygons(face, pose)

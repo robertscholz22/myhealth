@@ -1,5 +1,6 @@
 package com.myhealth.ui.common.body
 
+import com.myhealth.domain.model.BodySegmentId
 import com.myhealth.domain.model.MuscleGroup
 import com.myhealth.ui.common.body.BodyShapes.mirrorX
 import com.myhealth.ui.common.body.BodyShapes.roundedBlock

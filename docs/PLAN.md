@@ -2891,6 +2891,66 @@ routine), and `ExerciseSubstitution` never crosses the strength/mobility line.
 | **P18.2** Rendering + screens | sonnet | C `ui/common/body/AnimatedBodyFigure.kt`, M `ui/strength/{ExerciseDetailScreen,ExercisePickerSheet,WorkoutEditScreen,SetLogSheet}.kt`, `strings.xml` (play/pause content descriptions) | `AnimatedPoseTest.anui01_interpolation_midway_is_the_mean`, `anui02_reduced_motion_returns_midpoint_pose`, `anui03_loop_wraps_to_first_keyframe` |
 | **P18.3** Emulator + release 0.7.0 | lead | screenshots of squat / push-up / pigeon at two keyframes; versionCode 160 / 0.7.0, tag, release, install on the Pixel | VERIFICATION.md session |
 
+**P18.1 as built (2026-09-14).** Pose types moved to `domain/model/Body.kt` — which already held
+`BodyMeasurement`, so the vocabulary was **appended** to it rather than replacing the file.
+`BodyPose` carries one field more than the design paragraph named: **`rootScale` (default `1f`)**.
+It is not optional — the figure is 213 units long in a 100-wide box, so a plank, a push-up or a
+lateral raise simply cannot be drawn inside the box at full size, and `an03` pins that every
+keyframe is inside it. The scale is **constant across a clip** (pinned by `an02`) so the figure
+never pulses; only `rootOffsetX/Y` vary per keyframe.
+
+*Conventions* (all degrees, positive = clockwise on screen, y down — the `bm02` convention):
+`SIDE` faces **+x**. `rootAngle` rotates the whole figure about the **standing hip joint**
+(`BodyPose.ROOT_PIVOT_X/Y` = 50, 110), then `rootScale` shrinks about the same point, then
+`rootOffset` translates — order scale → rotate → translate, applied *after* the joint chain
+(`rootFrame` in `BodyModel.kt`). `rootAngle = +90` is **prone, head to the right**; `-90` is
+**supine, head to the left**. Per joint: knee flexion **positive**, hip flexion (thigh forward)
+**negative**, elbow flexion **negative**, plantar flexion **positive**, trunk flexion **positive**.
+A hip hinge is `trunk = +44, pelvis = -44` — lean the trunk over the hips, counter-rotate the
+pelvis so the legs stay upright. Per-keyframe `dx`/`dy` keep the contact point still: the sole on a
+floor that scales with the figure, or the hands on the bar (which is what makes the body *rise* in
+`PULL_UP` instead of the hands falling).
+
+*Side view*: `BodySkeleton.SIDE` + `MusclePaths.SIDE` in `ui/common/body/BodyProfile.kt` and
+`BodyProfileMuscles.kt` (own files for R10). Same sixteen segment ids and the same joint heights as
+the front view (shoulders 36, hips 110, knees 172, ankles 208, soles 217, head top 3.5), own bones:
+a head with a brow/nose/chin profile, a torso with the chest forward and the upper back rounded, a
+foot with heel and toes. The far (left) limbs are drawn first, 1.6 units further back. **Fifteen**
+of the sixteen muscle groups read edge-on; only `ADDUCTORS` is absent (`an04` requires ≥ 10).
+`MusclePaths.SIDE` is deliberately **not** in `pathsFor`, so `bf01`/`bf03` are untouched — `bf03`
+needed no change at all, because it only ever spoke about the `FRONT`/`BACK` maps. `bm04` was
+widened to check the profile's regions too, and `BodyFigure` now draws an explicit `FRONT + BACK`
+list instead of `BodyFace.entries` (which would have grown a third figure).
+
+*Clips*: **44**, not the ≈ 26 the paragraph guessed — the plan's own list already named 37 with an
+ellipsis, and 87 exercises across three faces needed the rest. `AnimationClips.kt` (33 strength) +
+`AnimationClipsMobility.kt` (11) for R10, both re-exported through `AnimationClips` so call sites
+have one namespace; the named-joint DSL and the `Keyframe`/`AnimationClip` types live in
+`AnimationPoses.kt`. In declaration order: `SQUAT, FRONT_SQUAT, HINGE, SINGLE_LEG_HINGE, LUNGE,
+SPLIT_SQUAT, STEP_UP, CALF_RAISE, JUMP, SWING, KNEE_ISOLATION, HIP_ABDUCTION, CARRY, BENCH_PRESS,
+PUSH_UP, OVERHEAD_PRESS, DIP, ROW_BENT, ROW_SEATED, PULL_UP, PULLDOWN, HANG, LEG_RAISE,
+LATERAL_RAISE, REAR_DELT, CURL, TRICEPS_EXTENSION, PLANK, SIDE_PLANK, DEAD_BUG, TWIST,
+BACK_EXTENSION, HIP_THRUST, HOLD_STRETCH_HIP, HOLD_STRETCH_HAMSTRING, HOLD_STRETCH_CALF,
+HOLD_STRETCH_SHOULDER, QUADRUPED_FLOW, ROTATION_THORACIC, FOAM_ROLL, SHOULDER_CIRCLE, WALL_SLIDE,
+NECK_TURN, STANDING`. Timing presets: `LIFT` 900 ms / 220–340 ms hold, `FAST` 520, `FLOW` 1100,
+`HOLD` 700 / 1500, `STRETCH` 1300 / 500 → 2400 (the deep keyframe). 15 clips carry `mirror = true`;
+`AnimationClip.mirrored()` is a true reflection on `FRONT`/`BACK` (swap sides *and* negate every
+angle, `rootOffsetX`, `rootAngle`) and a near/far limb swap on `SIDE`, whose bones cannot be turned
+round.
+
+*Lookup*: `ExerciseAnimations.clipFor(id): AnimationClip?` is the explicit 87-entry table and
+returns `null` off the end of it (an `init` check fails the build if the catalog and the table ever
+drift apart — `an01` pins it from the test side). Because an unknown **id** has no movement pattern
+either, the standing fallback is a separate entry point: `clipOrStanding(id)`, which is what `an09`
+asserts lands on `AnimationClips.STANDING` (two identical keyframes, so it has the same shape as
+every other clip). `clipFor(exercise)` and `defaultFor(pattern)` are the per-pattern archetypes a
+user's own exercise will use in a later stage.
+
+*Known rough edges for P18.2/P18.3 to judge on screen*: the fully horizontal clips sit at
+`rootScale = 0.4` (a 213-long body in a 100-wide box) and so draw small; `DIP` folds the arms
+without lowering the body (the hands are the chain's leaves, not its root); `BENCH_PRESS` moves the
+hand only ~10 units between keyframes — the readable part is the elbow swinging out.
+
 ## 6. Verification strategy
 
 ### 6.1 After every task (the lead runs this)

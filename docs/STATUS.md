@@ -6,7 +6,21 @@ One row per task. A task is **Done** only when its acceptance commands in PLAN �
 Legend — **Done**: `yes` / `no` / `n/a`. **Tests**: executed unit tests reported by `tools/verify.sh`
 after the task. **APK MB**: debug APK size measured after the task. **Notes**: deviations, follow-ups.
 
-Last update: 2026-09-14 — **P16.1 (My equipment + load progression: data and engines)**: DB **v7**
+Last update: 2026-09-14 — **P18.1 (Pose model, side view, animation clips for all 87 shipped
+exercises)**: the pose vocabulary (`BodySegmentId`, `BodyFace {FRONT, BACK, SIDE}`, `BodyPose`)
+moves into `domain/model/Body.kt` so the catalog can author animations against it, and `BodyPose`
+gains **`rootScale`** alongside `rootOffsetX/Y` and `rootAngle` — a 213-unit figure cannot lie
+horizontally inside the 100-wide box, and `an03` pins every keyframe inside it. The geometry stays
+in `ui/common/body` and gains a **profile skeleton** (`BodyProfile.kt` / `BodyProfileMuscles.kt`):
+all sixteen segment ids, the same joint heights as the front view, and 15 of the 16 muscle groups
+(only `ADDUCTORS` is invisible edge-on). **44 clips** (`AnimationClips.kt`,
+`AnimationClipsMobility.kt`, DSL and types in `AnimationPoses.kt`) cover **all 87 catalog ids**
+through `ExerciseAnimations`, whose `init` check fails the build if the catalog and the table ever
+drift apart. `bf01`…`bf05` are untouched (`MusclePaths.SIDE` is deliberately outside `pathsFor`) and
+`bm04` was widened to the profile. `bash tools/verify.sh` → **VERIFY OK** (1011 unit tests, 0
+failures, lint 0 errors; debug 88.6 MB, release 14.5 MB) and `:app:compileDebugAndroidTestKotlin`
+green.
+Before that, **P16.1 (My equipment + load progression: data and engines)**: DB **v7**
 (`MIGRATION_6_7` — `profile.availableEquipmentJson`, `strength_set_log.feedback`, the
 `exercise_progress` table keyed on the catalog id; backup schema 6 → 7), the pure
 `ProgressionEngine` / `ProgressionDefaults` (double progression from a per-exercise `Feedback`, with
@@ -15,9 +29,7 @@ plus the repository side: `prescriptionFor`, the `exercise_progress` CRUD and `s
 applies exactly one progression step per exercise and persists it. `StrengthWorkoutSeeder` now
 materialises the six built-ins against the owner's equipment, so an accepted strength suggestion
 inherits the substitutions. Everything stays inert while `availableEquipmentJson` is `null` and no
-feedback has been given. `bash tools/verify.sh` → **VERIFY OK** (983 unit tests, 0 failures, lint 0
-errors; debug 88.9 MB, release 14.4 MB) and `:app:compileDebugAndroidTestKotlin` green for the new
-`migration_6_to_7_…` instrumented case.
+feedback has been given.
 Before that, **P14.9 (Instrumented + emulator pass)**: three new instrumented tests —
 `ZonesScreenTest` (seeds a profile + a 40-minute HR≈140/3.0 m/s run, then More → Zones & paces shows
 all five named zone rows and at least one measured pace band), `WorkoutScreenTest` (More → Strength
@@ -401,6 +413,16 @@ Known limitation: when one of several sources is deleted, the canonical row keep
 
 ---
 
+## P18 — Exercise animations (release 0.7.0)
+
+| Task | Model | Done | Tests | APK MB | Notes |
+|---|---|---|---|---|---|
+| **P18.1** Pose model, side view, clips for all 87 | opus | **yes** | 1011 | 88.6 (release 14.5) | **Pose types to the domain**: `domain/model/Body.kt` (which already held `BodyMeasurement`) gains `BodySegmentId`, `BodyFace {FRONT, BACK, SIDE}` and `BodyPose(angles, rootOffsetX, rootOffsetY, rootAngle, **rootScale**)` + `STANDING` / `lerp` / `mirrored`; the geometry stays in `ui/common/body` and imports them. `rootScale` is the one field beyond the plan and is not optional — a 213-unit figure cannot lie horizontally inside a 100-wide box, and `an03` pins every keyframe inside it; it is constant per clip (`an02`) so the figure never pulses. `worldPolygons`/`outlinePolygons` apply scale → rotate → translate about the standing hip joint (50, 110) **after** the joint chain (`rootFrame`). **Side view**: `BodySkeleton.SIDE` + `MusclePaths.SIDE` (`BodyProfile.kt` / `BodyProfileMuscles.kt`, own files for R10) — a profile facing +x with the same sixteen segment ids and the same joint heights as the front view, its own head/torso/foot shapes, the far limbs drawn 1.6 behind, and **15 of 16** muscle groups (only `ADDUCTORS` is invisible edge-on). `MusclePaths.SIDE` is kept out of `pathsFor`, so `bf01`…`bf05` are untouched — `bf03` needed no change because it only speaks about the FRONT/BACK maps; `bm04` was widened to check the profile too, and `BodyFigure` now draws an explicit FRONT + BACK list instead of `BodyFace.entries`. **Clips**: **44** (`AnimationClips.kt` 33 + `AnimationClipsMobility.kt` 11, re-exported into one namespace; the named-joint DSL and the `Keyframe`/`AnimationClip` types in `AnimationPoses.kt`), 2–4 keyframes each, five timing presets, 15 flagged `mirror`. **`ExerciseAnimations`**: an explicit table for all **87** ids with an `init` check against `ExerciseCatalog` (a new catalog entry fails the build), `clipFor(id): AnimationClip?`, `clipFor(exercise)`, `defaultFor(pattern)` and `clipOrStanding(id)` — the last is the one that lands on the static `STANDING` clip for an id nothing knows. **+9 unit tests** (1002 → **1011**): `an01`…`an09`. Conventions, the clip list and the known rough edges are written up under `### P18` in PLAN.md |
+| **P18.2** Rendering + screens | — | no | — | — | Next: `AnimatedBodyFigure.kt`, exercise detail / picker / editor / set-log; `anui01`…`anui03` |
+| **P18.3** Emulator + release 0.7.0 | — | no | — | — | versionCode 160 / 0.7.0; squat / push-up / pigeon screenshots at two keyframes |
+
+---
+
 ## Roll-up
 
 | Phase | Tasks | Done |
@@ -422,5 +444,6 @@ Known limitation: when one of several sources is deleted, the canonical row keep
 | P15 | 2 | **1** |
 | P16 | 3 | **1** |
 | P17 | 3 | **1** |
-| **Total** | **111** | **94** |
+| P18 | 3 | **1** |
+| **Total** | **114** | **95** |
 
