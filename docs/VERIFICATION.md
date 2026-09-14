@@ -526,3 +526,10 @@ JSON backup exported first (2719 rows over 17 tables, `myhealth-backup-2026-09-1
 - NOTE-20 → FIXED (0.5.2): `lightweightHrZoneModel` takes the last days' resting-HR readings; Today passes the day's summary, the suggestion review reads the 7-day window — the chips now print the same bpm ranges as Zones & paces (the planned-session editor still uses the profile-only model).
 | 0.5.1 → 0.5.2 installed over the data; Regenerate: header "Base · target 212 AU · 150 AU suggested · 2 rest days · 8 earlier suggested sessions will be replaced · your locked and hand-planned sessions already carry 405 AU of the 212 AU target, so only recovery is suggested"; chip "Z1 · 48–127 bpm" (measured resting HR) | PASS | phone_79_suggestions_052.png |
 - NOTE-21 → FIXED (0.5.3): one `resolveHrZoneModel` (resting HR of the last 7 days + highest observed HR of the last 365 days) now serves Zones & paces, Today, the suggestion review and the planned-session editor; the Zones screen previously read the observed max from its 90-day pace window only.
+
+## Session 16 — 2026-09-14 (emulator, 0.6.0 debug build: mobility)
+| Step | Result | Evidence |
+|---|---|---|
+| Exercises → kind chips All / Strength / Mobility; Mobility shows rows like "Mobility · Glutes, Adductors"; Pigeon stretch detail: glutes primary + adductors secondary on the figure, "One side at a time", "Timed hold", Progression "~30 s" | PASS | emu_p17_01_exercises_mobility.png, emu_p17_02_pigeon.png |
+| Strength workouts: "Mobility · lower / upper / full" kinds, "8 exercises · about 21 min", rows "Cat-cow 2 × 45 s, Thread the needle 2 × 45 s…" | PASS | emu_p17_03_workouts.png, emu_p17_04_mobility_lower.png |
+| Training → Generate: the rest-day mobility session carries "Mobility: a full-body routine keeps everything moving." (muscle load present, legs not loaded → full); Accept → card "Routine: Mobility full A"; Mark done → "Mobility full A — log your sets" with Seconds pre-filled (30) and the feedback buttons | PASS | emu_p17_05_week_routine.png, emu_p17_06_mobility_setlog.png |
