@@ -136,5 +136,10 @@ fun sessionZoneRows(model: HrZoneModel?, bands: List<PaceZoneBand>): List<Sessio
  * which only need a zone's bpm range, not a measured pace band — the full history-based
  * resolution stays in [ZonesViewModel] alone, which is where the accuracy actually matters (§3.10).
  */
-fun lightweightHrZoneModel(profile: Profile?, today: LocalDate): HrZoneModel? =
-    profile?.let { HrZoneModel.resolve(it, HrBounds.compute(it, today)) }
+fun lightweightHrZoneModel(
+    profile: Profile?,
+    today: LocalDate,
+    /** NOTE-20: the last days' resting-HR readings, so a chip's bpm range matches the Zones screen. */
+    restingHrLast7Days: List<Int> = emptyList(),
+): HrZoneModel? =
+    profile?.let { HrZoneModel.resolve(it, HrBounds.compute(it, today, restingHrLast7Days = restingHrLast7Days)) }

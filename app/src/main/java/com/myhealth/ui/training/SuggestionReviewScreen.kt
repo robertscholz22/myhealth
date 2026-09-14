@@ -66,7 +66,7 @@ import com.myhealth.ui.theme.MyHealthTheme
 @Composable
 fun SuggestionReviewScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val vm = rememberVm { graph ->
-        SuggestionReviewViewModel(graph.suggestionRepo, graph.settings, graph.profileRepo, graph.clock)
+        SuggestionReviewViewModel(graph.suggestionRepo, graph.settings, graph.profileRepo, graph.clock, graph.planRepo, graph.healthRepo)
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -180,6 +180,7 @@ private fun ReviewHeaderCard(
                 restDayPlural = stringResource(R.string.review_rest_day_plural),
                 replacesSingular = stringResource(R.string.review_replaces_singular),
                 replacesPlural = stringResource(R.string.review_replaces_plural),
+                fixedCoversFormat = stringResource(R.string.review_fixed_load_covers_target),
             ),
             style = MaterialTheme.typography.bodyMedium,
         )

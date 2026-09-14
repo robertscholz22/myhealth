@@ -7,6 +7,10 @@ import com.myhealth.domain.model.SuggestedSession
 import com.myhealth.domain.model.SuggestionBatch
 import com.myhealth.domain.model.SuggestionStatus
 import com.myhealth.domain.repository.ProfileRepository
+import com.myhealth.domain.engine.load.TrimpDefaults
+import com.myhealth.domain.engine.load.HrZoneModel
+import com.myhealth.domain.repository.HealthRepository
+import com.myhealth.domain.repository.PlanRepository
 import com.myhealth.domain.repository.SettingsRepository
 import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.util.Outcome
@@ -50,6 +54,8 @@ class SuggestionReviewViewModel(
     private val settingsRepo: SettingsRepository,
     private val profileRepo: ProfileRepository,
     private val clock: Clock,
+    private val planRepo: PlanRepository? = null,
+    private val healthRepo: HealthRepository? = null,
 ) : ViewModel() {
 
     private val action = MutableStateFlow(ReviewAction())
@@ -72,8 +78,32 @@ class SuggestionReviewViewModel(
         current?.let { suggestionRepo.countReplaceableSessions(it.id) } ?: 0
     }
 
+    /**
+     * NOTE-19: the load already fixed in the horizon — locked sessions and sessions the user
+     * planned by hand (BUG-15) — which the engine subtracts from the weekly target before it
+     * places anything. When it reaches the target the proposal is fillers only, and the header
+     * has to say why.
+     */
+    private val fixedLoad: Flow<Double> = batch.map { current ->
+        val repo = planRepo
+        if (current == null || repo == null) 0.0 else repo.getSessions(current.horizonStartDay, current.horizonEndDay - 1)
+            .filter { it.locked || it.sourceSuggestionId == null }
+            .sumOf { it.estimatedTrimp ?: 0.0 }
+    }
+
+    /** NOTE-20: the chip's zone model uses the same resting-HR readings as the Zones screen. */
+    private val zoneModel: Flow<HrZoneModel?> = profileRepo.observeProfile().map { profile ->
+        val today = LocalDate.now(clock)
+        val restingHr = healthRepo
+            ?.observeRange(today.toEpochDay() - TrimpDefaults.REST_HR_WINDOW_DAYS + 1, today.toEpochDay())
+            ?.first()
+            ?.mapNotNull { it.restingHr }
+            .orEmpty()
+        lightweightHrZoneModel(profile, today, restingHr)
+    }
+
     val state: StateFlow<SuggestionReviewUiState> =
-        combine(batch, sessions, action, replaceable, profileRepo.observeProfile()) { current, rows, act, count, profile ->
+        combine(batch, sessions, action, replaceable, combine(fixedLoad, zoneModel) { f, z -> f to z }) { current, rows, act, count, extra ->
             SuggestionReviewUiState(
                 isLoading = false,
                 batch = current,
@@ -83,7 +113,8 @@ class SuggestionReviewViewModel(
                 isWorking = act.isWorking,
                 message = act.message,
                 done = act.done,
-                hrZoneModel = lightweightHrZoneModel(profile, LocalDate.now(clock)),
+                hrZoneModel = extra.second,
+                fixedLoad = extra.first,
             )
         }.stateIn(
             viewModelScope,
@@ -161,6 +192,7 @@ internal fun SuggestionReviewUiState.headerLine(
     restDayPlural: String,
     replacesSingular: String = "",
     replacesPlural: String = "",
+    fixedCoversFormat: String = "",
 ): String = buildList {
     phase?.let { add(it.label()) }
     if (weeklyTarget > 0.0) add("$targetLabel ${Math.round(weeklyTarget)} AU")
@@ -170,5 +202,9 @@ internal fun SuggestionReviewUiState.headerLine(
     }
     if (replaceableCount > 0 && replacesPlural.isNotEmpty()) {
         add("$replaceableCount ${if (replaceableCount == 1) replacesSingular else replacesPlural}")
+    }
+    // NOTE-19: when the fixed sessions alone reach the target, say why the week is fillers only.
+    if (fixedCoversFormat.isNotEmpty() && weeklyTarget > 0.0 && fixedLoad >= weeklyTarget) {
+        add(String.format(fixedCoversFormat, Math.round(fixedLoad), Math.round(weeklyTarget)))
     }
 }.joinToString(" · ")

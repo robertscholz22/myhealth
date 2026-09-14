@@ -25,6 +25,8 @@ data class SuggestionReviewUiState(
     val accepted: Map<Long, Boolean> = emptyMap(),
     /** Unlocked PLANNED sessions in the horizon that accepting will replace (BUG-10). */
     val replaceableCount: Int = 0,
+    /** Load of the locked and hand-planned sessions in the horizon (NOTE-19). */
+    val fixedLoad: Double = 0.0,
     val isWorking: Boolean = false,
     val message: UiMessage? = null,
     /** One-shot: set once the batch has been accepted/rejected, so the screen can go back. */

@@ -842,6 +842,7 @@
     <string name="review_rest_day_singular">rest day</string>
     <string name="review_replaces_singular">earlier suggested session will be replaced</string>
     <string name="review_replaces_plural">earlier suggested sessions will be replaced</string>
+    <string name="review_fixed_load_covers_target">your locked and hand-planned sessions already carry %1$d AU of the %2$d AU target, so only recovery is suggested</string>
     <string name="review_rest_day_plural">rest days</string>
     <string name="review_selected_summary">%1$d of %2$d selected · %3$d AU</string>
     <string name="review_accept_selected">Accept selected</string>

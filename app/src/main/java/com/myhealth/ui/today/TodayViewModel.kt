@@ -235,7 +235,11 @@ class TodayViewModel(
             suggestionsStale = p.stale,
             cycleTrackingEnabled = cs.cycle.trackingEnabled,
             cycleStatus = cs.cycle.status,
-            hrZoneModel = lightweightHrZoneModel(cs.core.profile, LocalDate.ofEpochDay(today)),
+            hrZoneModel = lightweightHrZoneModel(
+                cs.core.profile,
+                LocalDate.ofEpochDay(today),
+                restingHrLast7Days = listOfNotNull(cs.core.health?.restingHr),
+            ),
             muscleLoad = m,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TodayUiState())

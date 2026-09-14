@@ -89,4 +89,24 @@ class SuggestionReviewUiStateTest {
         rationale = emptyList(),
         status = status,
     )
+
+    @Test
+    fun header_explains_when_fixed_sessions_already_cover_the_target() {
+        val state = SuggestionReviewUiState(isLoading = false, batch = batch(), fixedLoad = 700.0)
+        val line = state.headerLine(
+            targetLabel = "target", suggestedLabel = "suggested",
+            restDaySingular = "rest day", restDayPlural = "rest days",
+            replacesSingular = "will be replaced", replacesPlural = "will be replaced",
+            fixedCoversFormat = "fixed %1\$d of %2\$d",
+        )
+        assertThat(line).contains("fixed 700 of ${Math.round(batch().weeklyLoadTarget)}")
+
+        val below = state.copy(fixedLoad = 10.0).headerLine(
+            targetLabel = "target", suggestedLabel = "suggested",
+            restDaySingular = "rest day", restDayPlural = "rest days",
+            replacesSingular = "will be replaced", replacesPlural = "will be replaced",
+            fixedCoversFormat = "fixed %1\$d of %2\$d",
+        )
+        assertThat(below).doesNotContain("fixed ")
+    }
 }
