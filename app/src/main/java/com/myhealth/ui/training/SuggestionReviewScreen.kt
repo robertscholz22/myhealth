@@ -66,7 +66,7 @@ import com.myhealth.ui.theme.MyHealthTheme
 @Composable
 fun SuggestionReviewScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val vm = rememberVm { graph ->
-        SuggestionReviewViewModel(graph.suggestionRepo, graph.settings, graph.profileRepo, graph.clock, graph.planRepo, graph.healthRepo)
+        SuggestionReviewViewModel(graph.suggestionRepo, graph.settings, graph.profileRepo, graph.clock, graph.planRepo, graph.healthRepo, graph.activityRepo)
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }

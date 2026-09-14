@@ -8,6 +8,10 @@ import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.SportType
 import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.repository.PlanRepository
+import kotlinx.coroutines.flow.map
+import com.myhealth.ui.zones.resolveHrZoneModel
+import com.myhealth.domain.repository.ActivityRepository
+import com.myhealth.domain.repository.HealthRepository
 import com.myhealth.domain.repository.ProfileRepository
 import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.util.Outcome
@@ -63,6 +67,8 @@ class PlannedSessionEditViewModel(
     private val profileRepo: ProfileRepository,
     private val strengthRepo: StrengthRepository,
     private val clock: Clock,
+    private val healthRepo: HealthRepository? = null,
+    private val activityRepo: ActivityRepository? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
@@ -73,9 +79,17 @@ class PlannedSessionEditViewModel(
     init {
         load()
         profileRepo.observeProfile()
-            .onEach { profile ->
-                _state.update { it.copy(hrZoneModel = lightweightHrZoneModel(profile, LocalDate.now(clock))) }
+            .map { profile ->
+                val today = LocalDate.now(clock)
+                val health = healthRepo
+                val activities = activityRepo
+                if (health != null && activities != null) {
+                    resolveHrZoneModel(profile, today.toEpochDay(), health, activities)
+                } else {
+                    lightweightHrZoneModel(profile, today)
+                }
             }
+            .onEach { model -> _state.update { it.copy(hrZoneModel = model) } }
             .launchIn(viewModelScope)
         strengthRepo.observeAll()
             .onEach { workouts -> _state.update { it.copy(workouts = workouts) } }

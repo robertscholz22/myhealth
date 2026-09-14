@@ -37,7 +37,7 @@ import com.myhealth.domain.repository.SyncStateRepository
 import com.myhealth.sync.SyncScheduler
 import com.myhealth.sync.SyncWorkState
 import com.myhealth.ui.load.resolveMuscleLoadState
-import com.myhealth.ui.zones.lightweightHrZoneModel
+import com.myhealth.ui.zones.resolveHrZoneModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -211,7 +211,15 @@ class TodayViewModel(
         CoreAndSync(c, s, links, food, cyc)
     }
 
-    val state: StateFlow<TodayUiState> = combine(coreAndSync, load, plan, muscleLoad) { cs, l, p, m ->
+    /** NOTE-21: the chip's zone model, resolved like the Zones screen (resting HR + observed max). */
+    private val zoneModel = profileRepo.observeProfile().map { profile ->
+        resolveHrZoneModel(profile, today, healthRepo, activityRepo)
+    }
+
+    val state: StateFlow<TodayUiState> = combine(
+        coreAndSync, load, plan, combine(muscleLoad, zoneModel) { m, z -> m to z },
+    ) { cs, l, p, mz ->
+        val m = mz.first
         TodayUiState(
             isLoading = false,
             day = today,
@@ -235,11 +243,7 @@ class TodayViewModel(
             suggestionsStale = p.stale,
             cycleTrackingEnabled = cs.cycle.trackingEnabled,
             cycleStatus = cs.cycle.status,
-            hrZoneModel = lightweightHrZoneModel(
-                cs.core.profile,
-                LocalDate.ofEpochDay(today),
-                restingHrLast7Days = listOfNotNull(cs.core.health?.restingHr),
-            ),
+            hrZoneModel = mz.second,
             muscleLoad = m,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TodayUiState())

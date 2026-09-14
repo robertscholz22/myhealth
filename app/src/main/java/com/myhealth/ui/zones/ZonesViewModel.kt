@@ -97,27 +97,12 @@ class ZonesViewModel(
         return VdotCalculator.vdot(source.distanceMeters, source.timeSec.toDouble())
     }
 
-    /** Ambiguity note (mirrors `SuggestionPaceResolver`): [observedMaxHrLast365d] is drawn from the
-     * same 90-day [sessions] window as the pace bands rather than a separate 365-day read, so this
-     * model can sit a beat lower than the load engine's when the athlete's hardest effort is older
-     * than three months. */
+    /** NOTE-21: the same resolver the plan chips use, so every screen prints the same bpm ranges. */
     private suspend fun resolveModel(
         profile: Profile,
         todayDay: Long,
-        sessions: List<ActivitySession>,
-    ): HrZoneModel {
-        val restingHr = healthRepo
-            .observeRange(todayDay - TrimpDefaults.REST_HR_WINDOW_DAYS + 1, todayDay)
-            .first()
-            .mapNotNull { it.restingHr }
-        val bounds = HrBounds.compute(
-            profile = profile,
-            on = LocalDate.ofEpochDay(todayDay),
-            restingHrLast7Days = restingHr,
-            observedMaxHrLast365d = sessions.mapNotNull { it.maxHr }.maxOrNull(),
-        )
-        return HrZoneModel.resolve(profile, bounds)
-    }
+        @Suppress("UNUSED_PARAMETER") sessions: List<ActivitySession>,
+    ): HrZoneModel = requireNotNull(resolveHrZoneModel(profile, todayDay, healthRepo, activityRepo))
 
     /** The 28-day zone-minutes sum (§3.9) over every activity in the window that has an HR stream. */
     private fun polarisationOf(

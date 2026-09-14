@@ -56,7 +56,7 @@ fun PlannedSessionEditScreen(
     modifier: Modifier = Modifier,
 ) {
     val vm = rememberVm { graph ->
-        PlannedSessionEditViewModel(id, epochDay, graph.planRepo, graph.profileRepo, graph.strengthRepo, graph.clock)
+        PlannedSessionEditViewModel(id, epochDay, graph.planRepo, graph.profileRepo, graph.strengthRepo, graph.clock, graph.healthRepo, graph.activityRepo)
     }
     val state by vm.state.collectAsStateWithLifecycle()
 

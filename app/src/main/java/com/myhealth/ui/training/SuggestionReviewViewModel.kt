@@ -7,6 +7,7 @@ import com.myhealth.domain.model.SuggestedSession
 import com.myhealth.domain.model.SuggestionBatch
 import com.myhealth.domain.model.SuggestionStatus
 import com.myhealth.domain.repository.ProfileRepository
+import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.engine.load.TrimpDefaults
 import com.myhealth.domain.engine.load.HrZoneModel
 import com.myhealth.domain.repository.HealthRepository
@@ -16,6 +17,7 @@ import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.util.Outcome
 import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.zones.lightweightHrZoneModel
+import com.myhealth.ui.zones.resolveHrZoneModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,6 +58,7 @@ class SuggestionReviewViewModel(
     private val clock: Clock,
     private val planRepo: PlanRepository? = null,
     private val healthRepo: HealthRepository? = null,
+    private val activityRepo: ActivityRepository? = null,
 ) : ViewModel() {
 
     private val action = MutableStateFlow(ReviewAction())
@@ -91,15 +94,16 @@ class SuggestionReviewViewModel(
             .sumOf { it.estimatedTrimp ?: 0.0 }
     }
 
-    /** NOTE-20: the chip's zone model uses the same resting-HR readings as the Zones screen. */
+    /** NOTE-20/21: the chip's zone model is resolved exactly like the Zones screen's. */
     private val zoneModel: Flow<HrZoneModel?> = profileRepo.observeProfile().map { profile ->
         val today = LocalDate.now(clock)
-        val restingHr = healthRepo
-            ?.observeRange(today.toEpochDay() - TrimpDefaults.REST_HR_WINDOW_DAYS + 1, today.toEpochDay())
-            ?.first()
-            ?.mapNotNull { it.restingHr }
-            .orEmpty()
-        lightweightHrZoneModel(profile, today, restingHr)
+        val health = healthRepo
+        val activities = activityRepo
+        if (health != null && activities != null) {
+            resolveHrZoneModel(profile, today.toEpochDay(), health, activities)
+        } else {
+            lightweightHrZoneModel(profile, today)
+        }
     }
 
     val state: StateFlow<SuggestionReviewUiState> =

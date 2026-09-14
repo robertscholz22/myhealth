@@ -15,6 +15,9 @@ import com.myhealth.domain.engine.suggest.IntervalStructures
 import com.myhealth.domain.model.Profile
 import com.myhealth.domain.model.SessionType
 import com.myhealth.ui.training.formatPaceSecPerKm
+import com.myhealth.domain.repository.ActivityRepository
+import com.myhealth.domain.repository.HealthRepository
+import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 
 /**
@@ -143,3 +146,34 @@ fun lightweightHrZoneModel(
     restingHrLast7Days: List<Int> = emptyList(),
 ): HrZoneModel? =
     profile?.let { HrZoneModel.resolve(it, HrBounds.compute(it, today, restingHrLast7Days = restingHrLast7Days)) }
+
+/**
+ * NOTE-21: the zone model every chip and the Zones screen agree on — the profile's manual values,
+ * the last [TrimpDefaults.REST_HR_WINDOW_DAYS] days of resting HR and the highest HR observed on any
+ * activity of the last [TrimpDefaults.OBSERVED_MAX_HR_WINDOW_DAYS] days, exactly what `HrBounds`
+ * (§3.2.1) is defined on.
+ */
+suspend fun resolveHrZoneModel(
+    profile: Profile?,
+    todayDay: Long,
+    healthRepo: HealthRepository,
+    activityRepo: ActivityRepository,
+): HrZoneModel? {
+    if (profile == null) return null
+    val restingHr = healthRepo
+        .observeRange(todayDay - TrimpDefaults.REST_HR_WINDOW_DAYS + 1, todayDay)
+        .first()
+        .mapNotNull { it.restingHr }
+    val observedMax = activityRepo
+        .observeRange(todayDay - TrimpDefaults.OBSERVED_MAX_HR_WINDOW_DAYS + 1, todayDay)
+        .first()
+        .mapNotNull { it.maxHr }
+        .maxOrNull()
+    val bounds = HrBounds.compute(
+        profile = profile,
+        on = LocalDate.ofEpochDay(todayDay),
+        restingHrLast7Days = restingHr,
+        observedMaxHrLast365d = observedMax,
+    )
+    return HrZoneModel.resolve(profile, bounds)
+}
