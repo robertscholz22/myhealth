@@ -2,9 +2,11 @@ package com.myhealth.ui.strength
 
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.domain.engine.strength.StrengthTemplates
+import com.myhealth.domain.model.StrengthWorkoutKind
 import org.junit.Test
 
-/** PLAN §4.2 "Workout edit" / P14.7's `swui01`…`swui06`, over the pure [WorkoutEditDraft]. */
+/** PLAN §4.2 "Workout edit" / P14.7's `swui01`…`swui06` and §P17's `mobui02`, over the pure
+ * [WorkoutEditDraft] and [StrengthWorkoutKind.label]. */
 class WorkoutEditUiStateTest {
 
     @Test
@@ -87,5 +89,16 @@ class WorkoutEditUiStateTest {
 
         val named = blank.copy(name = "Legs")
         assertThat(validateWorkoutDraft(named).nameError).isFalse()
+    }
+
+    @Test
+    fun mobui02_mobility_kind_labels() {
+        assertThat(StrengthWorkoutKind.MOBILITY_LOWER.label()).isEqualTo("Mobility · lower")
+        assertThat(StrengthWorkoutKind.MOBILITY_UPPER.label()).isEqualTo("Mobility · upper")
+        assertThat(StrengthWorkoutKind.MOBILITY_FULL.label()).isEqualTo("Mobility · full")
+
+        // The six P14 kinds are untouched.
+        assertThat(StrengthWorkoutKind.UPPER.label()).isEqualTo("Upper")
+        assertThat(StrengthWorkoutKind.CUSTOM.label()).isEqualTo("Custom")
     }
 }

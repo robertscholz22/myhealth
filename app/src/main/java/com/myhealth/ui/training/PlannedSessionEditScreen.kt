@@ -163,8 +163,16 @@ internal fun PlannedSessionEditContent(
                     optionLabel = { it.label() },
                     onSelect = { intensity -> onChange { it.copy(intensity = intensity) } },
                 )
-                if (draft.sessionType.isStrength()) {
-                    WorkoutPickerField(workouts = state.workouts, selectedId = draft.workoutId, onSelect = onWorkout)
+                if (draft.sessionType.isStrength() || draft.sessionType.isMobility()) {
+                    // P17.2: a MOBILITY session only offers the mobility-kind routines, and a
+                    // STRENGTH_* session only the non-mobility workouts — the two never mix.
+                    val forMobility = draft.sessionType.isMobility()
+                    WorkoutPickerField(
+                        workouts = state.workouts.filter { it.kind.isMobility == forMobility },
+                        selectedId = draft.workoutId,
+                        isMobility = forMobility,
+                        onSelect = onWorkout,
+                    )
                 }
             }
         }
@@ -223,18 +231,21 @@ internal fun PlannedSessionEditContent(
     }
 }
 
-/** The workout picker a `STRENGTH_*` session type offers (§4.2 "Planned session edit", P14.7):
- * "None" plus every existing [com.myhealth.domain.model.StrengthWorkout], by name. */
+/** The workout picker a `STRENGTH_*` or `MOBILITY` session type offers (§4.2 "Planned session
+ * edit", P14.7, P17.2): "None" plus every existing [com.myhealth.domain.model.StrengthWorkout] of
+ * the matching kind, by name. [isMobility] only changes the field's own label — [workouts] is
+ * already filtered by the caller. */
 @Composable
 private fun WorkoutPickerField(
     workouts: List<StrengthWorkout>,
     selectedId: Long?,
+    isMobility: Boolean,
     onSelect: (Long?) -> Unit,
 ) {
     val noneLabel = stringResource(R.string.session_workout_none)
     val options: List<Long?> = listOf(null) + workouts.map { it.id }
     DropdownField(
-        label = stringResource(R.string.session_workout_label),
+        label = stringResource(if (isMobility) R.string.session_routine_label else R.string.session_workout_label),
         options = options,
         selected = selectedId,
         optionLabel = { id -> workouts.firstOrNull { it.id == id }?.name ?: noneLabel },

@@ -275,6 +275,22 @@ private fun WorkoutsContentPreview() {
                         createdAtMillis = 0L,
                         updatedAtMillis = 0L,
                     ),
+                    // P17.2: the kind chip's "Mobility · lower" label.
+                    StrengthWorkout(
+                        id = 2L,
+                        name = "Mobility lower A",
+                        kind = StrengthWorkoutKind.MOBILITY_LOWER,
+                        templateId = "MOBILITY_LOWER_A",
+                        isBuiltIn = true,
+                        exercises = listOf(
+                            StrengthWorkoutExercise(
+                                id = 2L, workoutId = 2L, orderIndex = 0,
+                                exerciseId = "MOB_PIGEON", sets = 2, seconds = 45,
+                            ),
+                        ),
+                        createdAtMillis = 0L,
+                        updatedAtMillis = 0L,
+                    ),
                 ),
             ),
             onEdit = {},

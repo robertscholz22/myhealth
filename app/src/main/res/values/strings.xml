@@ -1061,6 +1061,12 @@
     <string name="exercises_empty_message">Try a different search term or clear the filters.</string>
     <string name="exercises_only_my_equipment_label">Only my equipment</string>
 
+    <!-- ===== Exercises: P17 kind chip (ui/strength/ExercisesScreen.kt, P17.2) ===== -->
+    <string name="exercises_kind_all">All</string>
+    <string name="exercises_kind_strength">Strength</string>
+    <string name="exercises_kind_mobility">Mobility</string>
+    <string name="exercises_row_subtitle_mobility_format">Mobility · %1$s</string>
+
     <!-- ===== Exercise detail (ui/strength/ExerciseDetailScreen.kt, P14.7) ===== -->
     <string name="exercise_detail_title">Exercise</string>
     <string name="exercise_detail_add_to_workout">Add to workout…</string>
@@ -1133,6 +1139,10 @@
     <string name="session_workout_label">Workout</string>
     <string name="session_workout_none">None</string>
     <string name="session_workout_format">Workout: %1$s</string>
+
+    <!-- ===== Planned session ↔ mobility routine (ui/training/{PlannedSessionCard,PlannedSessionEditScreen}.kt, P17.2) ===== -->
+    <string name="session_routine_label">Routine</string>
+    <string name="session_routine_format">Routine: %1$s</string>
 
     <!-- ===== Load progression (ui/training/TrainingViewModel.kt, P16.2) ===== -->
     <string name="training_next_time_format">Next time: %1$s</string>

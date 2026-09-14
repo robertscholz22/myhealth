@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myhealth.R
 import com.myhealth.di.rememberVm
+import com.myhealth.domain.engine.strength.ExerciseKind
 import com.myhealth.domain.model.Equipment
 import com.myhealth.domain.model.Exercise
 import com.myhealth.domain.model.MuscleGroup
@@ -44,8 +45,8 @@ import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.body.BodyFigure
 import com.myhealth.ui.theme.MyHealthTheme
 
-/** Searchable exercise catalog with an equipment/muscle filter and a tappable body figure (PLAN
- * §4.2 "Exercises", P14.7, More entry). */
+/** Searchable exercise catalog with a P17 kind chip, an equipment/muscle filter and a tappable
+ * body figure (PLAN §4.2 "Exercises", P14.7, P17.2, More entry). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExercisesScreen(onBack: () -> Unit, onOpenExercise: (String) -> Unit, modifier: Modifier = Modifier) {
@@ -76,6 +77,7 @@ fun ExercisesScreen(onBack: () -> Unit, onOpenExercise: (String) -> Unit, modifi
         ExercisesContent(
             state = state,
             onQueryChange = vm::setQuery,
+            onKindSelect = vm::setKind,
             onEquipmentSelect = vm::setEquipment,
             onMuscleSelect = vm::setMuscle,
             onOnlyMyEquipmentChange = vm::setOnlyMyEquipment,
@@ -90,6 +92,7 @@ fun ExercisesScreen(onBack: () -> Unit, onOpenExercise: (String) -> Unit, modifi
 internal fun ExercisesContent(
     state: ExercisesUiState,
     onQueryChange: (String) -> Unit,
+    onKindSelect: (ExerciseKind?) -> Unit,
     onEquipmentSelect: (Equipment?) -> Unit,
     onMuscleSelect: (MuscleGroup?) -> Unit,
     onOnlyMyEquipmentChange: (Boolean) -> Unit,
@@ -109,6 +112,7 @@ internal fun ExercisesContent(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
+            ExerciseKindFilterRow(state.kind, onKindSelect)
             EquipmentFilterRow(state.equipment, onEquipmentSelect)
             if (state.showOnlyMyEquipmentSwitch) {
                 OnlyMyEquipmentRow(checked = state.onlyMyEquipment, onCheckedChange = onOnlyMyEquipmentChange)
@@ -166,6 +170,29 @@ private fun OnlyMyEquipmentRow(checked: Boolean, onCheckedChange: (Boolean) -> U
     }
 }
 
+/** All / Strength / Mobility (P17.2): `null` is "All". Shared with [ExercisePickerSheet]'s own
+ * compact filter row. */
+@Composable
+internal fun ExerciseKindFilterRow(selected: ExerciseKind?, onSelect: (ExerciseKind?) -> Unit) {
+    val kinds: List<ExerciseKind?> = listOf(null, ExerciseKind.STRENGTH, ExerciseKind.MOBILITY)
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(kinds) { kind ->
+            FilterChip(
+                selected = kind == selected,
+                onClick = { onSelect(kind) },
+                label = { Text(kind.kindLabel()) },
+            )
+        }
+    }
+}
+
+@Composable
+internal fun ExerciseKind?.kindLabel(): String = when (this) {
+    null -> stringResource(R.string.exercises_kind_all)
+    ExerciseKind.STRENGTH -> stringResource(R.string.exercises_kind_strength)
+    ExerciseKind.MOBILITY -> stringResource(R.string.exercises_kind_mobility)
+}
+
 @Composable
 private fun EquipmentFilterRow(selected: Equipment?, onSelect: (Equipment?) -> Unit) {
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -185,13 +212,26 @@ private fun ExerciseRow(exercise: Exercise, onClick: () -> Unit) {
         headlineContent = { Text(exercise.name) },
         supportingContent = {
             Text(
-                text = "${exercise.equipment.label()} · ${exercise.primary.joinToString(", ") { it.label() }}",
+                text = exerciseRowSubtitle(exercise),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         },
         modifier = Modifier.clickable(onClick = onClick),
     )
+}
+
+/** "Foam roller · Glutes, Adductors" (strength) / "Mobility · Glutes, Adductors" (P17.2's mobility
+ * drills, whose implement — bodyweight or a foam roller — says less than the fact that it is a
+ * mobility exercise) — the exercise list row's, and [ExercisePickerSheet]'s, secondary text. */
+@Composable
+internal fun exerciseRowSubtitle(exercise: Exercise): String {
+    val muscles = exercise.primary.joinToString(", ") { it.label() }
+    return if (exercise.isMobility) {
+        stringResource(R.string.exercises_row_subtitle_mobility_format, muscles)
+    } else {
+        "${exercise.equipment.label()} · $muscles"
+    }
 }
 
 @Preview(showBackground = true)
@@ -201,6 +241,7 @@ private fun ExercisesContentPreview() {
         ExercisesContent(
             state = ExercisesUiState(),
             onQueryChange = {},
+            onKindSelect = {},
             onEquipmentSelect = {},
             onMuscleSelect = {},
             onOnlyMyEquipmentChange = {},

@@ -74,6 +74,10 @@ fun PlannedSessionCard(
     /** The linked `strength_workout`'s name (P14.7, §4.1/§4.2) — `null` until the caller's workout
      * list has loaded, or when [PlannedSession.workoutId] is itself `null`. */
     workoutName: String? = null,
+    /** True when that workout's kind is one of the three P17 `MOBILITY_*` kinds — [workoutName]
+     * then renders as "Routine: …" instead of "Workout: …" (P17.2). Meaningless when [workoutName]
+     * is `null`. */
+    isMobilityWorkout: Boolean = false,
     /** The workout's first three exercises with their prescriptions (P16.2, §P16 "Where it shows"),
      * e.g. "Bench press 3 × 8 @ 50 kg, Squat 3 × 5 @ 40 kg…" — `null` alongside [workoutName]. */
     workoutExercisesLine: String? = null,
@@ -108,8 +112,9 @@ fun PlannedSessionCard(
             )
             TargetZoneChip(session.sessionType, hrZoneModel)
             workoutName?.let {
+                val format = if (isMobilityWorkout) R.string.session_routine_format else R.string.session_workout_format
                 Text(
-                    text = stringResource(R.string.session_workout_format, it),
+                    text = stringResource(format, it),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

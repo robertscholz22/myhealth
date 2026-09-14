@@ -146,15 +146,21 @@ class PlannedSessionEditViewModel(
     }
 
     fun setSessionType(sessionType: SessionType) = update { draft ->
+        // P17.2: a workout only survives a session-type change within its own category — a
+        // MOBILITY_* routine picked while the type was MOBILITY would otherwise dangle onto a
+        // STRENGTH_* session (and vice versa), invisible in that type's now-filtered picker.
+        val sameCategory = (draft.sessionType.isStrength() && sessionType.isStrength()) ||
+            (draft.sessionType.isMobility() && sessionType.isMobility())
         draft.copy(
             sessionType = sessionType,
             sportType = sportTypeFor(sessionType, draft.sportType),
             intensity = intensityFor(sessionType, draft.intensity),
-            workoutId = draft.workoutId.takeIf { sessionType.isStrength() },
+            workoutId = draft.workoutId.takeIf { sameCategory },
         )
     }
 
-    /** The workout picker offered for a `STRENGTH_*` session (§4.2 "Planned session edit"). */
+    /** The workout picker offered for a `STRENGTH_*` or `MOBILITY` session (§4.2 "Planned session
+     * edit", P17.2). */
     fun setWorkout(workoutId: Long?) = update { it.copy(workoutId = workoutId) }
 
     fun save() {

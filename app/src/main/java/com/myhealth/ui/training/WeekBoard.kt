@@ -81,6 +81,7 @@ fun WeekDayRow(
                 session = session,
                 actions = actions,
                 workoutName = session.workoutId?.let { workouts[it]?.name },
+                isMobilityWorkout = session.workoutId?.let { workouts[it]?.kind?.isMobility } ?: false,
                 workoutExercisesLine = session.workoutId?.let { workouts[it] }?.let { workoutPrescriptionLine(it) },
             )
         }

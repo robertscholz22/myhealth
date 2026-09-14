@@ -29,16 +29,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.myhealth.R
 import com.myhealth.domain.engine.strength.ExerciseCatalog
+import com.myhealth.domain.engine.strength.ExerciseKind
 import com.myhealth.domain.model.Equipment
 import com.myhealth.domain.model.Exercise
 
 /**
- * Bottom sheet to add an exercise to the workout being edited (PLAN §4.2 "Workout edit", P14.7):
- * a search field over [ExerciseCatalog] (name and muscle names both match), the same "only my
- * equipment" default filter as the Exercises screen (P16.2, with a "show all" toggle since there is
- * no room here for the full equipment chip row), and a tappable list. Self-contained like
- * `LinkActivitySheet` — its query and toggle are local, ephemeral form state, not part of
- * [WorkoutEditUiState].
+ * Bottom sheet to add an exercise to the workout being edited (PLAN §4.2 "Workout edit", P14.7,
+ * P17.2): a search field over [ExerciseCatalog] (name and muscle names both match), the same P17
+ * kind chip row as the Exercises screen, the same "only my equipment" default filter (P16.2, with a
+ * "show all" toggle since there is no room here for the full equipment chip row), and a tappable
+ * list. Self-contained like `LinkActivitySheet` — its query, kind and toggle are local, ephemeral
+ * form state, not part of [WorkoutEditUiState].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,12 +50,16 @@ fun ExercisePickerSheet(
     /** `profile.availableEquipmentJson`, decoded (P16.2). `null` means everything — the toggle is
      * not shown, since there is nothing to filter down to. */
     myEquipment: Set<Equipment>? = null,
+    /** The kind chip's starting position (P17.2): `null` (All) normally, `MOBILITY` when the
+     * workout being edited is itself a mobility kind. */
+    initialKind: ExerciseKind? = null,
 ) {
     val sheetState = rememberModalBottomSheetState()
     var query by remember { mutableStateOf("") }
+    var kind by remember { mutableStateOf(initialKind) }
     var showAll by remember { mutableStateOf(false) }
-    val results = remember(query, showAll, myEquipment) {
-        val bySearch = ExerciseCatalog.search(query)
+    val results = remember(query, kind, showAll, myEquipment) {
+        val bySearch = ExerciseCatalog.search(query, kind)
         if (!showAll && myEquipment != null) bySearch.filter { it.equipment in myEquipment } else bySearch
     }
 
@@ -68,6 +73,7 @@ fun ExercisePickerSheet(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             )
+            ExerciseKindFilterRow(kind, onSelect = { kind = it })
             if (myEquipment != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -90,7 +96,7 @@ fun ExercisePickerSheet(
                 ) {
                     Text(exercise.name, style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        text = "${exercise.equipment.label()} · ${exercise.primary.joinToString(", ") { it.label() }}",
+                        text = exerciseRowSubtitle(exercise),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

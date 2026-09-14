@@ -174,6 +174,10 @@ fun PlannedSessionDraft.toPlannedSession(clock: Clock): PlannedSession {
  * workout picker, and the card only shows the workout name, for these. */
 fun SessionType.isStrength(): Boolean = name.startsWith("STRENGTH_")
 
+/** Whether [SessionType] is `MOBILITY` (§2.1, P17.2) — the editor offers the workout picker for
+ * these too, filtered to the three `MOBILITY_*` [com.myhealth.domain.model.StrengthWorkoutKind]s. */
+fun SessionType.isMobility(): Boolean = this == SessionType.MOBILITY
+
 /** Loads an existing session into a draft. */
 fun plannedSessionDraftOf(session: PlannedSession): PlannedSessionDraft = PlannedSessionDraft(
     id = session.id,

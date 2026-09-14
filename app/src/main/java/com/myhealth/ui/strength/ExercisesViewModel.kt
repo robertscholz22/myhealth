@@ -63,6 +63,9 @@ class ExercisesViewModel(
 
     fun setQuery(query: String) = filters.update { it.copy(query = query) }
 
+    /** The P17 kind chip row (All/Strength/Mobility). */
+    fun setKind(kind: com.myhealth.domain.engine.strength.ExerciseKind?) = filters.update { it.copy(kind = kind) }
+
     fun setEquipment(equipment: Equipment?) = filters.update { it.copy(equipment = equipment) }
 
     fun setPattern(pattern: MovementPattern?) = filters.update { it.copy(pattern = pattern) }

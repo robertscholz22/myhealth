@@ -94,6 +94,11 @@ fun WorkoutEditScreen(id: Long, onBack: () -> Unit, modifier: Modifier = Modifie
     if (showPicker) {
         ExercisePickerSheet(
             myEquipment = state.myEquipment,
+            initialKind = if (state.draft.kind.isMobility) {
+                com.myhealth.domain.engine.strength.ExerciseKind.MOBILITY
+            } else {
+                null
+            },
             onPick = { exercise -> vm.addExercise(exercise.id); showPicker = false },
             onDismiss = { showPicker = false },
         )
