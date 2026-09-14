@@ -472,4 +472,30 @@ Upgrade path: the emulator carried the 0.3.0 build with a fresh profile, an acce
 
 - POLISH-16 (fixed): the Zones screen showed its empty state whenever there were no runs and no VDOT, hiding the zone table that follows from the profile alone → `hasAnyData` now counts a zone model.
 - POLISH-17 (fixed): the polarisation hint printed "70%%" (an escaped percent in a string used without format arguments) → "70 %".
-- POLISH-18: the body figure is a set of flat rectangles (readable, tests pin the highlight map, K4 in the plan); a rounded silhouette would look closer to Garmin's muscle map.
+- POLISH-18 → FIXED in 0.4.1 (P15.1): jointed body model with rounded silhouette and organic muscle regions (emu_p15_01…03).
+
+## Session 14 — 2026-09-14 (emulator myhealth_api35, P15.1 body figure v2, debug build of 0.4.0)
+
+Fresh AVD state: onboarding completed by hand (Robert / male / 1990-05-12 / 182 cm / 78 kg), then
+four activities imported from a hand-written Garmin-style CSV (`/sdcard/Download/acts.csv`: a 14 km
+long run 13 Sep, a 90-min soccer session 11 Sep, a 45-min gym session 12 Sep, an 8 km easy run
+9 Sep) — Health Connect is not granted on this AVD, and the CSV import is the quickest way to give
+the muscle-load engine a fortnight of load.
+
+| Step | Result | Evidence |
+|---|---|---|
+| More → Exercises → **Barbell bench press**: both silhouettes read as a human body — rounded head, neck, sloping shoulders, tapered torso, arms held clear of the hips, hands, thighs, calves, feet — with the chest filled `primary` and the front deltoids and triceps at 35 % | PASS | emu_p15_01_figure_bench.png |
+| More → Exercises → search "squat" → **Barbell back squat**: quadriceps and glutes `primary`, hamstrings, lower back and the six abdominal blocks at 35 % | PASS | emu_p15_02_figure_squat.png |
+| **Load & Recovery** → Muscle load: heat map with quads/hamstrings/calves/glutes fatigued and chest/lats/traps/lower back loaded; "Quads — 42 AU · Fatigued", "Calves — 39 AU · Fatigued", "Hamstrings — 38 AU · Fatigued" | PASS | emu_p15_03_heatmap.png |
+| Exercises screen muscle filter: tapping a pectoral on the front figure filters the list to chest exercises, tapping it again clears the filter (ray-cast hit test, P15.1) | PASS | — |
+
+- POLISH-18 (fixed): the flat-rectangle figure is replaced by the P15.1 jointed model — rounded,
+  spline-drawn parts unioned into one silhouette, with organic muscle regions inside each part.
+- POLISH-19 (found, **not** fixed — outside P15.1's file list): `ui/strength/SetLogSheet.kt` puts its
+  `LazyColumn` in the sheet's `Column` with no `weight(1f)`, so the list takes the whole sheet and the
+  "Skip logging" / "Save" row is laid out below the bottom edge. Training → a strength session →
+  "Mark done" therefore cannot be completed from the sheet: the session stays `Planned` whether the
+  sheet is dismissed or swiped. One-line fix (`Modifier.weight(1f)` on the `LazyColumn`).
+- Note: the Load screen calls `BodyFigure(modifier = Modifier.fillMaxWidth())` with no height. Before
+  P15.1 that let the front figure take the whole row and pushed the back one off the edge; `BodyFigure`
+  now gives each silhouette half the width itself, so every call site is safe without changing them.

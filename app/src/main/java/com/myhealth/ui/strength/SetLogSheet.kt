@@ -98,7 +98,11 @@ fun SetLogSheet(
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
-        LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
+        // POLISH-19: the list must yield to the button row below it, or Save/Skip lay out off-screen.
+        LazyColumn(
+            modifier = Modifier.weight(1f, fill = false),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        ) {
             items(rows.size) { index ->
                 SetLogRowItem(
                     row = rows[index],

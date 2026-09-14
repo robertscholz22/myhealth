@@ -2,14 +2,18 @@ package com.myhealth.ui.common.body
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
@@ -18,48 +22,75 @@ import androidx.compose.ui.unit.dp
 import com.myhealth.domain.model.MuscleGroup
 import com.myhealth.ui.theme.MyHealthTheme
 
-/** The hairline outline stroke every silhouette and muscle shape is drawn with. */
-private val OUTLINE_WIDTH = 1.dp
+/** The silhouette's outline stroke. */
+private val SILHOUETTE_STROKE = 1.dp
+
+/** The hairline between two neighbouring muscle regions. */
+private val REGION_STROKE = 0.6.dp
+
+/** How much darker than the silhouette the region hairline is drawn. */
+private const val REGION_STROKE_ALPHA = 0.45f
 
 /**
- * The body figure (PLAN §3.12.2, P14.7): a front silhouette and a back silhouette side by side,
- * each muscle group filled by [highlight]'s intensity for that group — `1.0` reads as
+ * The body figure (PLAN §3.12.2, P14.7; redrawn in P15.1): a front silhouette and a back silhouette
+ * side by side, each muscle group filled by [highlight]'s intensity for that group — `1.0` reads as
  * `colorScheme.primary`, `0.0` as `colorScheme.surfaceVariant`, and everything between as a linear
  * blend of the two (so `0.35`, the spec's "secondary" value, reads the same as `primary` at 35 %
  * alpha over the card background). Pure `Canvas`, no images, no new dependency.
+ *
+ * The geometry comes from [BodySkeleton]: rounded, jointed body parts whose world polygons are
+ * composed for [pose] and then *unioned* into one silhouette, so the joints do not show as seams.
+ * Compose's canvas paints are anti-aliased by default, so the many-vertex splines of `BodyShapes`
+ * fill as smooth curves. [pose] is the seam a later exercise animation (P15.2) draws through —
+ * every caller today passes [BodyPose.STANDING].
  *
  * The same composable backs the exercise/workout figures (primary/secondary intensities) and the
  * Load screen's muscle heat map (P14.8, a continuous `load / ref` clamped to `0..1`) — [highlight]
  * does not care which produced it.
  *
  * [onFrontTap]/[onBackTap] turn the figure into the Exercises screen's muscle filter (§4.2): a tap
- * is hit-tested against each group's polygon **bounding box** ([MusclePaths.groupAt]) — "readable,
- * not anatomically precise" is explicitly good enough here (§4.2 "Exercises").
+ * is hit-tested against each group's polygons by ray casting ([MusclePaths.groupAt]).
+ *
+ * Each silhouette gets **half** the width (a weighted [Box]) and is then sized by its 100 : 220
+ * aspect ratio inside that half. Without the weight, a caller that constrains the width but not the
+ * height — the Load screen's heat map — let the front figure take the whole row and pushed the back
+ * one off the edge.
  */
 @Composable
 fun BodyFigure(
     highlight: Map<MuscleGroup, Float>,
     modifier: Modifier = Modifier,
+    pose: BodyPose = BodyPose.STANDING,
     onFrontTap: ((MuscleGroup) -> Unit)? = null,
     onBackTap: ((MuscleGroup) -> Unit)? = null,
 ) {
     Row(modifier = modifier) {
-        BodyView(
-            groups = MusclePaths.FRONT,
-            outline = MusclePaths.FRONT_OUTLINE,
-            highlight = highlight,
-            onTap = onFrontTap,
-            modifier = Modifier.aspectRatio(MusclePaths.WIDTH / MusclePaths.HEIGHT),
-        )
-        BodyView(
-            groups = MusclePaths.BACK,
-            outline = MusclePaths.BACK_OUTLINE,
-            highlight = highlight,
-            onTap = onBackTap,
-            modifier = Modifier.aspectRatio(MusclePaths.WIDTH / MusclePaths.HEIGHT),
-        )
+        BodyFace.entries.forEach { face ->
+            val standing = pose == BodyPose.STANDING
+            val groups = remember(face, pose) {
+                if (standing) faceGroups(face) else BodySkeleton.worldPolygons(face, pose)
+            }
+            val outline = remember(face, pose) {
+                if (standing) faceOutline(face) else BodySkeleton.outlinePolygons(face, pose)
+            }
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                BodyView(
+                    groups = groups,
+                    outline = outline,
+                    highlight = highlight,
+                    onTap = if (face == BodyFace.FRONT) onFrontTap else onBackTap,
+                    modifier = Modifier.aspectRatio(MusclePaths.WIDTH / MusclePaths.HEIGHT),
+                )
+            }
+        }
     }
 }
+
+private fun faceGroups(face: BodyFace) =
+    if (face == BodyFace.FRONT) MusclePaths.FRONT else MusclePaths.BACK
+
+private fun faceOutline(face: BodyFace) =
+    if (face == BodyFace.FRONT) MusclePaths.FRONT_OUTLINE else MusclePaths.BACK_OUTLINE
 
 @Composable
 private fun BodyView(
@@ -72,6 +103,7 @@ private fun BodyView(
     val unused = MaterialTheme.colorScheme.surfaceVariant
     val filled = MaterialTheme.colorScheme.primary
     val outlineColor = MaterialTheme.colorScheme.outline
+    val silhouette = remember(outline) { union(outline) }
 
     val tapModifier = if (onTap == null) {
         Modifier
@@ -89,30 +121,46 @@ private fun BodyView(
         val scaleX = size.width / MusclePaths.WIDTH
         val scaleY = size.height / MusclePaths.HEIGHT
 
-        fun toPath(polygon: MusclePaths.Polygon): Path = Path().apply {
-            polygon.forEachIndexed { index, point ->
-                val offset = Offset(point.x * scaleX, point.y * scaleY)
-                if (index == 0) moveTo(offset.x, offset.y) else lineTo(offset.x, offset.y)
-            }
-            close()
-        }
+        val toScreen = Matrix().apply { scale(scaleX, scaleY) }
 
-        outline.forEach { polygon ->
-            val path = toPath(polygon)
-            drawPath(path, color = unused)
-            drawPath(path, color = outlineColor, style = Stroke(width = OUTLINE_WIDTH.toPx()))
+        // One merged outline: only the body's own edge is stroked, never the joints inside it.
+        val body = Path().apply {
+            addPath(silhouette)
+            transform(toScreen)
         }
+        drawPath(body, color = unused)
+        drawPath(body, color = outlineColor, style = Stroke(width = SILHOUETTE_STROKE.toPx()))
+
+        val regionStroke = Stroke(width = REGION_STROKE.toPx())
+        val regionOutline = outlineColor.copy(alpha = REGION_STROKE_ALPHA)
         groups.forEach { (group, polygons) ->
             val intensity = (highlight[group] ?: 0f).coerceIn(0f, 1f)
             val color = colorFor(intensity, unused, filled)
             polygons.forEach { polygon ->
-                val path = toPath(polygon)
+                val path = polygon.toPath().apply { transform(toScreen) }
                 drawPath(path, color = color)
-                drawPath(path, color = outlineColor, style = Stroke(width = OUTLINE_WIDTH.toPx()))
+                drawPath(path, color = regionOutline, style = regionStroke)
             }
         }
     }
 }
+
+/** One closed polygon as a [Path], in the normalised 100 × 220 box. */
+private fun MusclePaths.Polygon.toPath(): Path = Path().apply {
+    forEachIndexed { index, point ->
+        if (index == 0) moveTo(point.x, point.y) else lineTo(point.x, point.y)
+    }
+    close()
+}
+
+/**
+ * The body parts merged into a single closed shape ([PathOperation.Union]), computed once per
+ * pose and reused across draws — stroking the merged path outlines the body, not every segment.
+ */
+private fun union(polygons: List<MusclePaths.Polygon>): Path =
+    polygons.fold(Path()) { merged, polygon ->
+        Path().apply { op(merged, polygon.toPath(), PathOperation.Union) }
+    }
 
 /** `intensity` linearly blended from [unused] (0) to [filled] (1) — §3.12.2's fill rule. */
 private fun colorFor(intensity: Float, unused: Color, filled: Color): Color = lerp(unused, filled, intensity)

@@ -2771,6 +2771,48 @@ Post-pass 7c of §3.5.6 (`ActiveRecovery.apply`), lead-implemented; tests `ar01�
 | K5 | Muscle-load bands are a modelling guess | They are relative to the athlete's own CTL, only three bands wide, and only ever *reorder* strength suggestions — never block a session the user planned themselves (C15 filters candidates, not `locked` sessions) |
 | K6 | APK growth from the new screens | Expect +2–3 MB debug (Compose screens + strings, no new dependency). A jump > 5 MB must be explained |
 
+### P15 — Body figure v2 and exercise animations
+
+POLISH-18 (VERIFICATION.md session 13): the 0.4.0 body figure was a set of flat rectangles. The
+owner asked for "a proper human silhouette, similar to Garmin's muscle map", and for a later
+iteration that *animates* a strength exercise on the same figure. P15.1 rebuilds the geometry on a
+model that can carry a pose; P15.2 is the animation that uses it.
+
+#### P15.1 — Jointed body model + rounded figure (done)
+- **Create** `ui/common/body/{BodyModel,BodyShapes,BodySegments,BodyMuscles}.kt`, test
+  `app/src/test/java/com/myhealth/ui/common/body/BodyModelTest.kt`.
+- **Modify** `ui/common/body/{MusclePaths,BodyFigure}.kt`.
+- **Do**: a jointed segment model — `BodySegmentId` (16 parts), `BodySegment(id, parent, pivot,
+  outline, muscles)` with the outline and the muscle regions in the segment's *own* local frame, and
+  `BodyPose(angles)` rotating segments about their pivots (`BodyPose.STANDING` = all zero).
+  `BodySkeleton.FRONT`/`.BACK` compose the parent chain into world polygons in the same normalised
+  100 × 220 box `BodyFigure` already drew (`worldPolygons(face, pose)` / `outlinePolygons(face,
+  pose)`), so `MusclePaths` keeps its public API and every call site and `bf01`…`bf05` are untouched.
+  Shapes are closed Catmull-Rom splines through hand-placed control points (`BodyShapes`), giving a
+  rounded head, neck, sloping shoulders, tapered torso, arms held slightly away from the body, hands,
+  hips, thighs, calves and feet, with organic muscle regions inside each part. `groupAt` hit-tests by
+  ray casting instead of bounding boxes. `BodyFigure` unions the parts into one silhouette so the
+  joints do not show as seams, and takes a `pose` parameter for P15.2.
+- **Tests**: `bm01`…`bm05` (standing polygons inside the box; rotating a forearm moves its hand and
+  not the torso; point-in-polygon; muscle regions inside their segment's outline bounds; front/back
+  mirrored consistently).
+- **Accept**: `bash tools/verify.sh`; emulator screenshots of an exercise figure and the heat map.
+
+#### P15.2 — Exercise animations (planning note only — not implemented)
+- **Idea**: per `MovementPattern`, two or three keyframe `BodyPose`s (e.g. `SQUAT` = stand → hips and
+  knees flexed → stand; `HORIZONTAL_PUSH` = arms extended → elbows flexed), held as
+  `object ExercisePoses { val byPattern: Map<MovementPattern, List<BodyPose>> }` next to the model.
+- **Override**: an optional `Exercise.animation: String?` naming a pose set when the movement
+  pattern's generic loop is wrong for that exercise (a deadlift is not a squat); `null` falls back to
+  the pattern.
+- **Compose**: `rememberInfiniteTransition` + `animateFloat` driving a phase `0..1`, a
+  `lerp(BodyPose, BodyPose, t)` that interpolates the angle maps, and `BodyFigure(pose = …)` — the
+  only new public surface is the `pose` parameter P15.1 already added. Respect the system's
+  "remove animations" setting and only animate the figure that is on screen.
+- **Risk**: a 2-D frontal figure cannot show a hinge or a squat convincingly; a side-view skeleton
+  (a third `BodyFace`) may be needed first. Decide that before writing any pose data.
+
+
 ## 6. Verification strategy
 
 ### 6.1 After every task (the lead runs this)
