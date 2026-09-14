@@ -89,7 +89,7 @@ class FakePlanDao : PlanDao {
         fromDay: Long,
         toDay: Long,
     ): List<PlannedSessionEntity> = sessions.value.values
-        .filter { it.day in fromDay..toDay && !it.locked && it.status == PlannedStatus.PLANNED }
+        .filter { it.day in fromDay..toDay && !it.locked && it.status == PlannedStatus.PLANNED && it.sourceSuggestionId != null }
         .sortedBy { it.day }
 
     override suspend fun updateSessionStatus(

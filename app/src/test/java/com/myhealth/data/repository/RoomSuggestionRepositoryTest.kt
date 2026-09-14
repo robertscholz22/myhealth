@@ -170,16 +170,24 @@ class RoomSuggestionRepositoryTest {
 
         // Existing week: an unlocked planned session (replaceable), a locked one and a completed one
         // inside the horizon, plus an unlocked one outside it.
-        fun existing(day: Long, locked: Boolean = false, status: PlannedStatus = PlannedStatus.PLANNED) = PlannedSession(
+        fun existing(
+            day: Long,
+            locked: Boolean = false,
+            status: PlannedStatus = PlannedStatus.PLANNED,
+            fromSuggestion: Boolean = true,
+        ) = PlannedSession(
             id = 0L, planId = null, day = day, startMinuteOfDay = null,
             sportType = SportType.RUN_OUTDOOR, sessionType = SessionType.EASY_RUN, intensity = Intensity.LOW,
             targetDurationMin = 40, targetDistanceMeters = null, targetPaceSecPerKm = null, estimatedTrimp = 50.0,
             description = null, rationale = null, status = status, locked = locked, linkedActivityId = null,
-            sourceSuggestionId = null, createdAtMillis = clock.millis(), updatedAtMillis = clock.millis(),
+            sourceSuggestionId = if (fromSuggestion) 999L else null,
+            createdAtMillis = clock.millis(), updatedAtMillis = clock.millis(),
         )
         planRepo.upsertSession(existing(today + 1))
         planRepo.upsertSession(existing(today + 3, locked = true))
         planRepo.upsertSession(existing(today + 4, status = PlannedStatus.COMPLETED))
+        // BUG-15: a session the user planned by hand is not an earlier proposal — it stays.
+        planRepo.upsertSession(existing(today + 5, fromSuggestion = false))
         planRepo.upsertSession(existing(today + 10))
         assertThat(repo.countReplaceableSessions(batchId)).isEqualTo(1)
 
@@ -190,6 +198,7 @@ class RoomSuggestionRepositoryTest {
             (today + 2) to false, // the accepted suggestion
             (today + 3) to true,  // locked stays
             (today + 4) to false, // completed stays
+            (today + 5) to false, // manual stays (BUG-15)
         )
         assertThat(inHorizon.single { it.day == today + 4 }.status).isEqualTo(PlannedStatus.COMPLETED)
         assertThat(planRepo.getSessions(today + 7, today + 14)).hasSize(1) // outside the horizon untouched

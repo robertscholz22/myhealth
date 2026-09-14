@@ -237,7 +237,10 @@ class RoomSuggestionRepository(
             events = calendarRepo
                 .observeOccurrences(todayDay, horizonEnd + EVENT_LOOKAHEAD_DAYS)
                 .first(),
-            lockedPlanned = planRepo.getSessions(todayDay, horizonEnd - 1).filter { it.locked },
+            // BUG-15: a session the user planned by hand is as fixed as a locked one — it is never
+            // replaced (PlanDao.getReplaceableSessions) and the engine must plan around it.
+            lockedPlanned = planRepo.getSessions(todayDay, horizonEnd - 1)
+                .filter { it.locked || it.sourceSuggestionId == null },
             recentLoad = loadRepo.getRange(todayDay - LOAD_WINDOW_DAYS, todayDay),
             recovery = latestLoad.toRecoveryState(),
             recentActivities = activityRepo

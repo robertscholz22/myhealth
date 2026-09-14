@@ -87,10 +87,12 @@ class RoomPlanRepositoryTest {
     }
 
     @Test
-    fun replaceable_sessions_exclude_locked_and_finished_rows() = runTest {
+    fun replaceable_sessions_exclude_locked_finished_and_hand_planned_rows() = runTest {
         val open = repo.upsertSession(session(day = monday)).id()
         val locked = repo.upsertSession(session(day = monday + 1)).id()
         val done = repo.upsertSession(session(day = monday + 2)).id()
+        // BUG-15: a hand-planned session (no source suggestion) is never replaceable either.
+        repo.upsertSession(session(day = monday + 3, fromSuggestion = false))
         repo.setSessionLocked(locked, locked = true)
         repo.setSessionStatus(done, PlannedStatus.COMPLETED)
 
@@ -117,7 +119,7 @@ class RoomPlanRepositoryTest {
         updatedAtMillis = 0,
     )
 
-    private fun session(day: Long) = PlannedSession(
+    private fun session(day: Long, fromSuggestion: Boolean = true) = PlannedSession(
         id = 0,
         planId = null,
         day = day,
@@ -134,7 +136,7 @@ class RoomPlanRepositoryTest {
         status = PlannedStatus.PLANNED,
         locked = false,
         linkedActivityId = null,
-        sourceSuggestionId = null,
+        sourceSuggestionId = if (fromSuggestion) 1L else null,
         createdAtMillis = 0,
         updatedAtMillis = 0,
     )

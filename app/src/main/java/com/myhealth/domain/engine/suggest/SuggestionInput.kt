@@ -38,7 +38,11 @@ data class SuggestionInput(
     val goals: List<Goal> = emptyList(),
     /** Expanded occurrences covering the horizon **+ 3 days** (C1/C2 look ahead). */
     val events: List<EventOccurrence> = emptyList(),
-    /** Only `locked == true` sessions; the suggester may not move or overlap them (C6). */
+    /**
+     * The planned sessions the suggester must treat as fixed: `locked == true` ones and (BUG-15)
+     * sessions the user planned by hand (`sourceSuggestionId == null`). It may not move or overlap
+     * them (C6) and their load counts against the weekly target.
+     */
     val lockedPlanned: List<PlannedSession> = emptyList(),
     /** The last 42 days of `daily_load`, ascending by day. */
     val recentLoad: List<DailyLoad> = emptyList(),

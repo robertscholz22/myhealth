@@ -70,8 +70,13 @@ interface PlanDao {
     /** Unlocked, still-`PLANNED` sessions in the horizon — the rows the suggester may replace. */
     @Query(
         "SELECT * FROM planned_session WHERE day BETWEEN :fromDay AND :toDay " +
-            "AND locked = 0 AND status = 'PLANNED' ORDER BY day ASC",
+            "AND locked = 0 AND status = 'PLANNED' AND sourceSuggestionId IS NOT NULL ORDER BY day ASC",
     )
+    /**
+     * The sessions a newly accepted proposal may replace (BUG-10): unlocked, still PLANNED, and
+     * — BUG-15 — created by an earlier *suggestion*. A session the user planned by hand
+     * (`sourceSuggestionId IS NULL`) is never replaced.
+     */
     suspend fun getReplaceableSessions(fromDay: Long, toDay: Long): List<PlannedSessionEntity>
 
     @Query("UPDATE planned_session SET status = :status, updatedAtMillis = :updatedAtMillis WHERE id = :id")

@@ -840,8 +840,8 @@
     <string name="review_target_label">target</string>
     <string name="review_suggested_label">suggested</string>
     <string name="review_rest_day_singular">rest day</string>
-    <string name="review_replaces_singular">unlocked planned session will be replaced</string>
-    <string name="review_replaces_plural">unlocked planned sessions will be replaced</string>
+    <string name="review_replaces_singular">earlier suggested session will be replaced</string>
+    <string name="review_replaces_plural">earlier suggested sessions will be replaced</string>
     <string name="review_rest_day_plural">rest days</string>
     <string name="review_selected_summary">%1$d of %2$d selected · %3$d AU</string>
     <string name="review_accept_selected">Accept selected</string>
