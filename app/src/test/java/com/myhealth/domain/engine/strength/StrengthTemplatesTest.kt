@@ -20,15 +20,21 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 
-/** The six built-in workouts and the seeder that materialises them (PLAN §3.12.3, `sw01`…`sw05`). */
+/**
+ * The nine built-in workouts and the seeder that materialises them (PLAN §3.12.3, `sw01`…`sw05`),
+ * plus P17.1's three mobility routines (`mob03`, `mob04`).
+ */
 class StrengthTemplatesTest {
 
     private val lowerBodyGroups = MuscleGroup.entries.filter { it.isLowerBody }.toSet()
 
     @Test
-    fun sw01_six_builtin_templates() {
+    fun sw01_nine_builtin_templates() {
         assertThat(StrengthTemplates.ALL.map { it.templateId })
-            .containsExactly("UPPER_A", "UPPER_B", "LOWER_A", "LOWER_B", "FULL_A", "CORE_A")
+            .containsExactly(
+                "UPPER_A", "UPPER_B", "LOWER_A", "LOWER_B", "FULL_A", "CORE_A",
+                "MOBILITY_LOWER_A", "MOBILITY_UPPER_A", "MOBILITY_FULL_A",
+            )
             .inOrder()
         assertThat(StrengthTemplates.ALL.all { it.isBuiltIn }).isTrue()
         assertThat(StrengthTemplates.ALL.all { it.id == 0L }).isTrue()
@@ -39,10 +45,13 @@ class StrengthTemplatesTest {
             StrengthWorkoutKind.LOWER,
             StrengthWorkoutKind.FULL,
             StrengthWorkoutKind.CORE,
+            StrengthWorkoutKind.MOBILITY_LOWER,
+            StrengthWorkoutKind.MOBILITY_UPPER,
+            StrengthWorkoutKind.MOBILITY_FULL,
         ).inOrder()
         StrengthTemplates.ALL.forEach { workout ->
             assertThat(workout.exercises.size).isAtLeast(5)
-            assertThat(workout.exercises.size).isAtMost(7)
+            assertThat(workout.exercises.size).isAtMost(8)
             assertThat(workout.exercises.map { it.orderIndex })
                 .isEqualTo(workout.exercises.indices.toList())
             workout.exercises.forEach { row ->
@@ -53,6 +62,8 @@ class StrengthTemplatesTest {
         assertThat(StrengthTemplates.byId("NOPE")).isNull()
         assertThat(StrengthTemplates.ofKind(StrengthWorkoutKind.UPPER))
             .containsExactly(StrengthTemplates.UPPER_A, StrengthTemplates.UPPER_B)
+        assertThat(StrengthTemplates.ofKind(StrengthWorkoutKind.MOBILITY_LOWER))
+            .containsExactly(StrengthTemplates.MOBILITY_LOWER_A)
     }
 
     @Test
@@ -99,13 +110,16 @@ class StrengthTemplatesTest {
         val repo = InMemoryStrengthRepository()
         val seeder = StrengthWorkoutSeeder(repo, FIXED_CLOCK)
 
-        assertThat(seeder.seed()).isEqualTo(6)
-        assertThat(repo.stored.value).hasSize(6)
+        assertThat(seeder.seed()).isEqualTo(9)
+        assertThat(repo.stored.value).hasSize(9)
 
         assertThat(seeder.seed()).isEqualTo(0)
-        assertThat(repo.stored.value).hasSize(6)
+        assertThat(repo.stored.value).hasSize(9)
         assertThat(repo.stored.value.values.map { it.templateId })
-            .containsExactly("UPPER_A", "UPPER_B", "LOWER_A", "LOWER_B", "FULL_A", "CORE_A")
+            .containsExactly(
+                "UPPER_A", "UPPER_B", "LOWER_A", "LOWER_B", "FULL_A", "CORE_A",
+                "MOBILITY_LOWER_A", "MOBILITY_UPPER_A", "MOBILITY_FULL_A",
+            )
 
         val upperA = requireNotNull(repo.getByTemplateId("UPPER_A"))
         assertThat(upperA.id).isGreaterThan(0L)
@@ -117,7 +131,63 @@ class StrengthTemplatesTest {
         repo.upsertWorkout(upperA.copy(name = "Upper A (mine)"))
         assertThat(seeder.seed()).isEqualTo(0)
         assertThat(requireNotNull(repo.getByTemplateId("UPPER_A")).name).isEqualTo("Upper A (mine)")
-        assertThat(repo.stored.value).hasSize(6)
+        assertThat(repo.stored.value).hasSize(9)
+    }
+
+    @Test
+    fun mob03_three_templates_18_to_22_minutes() {
+        val mobility = listOf(
+            StrengthTemplates.MOBILITY_LOWER_A,
+            StrengthTemplates.MOBILITY_UPPER_A,
+            StrengthTemplates.MOBILITY_FULL_A,
+        )
+        assertThat(StrengthTemplates.ALL.filter { it.kind.isMobility }).isEqualTo(mobility)
+
+        mobility.forEach { workout ->
+            // 6-8 timed rows, 30-60 s each, 0-15 s of rest (§P17).
+            assertThat(workout.exercises.size).isAtLeast(6)
+            assertThat(workout.exercises.size).isAtMost(8)
+            workout.exercises.forEach { row ->
+                val exercise = requireNotNull(ExerciseCatalog.byId(row.exerciseId))
+                assertThat(exercise.isMobility).isTrue()
+                assertThat(exercise.isTimed).isTrue()
+                assertThat(row.reps).isNull()
+                assertThat(requireNotNull(row.seconds)).isAtLeast(30)
+                assertThat(requireNotNull(row.seconds)).isAtMost(60)
+                assertThat(requireNotNull(row.restSec)).isAtLeast(0)
+                assertThat(requireNotNull(row.restSec)).isAtMost(15)
+            }
+            // …and the whole routine is the "about 20 minutes" §P17 asks for.
+            assertThat(workout.estimatedMinutes).isAtLeast(18)
+            assertThat(workout.estimatedMinutes).isAtMost(22)
+        }
+        // The three land on exactly 21 min: 780/765/780 s of work + the flat 480 s overhead.
+        assertThat(mobility.map { it.estimatedMinutes }).containsExactly(21, 21, 21).inOrder()
+        // A mobility routine never crosses into the other half of the body's lifts.
+        assertThat(StrengthTemplates.MOBILITY_UPPER_A.exercises.map { it.exerciseId })
+            .doesNotContain("MOB_COUCH_STRETCH")
+    }
+
+    @Test
+    fun mob04_seeder_idempotent_nine() = runTest {
+        val repo = InMemoryStrengthRepository()
+        val seeder = StrengthWorkoutSeeder(repo, FIXED_CLOCK)
+
+        assertThat(seeder.seed()).isEqualTo(9)
+        assertThat(seeder.seed()).isEqualTo(0)
+        assertThat(seeder.seed()).isEqualTo(0)
+        assertThat(repo.stored.value).hasSize(9)
+        assertThat(repo.stored.value.values.count { it.kind.isMobility }).isEqualTo(3)
+
+        // `accept` materialises a mobility routine exactly like a strength one (P14.5 / P17.1).
+        val lower = requireNotNull(seeder.workoutFor("MOBILITY_LOWER_A"))
+        assertThat(lower.id).isGreaterThan(0L)
+        assertThat(lower.kind).isEqualTo(StrengthWorkoutKind.MOBILITY_LOWER)
+        assertThat(lower.name).isEqualTo("Mobility lower A")
+        assertThat(lower.exercises.all { it.seconds != null }).isTrue()
+        // …and asking for it twice reuses the same row rather than seeding a tenth.
+        assertThat(requireNotNull(seeder.workoutFor("MOBILITY_LOWER_A")).id).isEqualTo(lower.id)
+        assertThat(repo.stored.value).hasSize(9)
     }
 
     /** In-memory [StrengthRepository] — only what the seeder touches is modelled. */

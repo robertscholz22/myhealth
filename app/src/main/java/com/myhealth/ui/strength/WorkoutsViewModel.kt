@@ -156,9 +156,14 @@ private fun MutableStateFlow<WorkoutsAction>.set(transform: (WorkoutsAction) -> 
 }
 
 /** The `SessionType` a planned session gets from a workout's kind; `CORE`/`CUSTOM` fall back to
- * `STRENGTH_FULL` — there is no dedicated core/custom session type (§2.1). */
+ * `STRENGTH_FULL` — there is no dedicated core/custom session type (§2.1) — and the three P17
+ * `MOBILITY_*` kinds map onto `SessionType.MOBILITY`, which already exists and carries no load. */
 fun sessionTypeFor(kind: StrengthWorkoutKind): SessionType = when (kind) {
     StrengthWorkoutKind.UPPER -> SessionType.STRENGTH_UPPER
     StrengthWorkoutKind.LOWER -> SessionType.STRENGTH_LOWER
     StrengthWorkoutKind.FULL, StrengthWorkoutKind.CORE, StrengthWorkoutKind.CUSTOM -> SessionType.STRENGTH_FULL
+    StrengthWorkoutKind.MOBILITY_LOWER,
+    StrengthWorkoutKind.MOBILITY_UPPER,
+    StrengthWorkoutKind.MOBILITY_FULL,
+    -> SessionType.MOBILITY
 }

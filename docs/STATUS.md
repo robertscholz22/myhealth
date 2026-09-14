@@ -391,6 +391,16 @@ Known limitation: when one of several sources is deleted, the canonical row keep
 
 ---
 
+## P17 — Mobility exercises and mobility routines (release 0.6.0)
+
+| Task | Model | Done | Tests | APK MB | Notes |
+|---|---|---|---|---|---|
+| **P17.1** Catalog, templates, suggester | opus | **yes** | 1000 | 88.4 (release 14.5) | **Enums (append-only, so every stored ordinal is untouched)**: `MovementPattern.MOBILITY`, `Equipment.FOAM_ROLLER`, `StrengthWorkoutKind.{MOBILITY_LOWER, MOBILITY_UPPER, MOBILITY_FULL}` (+ `StrengthWorkoutKind.isMobility`), `Exercise.isMobility`. **`ExerciseCatalogMobility.kt`**: **33** timed drills, ids prefixed `MOB_`, equipment bodyweight / band / foam roller, one cue each, `primary` = the group being mobilised; all 16 `MuscleGroup`s are a mobility primary (`mob02`). `ExerciseCatalog` gains `strength` / `mobility` and an `ExerciseKind?` argument on `search` / `filter` (`null` = the "All" chip, so `filter()` and `search("")` are still `ALL` and `ex09`/`ex10` are untouched). **Templates**: `MOBILITY_LOWER_A` / `MOBILITY_UPPER_A` / `MOBILITY_FULL_A`, 7–8 holds of 30–60 s with **15 s** rest (a `flow()` builder that refuses a non-mobility id and anything outside 30–60 s), each **21 min** — `StrengthWorkout.DEFAULT_REST_SEC` and the estimate formula are untouched, the short rest is per row. Seeder and `sw01`/`sw05` are now **nine** built-ins, still idempotent (`mob04`), and `accept` → `workoutFor` materialises a routine exactly like a lifting template. **Progression**: `ProgressionDefaults.carriesLoad` (bodyweight **or** mobility → no load, so the band pull-apart and the roller never get kilos), `FOAM_ROLLER` increment 1.0, holds stay 30–60 s. **Substitution** never crosses strength ↔ mobility (`mob09`). **Muscle load**: `MuscleDistribution.isMobilityOnly` (a `MOBILITY_*` kind, or every row a mobility drill) → `MuscleLoadEngine.sharesOf` deposits **nothing** (`mob08`) — mobility is recovery. **Suggester**: `StrengthRules.mobilityTemplateFor(state)` (lower ≥ LOADED + upper FRESH → lower routine, upper ≥ LOADED + lower FRESH → upper routine, else full), wired into `templateIdFor` for `SessionType.MOBILITY` so both the rest-day pass 7d and any placed `MOBILITY` session carry it, plus the `MOBILITY_FOCUS` rationale line; `workoutEntry` skips a mobility routine (it is announced by its own line). **Gating**: `SuggestionSnapshot.render` does not print `workoutTemplateId`, and the whole mobility layer follows the §3.12.5 gate (`ctx.enabled`), so `fixtures/suggest/sug28_baseline.txt` is byte-identical and was **not** regenerated; `sug39`/`sug43` pin it. `ui/strength/WorkoutsViewModel.sessionTypeFor` maps the three new kinds to `SessionType.MOBILITY` (needed to compile; the rest of the UI is P17.2). **+11 unit tests** (989 → **1000**): `mob01`…`mob09`, `sug42`, `sug43`; `sw01` renamed `sw01_nine_builtin_templates`, `sw05` and `RoomSuggestionRepositoryTest.accepting_a_strength_suggestion_materialises_its_workout` updated 6 → 9 rows. Lint clean |
+| **P17.2** UI | — | no | — | — | Next: kind chips on Exercises, the three kinds in the workouts list/editor, "Routine: Mobility lower A" on a planned `MOBILITY` card, the foam-roller chip in Settings |
+| **P17.3** Emulator + release 0.6.0 | — | no | — | — | versionCode 150 / 0.6.0 |
+
+---
+
 ## Roll-up
 
 | Phase | Tasks | Done |
@@ -411,5 +421,6 @@ Known limitation: when one of several sources is deleted, the canonical row keep
 | P14 | 10 | **9** |
 | P15 | 2 | **1** |
 | P16 | 3 | **1** |
-| **Total** | **108** | **93** |
+| P17 | 3 | **1** |
+| **Total** | **111** | **94** |
 

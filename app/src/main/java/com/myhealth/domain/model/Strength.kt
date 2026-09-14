@@ -37,6 +37,13 @@ data class Exercise(
     val allMuscles: Set<MuscleGroup> get() = primary + secondary
 
     val isBodyweightOnly: Boolean get() = equipment == Equipment.BODYWEIGHT
+
+    /**
+     * P17: a stretch / joint rotation / foam-roll rather than a lift. Every mobility entry is
+     * [isTimed], carries no load (`ProgressionDefaults.carriesLoad`) and is never substituted for
+     * a strength movement.
+     */
+    val isMobility: Boolean get() = pattern == MovementPattern.MOBILITY
 }
 data class StrengthWorkout(
     val id: Long,

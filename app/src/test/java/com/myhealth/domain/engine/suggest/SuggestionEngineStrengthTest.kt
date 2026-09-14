@@ -14,7 +14,8 @@ import org.junit.Test
 
 /**
  * `sug37`…`sug41` of PLAN §3.12.5 — the strength layer as the whole engine sees it, and the two
- * cases that prove it is **invisible** without `SuggestionInput.muscleLoad`.
+ * cases that prove it is **invisible** without `SuggestionInput.muscleLoad`; plus P17.1's
+ * `sug42`/`sug43`, which do the same for the mobility routines.
  */
 class SuggestionEngineStrengthTest {
 
@@ -190,5 +191,72 @@ class SuggestionEngineStrengthTest {
         engine.generate(afterLongRun()).sessions
             .filterNot { it.sessionType in Constraints.STRENGTH_TYPES }
             .forEach { assertThat(it.workoutTemplateId).isNull() }
+    }
+
+    @Test
+    fun sug42_rest_day_mobility_names_a_routine() {
+        // The same loaded-legs week, with `mobilityOnRestDays` on: post-pass 7d fills every rest
+        // day with mobility, and P17.1 gives each filler the routine the muscle state asks for.
+        val input = afterLongRun().copy(
+            profile = SuggestFixtures.profile(
+                preferredSportsJson = """{"RUN":3,"STRENGTH":2}""",
+                mobilityOnRestDays = true,
+            ),
+        )
+        val load = requireNotNull(input.muscleLoad)
+        assertThat(load.lowerBody).isEqualTo(MuscleLoadBand.FATIGUED)
+        assertThat(load.upperBody).isEqualTo(MuscleLoadBand.FRESH)
+
+        val mobility = engine.generate(input).sessions.filter { it.sessionType == SessionType.MOBILITY }
+        assertThat(mobility).isNotEmpty()
+        mobility.forEach { session ->
+            assertThat(session.workoutTemplateId).isEqualTo("MOBILITY_LOWER_A")
+            val line = session.rationale.first { it.ruleId == Rationale.RULE_MOBILITY_FOCUS }
+            assertThat(line.text).isEqualTo(
+                "Mobility: legs are loaded, so this routine targets hips, hamstrings and calves.",
+            )
+            // The mobility routine is announced by its own line, never by the strength one.
+            assertThat(session.rationale.map { it.ruleId })
+                .doesNotContain(Rationale.RULE_STRENGTH_WORKOUT)
+            // …and it is still a rest-day filler: the rest-day rationale is untouched.
+            assertThat(session.rationale.map { it.ruleId }).contains(Rationale.RULE_MOBILITY_REST_DAY)
+        }
+
+        // The routine is materialisable, which is what `accept` does with it (P14.5 / P17.1).
+        val routine = requireNotNull(StrengthTemplates.byId("MOBILITY_LOWER_A"))
+        assertThat(routine.kind.isMobility).isTrue()
+        assertThat(routine.estimatedMinutes).isEqualTo(21)
+
+        // Without the muscle layer the very same week names nothing and says nothing (`sug39`).
+        val bare = input.copy(muscleLoad = null)
+        engine.generate(bare).sessions
+            .filter { it.sessionType == SessionType.MOBILITY }
+            .forEach { session ->
+                assertThat(session.workoutTemplateId).isNull()
+                assertThat(session.rationale.map { it.ruleId })
+                    .doesNotContain(Rationale.RULE_MOBILITY_FOCUS)
+            }
+    }
+
+    @Test
+    fun sug43_baselines_unchanged() {
+        // P17.1's drift guard: the mobility catalog, the three routines and the `MOBILITY_FOCUS`
+        // line are additions that a muscle-load-free week cannot see. `sug28_baseline.txt` is
+        // read-only and was *not* regenerated for P17.
+        assertThat(SuggestionSnapshot.renderAll(engine)).isEqualTo(SuggestionSnapshot.loadBaseline())
+
+        SuggestionSnapshot.BASELINE_INPUTS.forEach { (name, input) ->
+            val sessions = engine.generate(input).sessions
+            assertWithMessage(name).that(sessions.mapNotNull { it.workoutTemplateId }).isEmpty()
+            assertWithMessage(name)
+                .that(sessions.flatMap { it.rationale }.map { it.ruleId })
+                .doesNotContain(Rationale.RULE_MOBILITY_FOCUS)
+        }
+
+        // Five of those fixtures really do hold mobility sessions — the guard is not vacuous.
+        val withMobility = SuggestionSnapshot.BASELINE_INPUTS.count { (_, input) ->
+            engine.generate(input).sessions.any { it.sessionType == SessionType.MOBILITY }
+        }
+        assertThat(withMobility).isAtLeast(1)
     }
 }

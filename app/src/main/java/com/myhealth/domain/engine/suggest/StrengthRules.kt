@@ -20,6 +20,7 @@ import com.myhealth.domain.model.StrengthWorkoutKind
  * | `C15` | a `STRENGTH_LOWER`/`STRENGTH_FULL` candidate is discarded when the day's projected lower-body band is `FATIGUED`, when a hard leg day sits within 36 h before it, or when a hard run / match / race sits within 48 h after it |
  * | bonus | `+0.10` for `STRENGTH_UPPER` on a loaded-legs / fresh-arms day, `+0.10` for leg work on fresh legs with nothing hard ahead |
  * | workout | a placed `STRENGTH_*` session proposes a built-in template, alternating per kind |
+ * | mobility | a placed or filler `MOBILITY` session proposes a `MOBILITY_*` routine and says why (P17.1) |
  *
  * **The whole layer is inert when [MuscleContext.state] is `null`** — which is what every
  * pre-P14.5 fixture relies on: `Constraints` returns no `C15`, `Scorer` adds a `0.0` bonus,
@@ -42,6 +43,11 @@ import com.myhealth.domain.model.StrengthWorkoutKind
  *   `UPPER_B` rather than the same workout twice.
  */
 object StrengthRules {
+
+    /** §P17: the three mobility routines `mobilityTemplateFor` chooses between. */
+    const val MOBILITY_LOWER_A: String = "MOBILITY_LOWER_A"
+    const val MOBILITY_UPPER_A: String = "MOBILITY_UPPER_A"
+    const val MOBILITY_FULL_A: String = "MOBILITY_FULL_A"
 
     /** §3.12.5 (b): the sports whose hard sessions leave the legs unable to lift. */
     val LEG_SPORT_GROUPS: Set<SportGroup> = setOf(SportGroup.RUN, SportGroup.SOCCER, SportGroup.CYCLE)
@@ -154,12 +160,56 @@ object StrengthRules {
      */
     fun templateIdFor(sessionType: SessionType, ctx: MuscleContext, occurrence: Int = 0): String? {
         if (!ctx.enabled) return null
+        if (sessionType == SessionType.MOBILITY) return mobilityTemplateFor(ctx.state)
         val kind = kindFor(sessionType) ?: return null
         val options = StrengthTemplates.ofKind(kind).mapNotNull { it.templateId }
         if (options.isEmpty()) return null
         // `indexOf` is −1 for "never accepted one", which makes the first option the next one.
         val start = options.indexOf(ctx.lastTemplateByKind[kind])
         return options[(start + 1 + occurrence.coerceAtLeast(0)) % options.size]
+    }
+
+    /**
+     * P17.1 (§P17): the mobility routine the muscle-load state asks for.
+     *
+     * | State | Routine |
+     * |---|---|
+     * | lower ≥ `LOADED` and upper `FRESH` | [MOBILITY_LOWER_A] |
+     * | upper ≥ `LOADED` and lower `FRESH` | [MOBILITY_UPPER_A] |
+     * | anything else, `null` included | [MOBILITY_FULL_A] |
+     *
+     * A total function on purpose — there is always a routine to name, so the UI never has to
+     * handle "mobility without a routine". *Whether* a session carries it is a separate decision
+     * ([templateIdFor]), and that one is inert without a muscle-load state.
+     */
+    fun mobilityTemplateFor(state: MuscleLoadState?): String {
+        val lower = state?.lowerBody ?: return MOBILITY_FULL_A
+        val upper = state.upperBody
+        val lowerLoaded = lower.ordinal >= MuscleLoadBand.LOADED.ordinal
+        val upperLoaded = upper.ordinal >= MuscleLoadBand.LOADED.ordinal
+        return when {
+            lowerLoaded && upper == MuscleLoadBand.FRESH -> MOBILITY_LOWER_A
+            upperLoaded && lower == MuscleLoadBand.FRESH -> MOBILITY_UPPER_A
+            else -> MOBILITY_FULL_A
+        }
+    }
+
+    /**
+     * P17.1: the `MOBILITY_FOCUS` line of a placed or filler mobility session — which half of the
+     * body the routine is aimed at, and why. `null` for anything that is not a `MOBILITY` session
+     * and, like every other §3.12.5 line, whenever the muscle layer is off.
+     */
+    fun mobilityEntry(sessionType: SessionType, ctx: MuscleContext): RationaleEntry? {
+        if (sessionType != SessionType.MOBILITY || !ctx.enabled) return null
+        val text = when (mobilityTemplateFor(ctx.state)) {
+            MOBILITY_LOWER_A ->
+                "Mobility: legs are loaded, so this routine targets hips, hamstrings and calves."
+            MOBILITY_UPPER_A ->
+                "Mobility: the upper body is loaded, so this routine targets the chest, " +
+                    "shoulders and upper back."
+            else -> "Mobility: a full-body routine keeps everything moving."
+        }
+        return RationaleEntry(ruleId = Rationale.RULE_MOBILITY_FOCUS, text = text)
     }
 
     /**
@@ -199,6 +249,8 @@ object StrengthRules {
      */
     fun workoutEntry(workout: StrengthWorkout?): RationaleEntry? {
         val row = workout ?: return null
+        // P17: a mobility routine is announced by [mobilityEntry], not by the strength line.
+        if (row.kind.isMobility) return null
         val count = row.exercises.size
         return RationaleEntry(
             ruleId = Rationale.RULE_STRENGTH_WORKOUT,

@@ -9,8 +9,8 @@ import com.myhealth.domain.util.Outcome
 import java.time.Clock
 
 /**
- * Materialises the six built-in workouts of [StrengthTemplates] into `strength_workout`
- * (PLAN §3.12.3, P14.4).
+ * Materialises the nine built-in workouts of [StrengthTemplates] into `strength_workout`
+ * (PLAN §3.12.3, P14.4; the three `MOBILITY_*` routines were added by P17.1).
  *
  * Seeding happens from **code, not from the migration**, the first time the Workouts screen opens
  * or a strength suggestion is accepted, so a template that turns out to be wrong can be corrected
@@ -25,7 +25,7 @@ import java.time.Clock
  * It is idempotent on [com.myhealth.domain.model.StrengthWorkout.templateId] (`sw05`): a template
  * whose row already exists is left exactly as it is — including the user's own edits to it — and
  * `uq_strength_workout_template` is the database-side backstop for the same rule. Seeding twice
- * therefore leaves six rows, not twelve.
+ * therefore leaves nine rows, not eighteen.
  */
 class StrengthWorkoutSeeder(
     private val repo: StrengthRepository,

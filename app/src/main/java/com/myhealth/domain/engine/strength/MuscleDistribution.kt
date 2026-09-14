@@ -17,6 +17,7 @@ import com.myhealth.domain.model.MuscleGroup.TRAPS
 import com.myhealth.domain.model.MuscleGroup.TRICEPS
 import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.SportGroup
+import com.myhealth.domain.model.StrengthWorkout
 import kotlin.math.abs
 
 /**
@@ -155,6 +156,22 @@ object MuscleDistribution {
      * those two types, the full-body mean for `STRENGTH_FULL`, for any other type and for `null`
      * (a Garmin "Strength" activity that no planned session ever claimed).
      */
+    /**
+     * P17 (§P17): a mobility routine deposits **no** muscle load — it is recovery, not work, and
+     * a 20-minute stretch that made the legs read "loaded" would block the next leg day for the
+     * wrong reason (`mob08`).
+     *
+     * True for a workout whose [StrengthWorkout.kind] is one of the three `MOBILITY_*` kinds, and
+     * also for any workout every one of whose catalog rows is a mobility drill — a user's own
+     * `CUSTOM` stretch routine counts too. A workout with no resolvable row at all is **not**
+     * mobility: that case falls back to the generic session-type table, as it did before P17.
+     */
+    fun isMobilityOnly(workout: StrengthWorkout): Boolean {
+        if (workout.kind.isMobility) return true
+        val exercises = workout.exercises.mapNotNull { ExerciseCatalog.byId(it.exerciseId) }
+        return exercises.isNotEmpty() && exercises.all { it.isMobility }
+    }
+
     fun forStrengthSessionType(sessionType: SessionType?): Map<MuscleGroup, Double> =
         when (sessionType) {
             SessionType.STRENGTH_UPPER -> STRENGTH_UPPER

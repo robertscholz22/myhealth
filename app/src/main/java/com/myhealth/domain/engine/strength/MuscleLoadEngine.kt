@@ -135,13 +135,19 @@ object MuscleLoadEngine {
     /**
      * How one session's TRIMP is spread over the groups it worked — the share table for an
      * endurance session, the exercises themselves for a strength session that has a workout, the
-     * generic `STRENGTH_*` table for one that does not.
+     * generic `STRENGTH_*` table for one that does not — and **nothing at all** for a P17 mobility
+     * routine ([MuscleDistribution.isMobilityOnly]).
      */
-    fun sharesOf(session: MuscleSession): Map<MuscleGroup, Double> = when {
-        session.sportGroup == SportGroup.STRENGTH ->
-            session.workout?.let { workoutShares(it) }
-                ?: MuscleDistribution.forStrengthSessionType(session.sessionType)
-        else -> MuscleDistribution.forSportGroup(session.sportGroup)
+    fun sharesOf(session: MuscleSession): Map<MuscleGroup, Double> {
+        if (session.sportGroup != SportGroup.STRENGTH) {
+            return MuscleDistribution.forSportGroup(session.sportGroup)
+        }
+        val workout = session.workout
+            ?: return MuscleDistribution.forStrengthSessionType(session.sessionType)
+        // P17: a mobility routine is recovery and deposits nothing at all.
+        if (MuscleDistribution.isMobilityOnly(workout)) return emptyMap()
+        return workoutShares(workout)
+            ?: MuscleDistribution.forStrengthSessionType(session.sessionType)
     }
 
     /** The AU each group takes from one session, before any decay. */

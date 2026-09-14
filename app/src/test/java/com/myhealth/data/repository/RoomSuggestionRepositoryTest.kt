@@ -326,7 +326,8 @@ class RoomSuggestionRepositoryTest {
         assertThat(planned.workoutId).isEqualTo(seeded.id)
         assertThat(seeded.exercises).hasSize(6)
         // Seeding is idempotent: accepting the same template again reuses the row.
-        assertThat(strengthRepo.stored.value).hasSize(6)
+        // Nine rows since P17.1 — the six lifting templates plus the three mobility routines.
+        assertThat(strengthRepo.stored.value).hasSize(9)
     }
 
     // ---- helpers -------------------------------------------------------------------------------

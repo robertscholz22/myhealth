@@ -255,7 +255,19 @@ enum class MuscleGroup(val side: BodySide, val isLowerBody: Boolean) {
 }
 
 /** What an exercise is performed with (§3.12.1). */
-enum class Equipment { BODYWEIGHT, DUMBBELL, BARBELL, MACHINE, CABLE, KETTLEBELL, BAND, MEDICINE_BALL }
+enum class Equipment {
+    BODYWEIGHT,
+    DUMBBELL,
+    BARBELL,
+    MACHINE,
+    CABLE,
+    KETTLEBELL,
+    BAND,
+    MEDICINE_BALL,
+
+    /** Appended for P17 — the only implement the mobility half of the catalog adds. */
+    FOAM_ROLLER,
+}
 
 /** The movement an exercise trains (§3.12.1) — used for filtering and template balance. */
 enum class MovementPattern {
@@ -270,10 +282,36 @@ enum class MovementPattern {
     CORE,
     ISOLATION,
     PLYOMETRIC,
+
+    /**
+     * Appended for P17: a stretch, a joint rotation or a foam-roll — always timed, never loaded,
+     * and never substituted for a strength movement (`ExerciseSubstitution`).
+     */
+    MOBILITY,
 }
 
-/** `strength_workout.kind` (§2.2.7). `CUSTOM` is the last-resort member of the converter. */
-enum class StrengthWorkoutKind { FULL, UPPER, LOWER, CORE, CUSTOM }
+/**
+ * `strength_workout.kind` (§2.2.7). `CUSTOM` is the last-resort member of the converter.
+ *
+ * The three `MOBILITY_*` members are **appended** for P17, so every stored ordinal and every
+ * fixture of P14–P16 is untouched. A mobility routine is recovery: it deposits no muscle load
+ * (`MuscleDistribution.isMobilityOnly`) and its rows are always holds.
+ */
+enum class StrengthWorkoutKind {
+    FULL,
+    UPPER,
+    LOWER,
+    CORE,
+    CUSTOM,
+    MOBILITY_LOWER,
+    MOBILITY_UPPER,
+    MOBILITY_FULL,
+    ;
+
+    /** True for the three P17 kinds — what the muscle-load and rationale rules branch on. */
+    val isMobility: Boolean
+        get() = this == MOBILITY_LOWER || this == MOBILITY_UPPER || this == MOBILITY_FULL
+}
 
 /**
  * How an exercise felt (§P16, P16.1) — the one input the load progression takes.

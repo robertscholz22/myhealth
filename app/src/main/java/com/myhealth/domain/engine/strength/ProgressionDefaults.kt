@@ -97,6 +97,8 @@ object ProgressionDefaults {
         Equipment.MEDICINE_BALL to 1.0,
         // Bodyweight carries no load at all; the value is never used, but a lookup must not throw.
         Equipment.BODYWEIGHT to 1.0,
+        // Likewise the foam roller (P17): a mobility drill never carries a load.
+        Equipment.FOAM_ROLLER to 1.0,
     )
 
     /** Compound patterns: heavy and low-rep with a barbell, moderate with anything else. */
@@ -123,6 +125,15 @@ object ProgressionDefaults {
     /** True when the load of [exerciseId] is per hand rather than a total. */
     fun isPerHand(exerciseId: String): Boolean = exerciseId in PER_HAND
 
+    /**
+     * P17: whether [exercise] is prescribed with a weight at all. Bodyweight never is — and
+     * neither is a mobility drill, whatever it is performed with: a light band round a
+     * pull-apart or a foam roller is a tool, not a load, and §P17's mobility progression grows
+     * the **hold**, not the kilos.
+     */
+    fun carriesLoad(exercise: Exercise): Boolean =
+        exercise.equipment != Equipment.BODYWEIGHT && !exercise.isMobility
+
     /** The smallest usable load change for [equipment], in kg. */
     fun incrementKg(equipment: Equipment): Double = INCREMENTS.getValue(equipment)
 
@@ -130,7 +141,9 @@ object ProgressionDefaults {
     fun incrementKg(exercise: Exercise): Double = incrementKg(exercise.equipment)
 
     /**
-     * The rep range a counted exercise is worked in. A compound pattern under a barbell is
+     * The rep range a counted exercise is worked in. `MOBILITY` never reaches here (every
+     * mobility entry is timed) and would fall through to the 8-12 default. A compound pattern
+     * under a barbell is
      * 5–8, the same pattern with anything else (dumbbell, machine, cable, bodyweight — and, as a
      * documented extension of §P16, kettlebell / band / medicine ball) is 8–12; `ISOLATION`
      * 10–15, counted `CORE` 10–20, `PLYOMETRIC` 5–8. A counted `CARRY` — the catalog has none —
@@ -145,7 +158,10 @@ object ProgressionDefaults {
         else -> OTHER_COMPOUND_REPS
     }
 
-    /** The hold a timed exercise is worked in: 30–60 s for every pattern (§P16). */
+    /**
+     * The hold a timed exercise is worked in: 30–60 s for every pattern (§P16) — including the
+     * `MOBILITY` pattern of §P17, whose whole progression is this range plus the ±10/±5 s steps.
+     */
     @Suppress("UNUSED_PARAMETER")
     fun secondsRange(exercise: Exercise): IntRange = HOLD_SECONDS
 

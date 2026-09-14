@@ -1,6 +1,5 @@
 package com.myhealth.domain.engine.strength
 
-import com.myhealth.domain.model.Equipment
 import com.myhealth.domain.model.ExercisePrescription
 import com.myhealth.domain.model.ExerciseProgress
 import com.myhealth.domain.model.Feedback
@@ -154,9 +153,12 @@ object ProgressionEngine {
         return max(ProgressionDefaults.roundToIncrement(raw, increment), increment)
     }
 
-    /** `null` for a bodyweight exercise, else the floored estimate, at least one increment. */
+    /**
+     * `null` for a bodyweight exercise **and for every P17 mobility drill**, else the floored
+     * estimate, at least one increment.
+     */
     private fun initialLoad(exercise: Exercise, bodyWeightKg: Double): Double? {
-        if (exercise.equipment == Equipment.BODYWEIGHT) return null
+        if (!ProgressionDefaults.carriesLoad(exercise)) return null
         val increment = ProgressionDefaults.incrementKg(exercise)
         val raw = ProgressionDefaults.ratioFor(exercise.id) * bodyWeightKg
         return max(ProgressionDefaults.floorToIncrement(raw, increment), increment)

@@ -24,6 +24,11 @@ import kotlinx.serialization.json.jsonPrimitive
  * prescribes exactly one of `reps` / `seconds` (§2.2.7), so swapping a counted press for a hold
  * would produce a row the repository rejects.
  *
+ * P17 adds one more wall: a substitution **never crosses the strength/mobility line**
+ * ([Exercise.isMobility]). The `MOBILITY` pattern already makes that true by construction — no
+ * lift shares it — and the explicit test keeps it true if a later release ever gives a mobility
+ * drill a strength pattern (`mob09`).
+ *
  * The catalog's own order decides between equally good candidates, which makes every substitution
  * deterministic and testable (`eq01`…`eq05`).
  */
@@ -36,6 +41,7 @@ object ExerciseSubstitution {
             it.id != exercise.id &&
                 it.pattern == exercise.pattern &&
                 it.isTimed == exercise.isTimed &&
+                it.isMobility == exercise.isMobility &&
                 it.equipment in available
         }
         return candidates.firstOrNull { it.primary == exercise.primary }

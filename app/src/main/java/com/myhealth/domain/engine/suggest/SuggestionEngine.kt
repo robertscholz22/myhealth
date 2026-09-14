@@ -194,7 +194,10 @@ class SuggestionEngine(private val clock: Clock) {
         return current
     }
 
-    /** 7d — `profile.mobilityOnRestDays`: every rest day gets mobility; a rest day stays a rest day. */
+    /**
+     * 7d — `profile.mobilityOnRestDays`: every rest day gets mobility; a rest day stays a rest day.
+     * The routine it names is chosen later, in [sessionOf], from the muscle-load state (P17.1).
+     */
     internal fun addMobilityToRestDays(
         grid: SuggestionGrid,
         phase: TrainingPhase,
@@ -292,8 +295,15 @@ class SuggestionEngine(private val clock: Clock) {
      * P14.3 (§3.11): the placed item as a [SuggestedSession], with the structured workout and the
      * target pace the zone model prescribes for it — and, since P14.5, the built-in strength
      * workout a `STRENGTH_*` session proposes (§3.12.5), alternating by [occurrence] inside the
-     * batch and by the last accepted template across batches. Without muscle load there is no
-     * template, no `STRENGTH_WORKOUT` line and no change at all.
+     * batch and by the last accepted template across batches. Since P17.1 a `MOBILITY` session —
+     * the rest-day filler of [addMobilityToRestDays] or a placed one — names a `MOBILITY_*` routine
+     * the same way, with a `MOBILITY_FOCUS` line instead of the strength `Workout:` one.
+     *
+     * Without muscle load there is no template, no `STRENGTH_WORKOUT` line, no `MOBILITY_FOCUS`
+     * line and no change at all: every pre-P17 output, `sug28`'s baseline included, is untouched.
+     * (§P17 asks for the mobility id "always"; `sug39` pins that a muscle-load-free week names no
+     * template at all, so the id follows the same gate as every other §3.12.5 output — see the
+     * P17.1 note in PLAN §P17.)
      *
      * Nothing here can change *which* sessions were placed — candidate generation, scoring and the
      * constraints all ran already. Without a VDOT, a measured band or an FTP the structure is
@@ -328,7 +338,10 @@ class SuggestionEngine(private val clock: Clock) {
             score = item.score,
             rationale = item.rationale +
                 Rationale.intervalEntries(plan, pace, ctx, item.sessionType) +
-                listOfNotNull(StrengthRules.workoutEntry(workout)),
+                listOfNotNull(
+                    StrengthRules.workoutEntry(workout),
+                    StrengthRules.mobilityEntry(item.sessionType, muscle),
+                ),
             status = SuggestionStatus.PROPOSED,
             targetPaceSecPerKm = pace,
             structureJson = plan?.let { WorkoutStructureCodec.encode(it.structure) },

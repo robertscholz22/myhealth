@@ -2852,6 +2852,33 @@ model that can carry a pose; P15.2 is the animation that uses it.
 | **P17.2** UI | sonnet | M `ui/strength/{ExercisesUiState,ExercisesScreen,ExercisePickerSheet,WorkoutsScreen,WorkoutEditScreen,WorkoutEditUiState}.kt` (kind chips, labels for the three kinds), `ui/training/{PlannedSessionCard,TrainingViewModel,TrainingScreen}.kt` ("Routine: …" line for MOBILITY sessions, Mark done → set-log sheet), `ui/settings/SettingsSections.kt` (foam roller chip), `strings.xml` | `ExercisesUiStateTest.mobui01_kind_filter`, `WorkoutEditUiStateTest.mobui02_mobility_kind_labels` |
 | **P17.3** Emulator + release 0.6.0 | lead | Exercises → Mobility filter → pigeon detail; Strength workouts → "Mobility lower A" ≈ 20 min; generated week: rest-day mobility carries "Routine: Mobility lower A" when legs are loaded; accept → Mark done → set-log with seconds; versionCode 150 / 0.6.0, tag, release, install on the Pixel | VERIFICATION.md session |
 
+
+**P17.1 as built (2026-09-14).** Three readings the spec left open, all pinned by tests:
+
+1. **The mobility `workoutTemplateId` follows the same gate as every other §3.12.5 output.** §P17
+   says a mobility session names a routine "always"; `sug39` (P14.5) pins that a week with
+   `muscleLoad = null` names **no** template at all, and that guard is stronger. So
+   `StrengthRules.mobilityTemplateFor(state)` is total (`null` → `MOBILITY_FULL_A`) and usable by
+   the UI, while `templateIdFor` — what the engine actually attaches — stays inert without a
+   muscle-load state, exactly like the `STRENGTH_*` templates and the `MOBILITY_FOCUS` line.
+   `fixtures/suggest/sug28_baseline.txt` is therefore **byte-identical and was not regenerated**
+   (`SuggestionSnapshot.render` never printed `workoutTemplateId` in the first place); `sug43`
+   re-pins it, `sug42` pins the loaded-legs case.
+2. **A mobility routine is announced by `MOBILITY_FOCUS`, not by `STRENGTH_WORKOUT`.**
+   `StrengthRules.workoutEntry` returns `null` for a `MOBILITY_*` kind, so a rest-day mobility card
+   gets one line ("Mobility: legs are loaded, …") rather than two; the exercise count and the
+   minutes reach the UI through the materialised workout instead.
+3. **The 15 s mobility rest is per row, not a new default.** `StrengthWorkout.DEFAULT_REST_SEC`
+   (90 s) and `estimatedMinutes` are untouched; the `flow()` template builder writes
+   `restSec = 15` and refuses anything that is not a mobility drill held for 30–60 s. The three
+   routines land at 780 / 765 / 780 s of work + the flat 480 s overhead = **21 min** each.
+
+Also: a mobility drill never carries a load (`ProgressionDefaults.carriesLoad` — a light band or a
+foam roller is a tool, not a weight), a mobility workout deposits **no** muscle load
+(`MuscleDistribution.isMobilityOnly`, which also covers a user's own all-mobility `CUSTOM`
+routine), and `ExerciseSubstitution` never crosses the strength/mobility line.
+
+
 ## 6. Verification strategy
 
 ### 6.1 After every task (the lead runs this)

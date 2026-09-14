@@ -79,6 +79,12 @@ object Rationale {
     const val RULE_C15_RESPECTED: String = "C15_RESPECTED"
     const val RULE_STRENGTH_WORKOUT: String = "STRENGTH_WORKOUT"
 
+    /**
+     * P17.1's mobility id (§P17): why *this* mobility routine. Like the four above it is only ever
+     * attached while muscle load is known, which is what keeps the `sug28` baseline byte-identical.
+     */
+    const val RULE_MOBILITY_FOCUS: String = "MOBILITY_FOCUS"
+
     /** P12.3's four cycling ids (§3.5.8); only ever attached to a `CYCLE` session. */
     const val RULE_BIKE_FTP_GOAL: String = "BIKE_FTP_GOAL"
     const val RULE_BIKE_VOLUME_GOAL: String = "BIKE_VOLUME_GOAL"
