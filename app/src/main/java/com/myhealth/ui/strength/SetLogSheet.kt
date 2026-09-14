@@ -14,6 +14,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -27,70 +30,39 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.myhealth.R
-import com.myhealth.domain.engine.strength.ExerciseCatalog
-import com.myhealth.domain.model.StrengthSetLog
+import com.myhealth.domain.model.ExercisePrescription
+import com.myhealth.domain.model.Feedback
 import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.ui.common.NumberField
 
-/** One editable set of [SetLogSheet] — a row of `StrengthWorkoutExercise` expanded per set. */
-data class SetLogRow(
-    val exerciseId: String,
-    val exerciseName: String,
-    val setIndex: Int,
-    val reps: Int?,
-    val seconds: Int?,
-    val loadKg: Double?,
-    val skipped: Boolean = false,
-)
-
-/** One [SetLogRow] per set of every row in [workout], pre-filled from its prescription — what
- * [SetLogSheet] starts from (§4.2 "Planned session edit" / "Mark done", P14.7). */
-fun setLogRowsFor(workout: StrengthWorkout): List<SetLogRow> = workout.exercises.flatMap { row ->
-    val name = ExerciseCatalog.byId(row.exerciseId)?.name ?: row.exerciseId
-    (0 until row.sets).map { setIndex ->
-        SetLogRow(
-            exerciseId = row.exerciseId,
-            exerciseName = name,
-            setIndex = setIndex,
-            reps = row.reps,
-            seconds = row.seconds,
-            loadKg = row.loadKg,
-        )
-    }
-}
-
-/** [row] as the [StrengthSetLog] the repository stores, once the caller supplies the header the
- * flat table needs (§2.2.7): the day, the planned session it completes, and a write timestamp. */
-fun SetLogRow.toStrengthSetLog(day: Long, plannedSessionId: Long, completedAtMillis: Long): StrengthSetLog =
-    StrengthSetLog(
-        id = 0L,
-        day = day,
-        plannedSessionId = plannedSessionId,
-        exerciseId = exerciseId,
-        setIndex = setIndex,
-        reps = reps,
-        seconds = seconds,
-        loadKg = loadKg,
-        completedAtMillis = completedAtMillis,
-    )
-
 /**
  * The optional per-set log a "Mark done" on a `STRENGTH_*` session with a workout opens (PLAN
- * §4.1/§4.2, P14.7): one row per set, pre-filled from the workout's prescription, each skippable.
- * [onSave] receives only the rows still checked in; [onSkip] marks the session done with no log at
- * all. Self-contained like `ExercisePickerSheet` — its edits are local, ephemeral form state.
+ * §4.1/§4.2, P14.7; §P16 "load progression", P16.2): one row per set, pre-filled from
+ * [prescriptions] where there is one, each skippable, plus one feedback selector per distinct
+ * exercise (four segmented buttons, default `HARD`). [onSave] receives the rows still checked in
+ * and the chosen feedback per exercise id; [onSkip] marks the session done with no log at all.
+ * Self-contained like `ExercisePickerSheet` — its edits are local, ephemeral form state.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SetLogSheet(
     workout: StrengthWorkout,
-    onSave: (List<SetLogRow>) -> Unit,
+    onSave: (rows: List<SetLogRow>, feedback: Map<String, Feedback>) -> Unit,
     onSkip: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    /** `exerciseId -> ExercisePrescription` (P16.2) — the caller's best estimate of today's
+     * prescription for every exercise of [workout], resolved before the sheet opens. An exercise
+     * missing from this map falls back to its workout row's own stored numbers, exactly as before
+     * P16.2. */
+    prescriptions: Map<String, ExercisePrescription> = emptyMap(),
 ) {
     val sheetState = rememberModalBottomSheetState()
-    var rows by remember(workout.id) { mutableStateOf(setLogRowsFor(workout)) }
+    var rows by remember(workout.id, prescriptions) { mutableStateOf(setLogRowsFor(workout, prescriptions)) }
+    var feedbackByExercise by remember(workout.id, prescriptions) {
+        mutableStateOf(defaultFeedbackByExercise(rows))
+    }
+    val grouped = remember(rows) { rows.withIndex().groupBy { it.value.exerciseId } }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, modifier = modifier) {
         Text(
@@ -103,12 +75,21 @@ fun SetLogSheet(
             modifier = Modifier.weight(1f, fill = false),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            items(rows.size) { index ->
-                SetLogRowItem(
-                    row = rows[index],
-                    onChange = { updated -> rows = rows.toMutableList().also { it[index] = updated } },
-                )
-                HorizontalDivider()
+            grouped.forEach { (exerciseId, indexed) ->
+                item(key = "header-$exerciseId") {
+                    ExerciseFeedbackRow(
+                        exerciseName = indexed.first().value.exerciseName,
+                        selected = feedbackByExercise[exerciseId] ?: Feedback.HARD,
+                        onSelect = { feedback -> feedbackByExercise = feedbackByExercise + (exerciseId to feedback) },
+                    )
+                }
+                items(indexed, key = { "row-${it.index}" }) { (index, row) ->
+                    SetLogRowItem(
+                        row = row,
+                        onChange = { updated -> rows = rows.toMutableList().also { it[index] = updated } },
+                    )
+                    HorizontalDivider()
+                }
             }
         }
         Row(
@@ -118,8 +99,31 @@ fun SetLogSheet(
             OutlinedButton(onClick = onSkip, modifier = Modifier.weight(1f)) {
                 Text(stringResource(R.string.set_log_skip))
             }
-            TextButton(onClick = { onSave(rows.filterNot { it.skipped }) }, modifier = Modifier.weight(1f)) {
+            TextButton(
+                onClick = { onSave(rows.filterNot { it.skipped }, feedbackByExercise) },
+                modifier = Modifier.weight(1f),
+            ) {
                 Text(stringResource(R.string.action_save))
+            }
+        }
+    }
+}
+
+/** One exercise's feedback selector (PLAN §P16 "load progression": "chosen once per exercise …
+ * four segmented buttons, default `HARD`"). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ExerciseFeedbackRow(exerciseName: String, selected: Feedback, onSelect: (Feedback) -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp)) {
+        Text(exerciseName, style = MaterialTheme.typography.titleSmall)
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+            Feedback.entries.forEachIndexed { index, feedback ->
+                SegmentedButton(
+                    selected = feedback == selected,
+                    onClick = { onSelect(feedback) },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = Feedback.entries.size),
+                    label = { Text(feedback.label()) },
+                )
             }
         }
     }

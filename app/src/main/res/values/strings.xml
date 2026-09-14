@@ -1031,6 +1031,10 @@
 
     <!-- ===== Settings: Heart-rate zones section (ui/settings/SettingsSections.kt, P14.6) ===== -->
     <string name="settings_section_hr_zones">Heart-rate zones</string>
+
+    <!-- ===== Settings: Strength / my equipment (ui/settings/SettingsSections.kt, P16.2) ===== -->
+    <string name="settings_section_strength">Strength</string>
+    <string name="settings_my_equipment_explanation">Exercises and workouts only use what you select here. Select everything to turn this off.</string>
     <string name="settings_hr_scheme_format">Current scheme: %1$s</string>
     <string name="settings_hr_lthr_label">Lactate-threshold heart rate</string>
     <string name="settings_hr_bound_z2_label">Zone 2 starts at</string>
@@ -1054,6 +1058,7 @@
     <string name="exercises_clear_filters">Clear filters</string>
     <string name="exercises_empty_title">No exercises match</string>
     <string name="exercises_empty_message">Try a different search term or clear the filters.</string>
+    <string name="exercises_only_my_equipment_label">Only my equipment</string>
 
     <!-- ===== Exercise detail (ui/strength/ExerciseDetailScreen.kt, P14.7) ===== -->
     <string name="exercise_detail_title">Exercise</string>
@@ -1070,6 +1075,12 @@
     <string name="exercise_detail_pick_workout_title">Add to which workout?</string>
     <string name="exercise_detail_pick_workout_empty">No workouts yet — create one from Strength workouts first.</string>
     <string name="exercise_picker_title">Add an exercise</string>
+    <string name="exercise_picker_show_all_label">Show all equipment</string>
+
+    <!-- ===== Exercise detail: Progression card (ui/strength/ExerciseDetailScreen.kt, P16.2) ===== -->
+    <string name="exercise_detail_section_progression">Progression</string>
+    <string name="exercise_detail_last_feedback_format">Last: %1$s on %2$s</string>
+    <string name="exercise_detail_no_sessions">No sessions logged yet.</string>
 
     <!-- ===== Strength workouts (ui/strength/WorkoutsScreen.kt, More entry, P14.7) ===== -->
     <string name="more_entry_workouts">Strength workouts</string>
@@ -1121,4 +1132,7 @@
     <string name="session_workout_label">Workout</string>
     <string name="session_workout_none">None</string>
     <string name="session_workout_format">Workout: %1$s</string>
+
+    <!-- ===== Load progression (ui/training/TrainingViewModel.kt, P16.2) ===== -->
+    <string name="training_next_time_format">Next time: %1$s</string>
 </resources>

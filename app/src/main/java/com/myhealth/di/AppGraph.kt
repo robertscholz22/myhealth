@@ -171,6 +171,17 @@ class AppGraph(private val app: Application) {
     val rideBestRepo: RideBestRepository by lazy { RoomRideBestRepository(db.rideBestDao()) }
 
     /**
+     * The body weight `ProgressionEngine`'s initial estimate is built on (P16.1/P16.2): the latest
+     * measurement within a year, falling back to 75 kg when there is none. Shared by
+     * [strengthRepo]'s own writer and every UI caller of `StrengthRepository.prescriptionFor`
+     * (`ExercisesViewModel`, `TrainingViewModel`) so the two never disagree on "today's" weight.
+     */
+    val currentBodyWeightKg: suspend () -> Double = {
+        bodyRepo.latestWeight(ProgressionDefaults.BODY_WEIGHT_MAX_AGE_DAYS)?.weightKg
+            ?: ProgressionDefaults.FALLBACK_BODY_WEIGHT_KG
+    }
+
+    /**
      * The three strength tables (§2.2.7, P14): workouts, their rows and the per-set log — plus
      * `exercise_progress` (P16.1). The body weight the initial load estimate is built on is the
      * latest measurement within a year, falling back to 75 kg when there is none.
@@ -178,10 +189,7 @@ class AppGraph(private val app: Application) {
     val strengthRepo: StrengthRepository by lazy {
         RoomStrengthRepository(
             dao = db.strengthDao(),
-            bodyWeightKg = {
-                bodyRepo.latestWeight(ProgressionDefaults.BODY_WEIGHT_MAX_AGE_DAYS)?.weightKg
-                    ?: ProgressionDefaults.FALLBACK_BODY_WEIGHT_KG
-            },
+            bodyWeightKg = currentBodyWeightKg,
             clock = clock,
         )
     }

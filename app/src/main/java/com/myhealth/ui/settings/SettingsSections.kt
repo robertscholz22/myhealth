@@ -4,7 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -22,12 +25,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.myhealth.R
+import com.myhealth.domain.engine.strength.EquipmentSetCodec
 import com.myhealth.domain.model.AppSettings
+import com.myhealth.domain.model.Equipment
 import com.myhealth.domain.model.Profile
 import com.myhealth.domain.model.ThemeMode
 import com.myhealth.ui.common.DropdownField
 import com.myhealth.ui.common.NumberField
 import com.myhealth.ui.common.SectionCard
+import com.myhealth.ui.strength.label
 import com.myhealth.ui.zones.ZoneTable
 import com.myhealth.ui.zones.lightweightHrZoneModel
 import com.myhealth.ui.zones.schemeLabel
@@ -242,6 +248,39 @@ internal fun HeartRateZonesSection(profile: Profile, onProfileChange: (Profile) 
                 modifier = Modifier.padding(top = 4.dp),
             )
             ZoneTable(it)
+        }
+    }
+}
+
+/**
+ * "My equipment" (PLAN §P16 "My equipment", P16.2): a multi-select chip row over [Equipment] —
+ * every chip selected means `availableEquipmentJson = null` (everything), which is what
+ * [EquipmentSetCodec.encode] already does when handed the full set. Deselecting the last chip is a
+ * no-op rather than a reset to "everything": an owner clearing every chip almost certainly meant
+ * "I have nothing left to pick", not "show me everything again".
+ */
+@Composable
+internal fun StrengthEquipmentSection(profile: Profile, onProfileChange: (Profile) -> Unit) {
+    val selected = EquipmentSetCodec.decode(profile.availableEquipmentJson) ?: Equipment.entries.toSet()
+    SectionCard(title = stringResource(R.string.settings_section_strength)) {
+        Text(
+            text = stringResource(R.string.settings_my_equipment_explanation),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(Equipment.entries) { equipment ->
+                FilterChip(
+                    selected = equipment in selected,
+                    onClick = {
+                        val updated = if (equipment in selected) selected - equipment else selected + equipment
+                        if (updated.isNotEmpty()) {
+                            onProfileChange(profile.copy(availableEquipmentJson = EquipmentSetCodec.encode(updated)))
+                        }
+                    },
+                    label = { Text(equipment.label()) },
+                )
+            }
         }
     }
 }

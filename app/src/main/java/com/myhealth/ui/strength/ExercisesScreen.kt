@@ -23,6 +23,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -49,7 +50,13 @@ import com.myhealth.ui.theme.MyHealthTheme
 @Composable
 fun ExercisesScreen(onBack: () -> Unit, onOpenExercise: (String) -> Unit, modifier: Modifier = Modifier) {
     val vm = rememberVm { graph ->
-        ExercisesViewModel(graph.strengthRepo, graph.strengthWorkoutSeeder::seed, graph.clock)
+        ExercisesViewModel(
+            graph.strengthRepo,
+            graph.profileRepo,
+            graph.strengthWorkoutSeeder::seed,
+            graph.currentBodyWeightKg,
+            graph.clock,
+        )
     }
     val state by vm.state.collectAsStateWithLifecycle()
 
@@ -71,6 +78,7 @@ fun ExercisesScreen(onBack: () -> Unit, onOpenExercise: (String) -> Unit, modifi
             onQueryChange = vm::setQuery,
             onEquipmentSelect = vm::setEquipment,
             onMuscleSelect = vm::setMuscle,
+            onOnlyMyEquipmentChange = vm::setOnlyMyEquipment,
             onClearFilters = vm::clearFilters,
             onOpenExercise = onOpenExercise,
             modifier = Modifier.fillMaxSize().padding(innerPadding),
@@ -84,6 +92,7 @@ internal fun ExercisesContent(
     onQueryChange: (String) -> Unit,
     onEquipmentSelect: (Equipment?) -> Unit,
     onMuscleSelect: (MuscleGroup?) -> Unit,
+    onOnlyMyEquipmentChange: (Boolean) -> Unit,
     onClearFilters: () -> Unit,
     onOpenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -101,6 +110,9 @@ internal fun ExercisesContent(
                 modifier = Modifier.fillMaxWidth(),
             )
             EquipmentFilterRow(state.equipment, onEquipmentSelect)
+            if (state.showOnlyMyEquipmentSwitch) {
+                OnlyMyEquipmentRow(checked = state.onlyMyEquipment, onCheckedChange = onOnlyMyEquipmentChange)
+            }
             BodyFigure(
                 highlight = state.muscle?.let { mapOf(it to 1.0f) } ?: emptyMap(),
                 onFrontTap = onMuscleSelect,
@@ -137,6 +149,20 @@ internal fun ExercisesContent(
                 }
             }
         }
+    }
+}
+
+/** "Only my equipment" (PLAN §P16 "My equipment", P16.2): shown only when [ExercisesUiState.showOnlyMyEquipmentSwitch]
+ * says the profile actually narrowed something. */
+@Composable
+private fun OnlyMyEquipmentRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        Text(stringResource(R.string.exercises_only_my_equipment_label))
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
@@ -177,6 +203,7 @@ private fun ExercisesContentPreview() {
             onQueryChange = {},
             onEquipmentSelect = {},
             onMuscleSelect = {},
+            onOnlyMyEquipmentChange = {},
             onClearFilters = {},
             onOpenExercise = {},
         )

@@ -79,6 +79,7 @@ fun TrainingScreen(nav: TrainingNavActions, modifier: Modifier = Modifier) {
             goalRepo = graph.goalRepo,
             settingsRepo = graph.settings,
             strengthRepo = graph.strengthRepo,
+            bodyWeightKg = graph.currentBodyWeightKg,
             clock = graph.clock,
         )
     }
@@ -138,9 +139,14 @@ fun TrainingScreen(nav: TrainingNavActions, modifier: Modifier = Modifier) {
         if (workout == null) {
             setLogSession = null
         } else {
+            LaunchedEffect(workout.id) { vm.prepareSetLog(workout) }
             SetLogSheet(
                 workout = workout,
-                onSave = { rows -> vm.completeStrengthSession(session, rows); setLogSession = null },
+                prescriptions = state.setLogPrescriptions,
+                onSave = { rows, feedback ->
+                    vm.completeStrengthSession(session, rows, feedback)
+                    setLogSession = null
+                },
                 onSkip = { vm.markDone(session.id); setLogSession = null },
                 onDismiss = { setLogSession = null },
             )
@@ -203,7 +209,7 @@ internal fun TrainingContent(
                 onSelectDay = onSelectDay,
                 onAddSession = nav.onAddSession,
                 onOpenActivity = nav.onOpenActivity,
-                workoutNames = state.workoutsById.mapValues { it.value.name },
+                workouts = state.workoutsById,
             )
         }
     }

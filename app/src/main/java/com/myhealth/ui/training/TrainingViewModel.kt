@@ -3,12 +3,16 @@ package com.myhealth.ui.training
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myhealth.R
+import com.myhealth.domain.engine.strength.ExerciseCatalog
 import com.myhealth.domain.engine.suggest.Periodization
 import com.myhealth.domain.model.CalendarDay
+import com.myhealth.domain.model.ExercisePrescription
+import com.myhealth.domain.model.Feedback
 import com.myhealth.domain.model.Goal
 import com.myhealth.domain.model.GoalStatus
 import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.PlannedStatus
+import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.model.SuggestionBatch
 import com.myhealth.domain.model.SuggestionStatus
 import com.myhealth.domain.model.TrainingPhase
@@ -21,6 +25,7 @@ import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.util.Outcome
 import com.myhealth.ui.strength.SetLogRow
+import com.myhealth.ui.strength.nextTimeDetails
 import com.myhealth.ui.strength.toStrengthSetLog
 import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -54,6 +59,9 @@ private data class TrainingAction(
     val message: UiMessage? = null,
     val reviewReady: Boolean = false,
     val selectedDay: Long? = null,
+    /** The open [SetLogSheet]'s prescriptions (P16.2), from the most recent [prepareSetLog] call —
+     * `emptyMap()` until it resolves, in which case the sheet falls back to each row's own numbers. */
+    val setLogPrescriptions: Map<String, ExercisePrescription> = emptyMap(),
 )
 
 /**
@@ -77,6 +85,9 @@ class TrainingViewModel(
     private val goalRepo: GoalRepository,
     private val settingsRepo: SettingsRepository,
     private val strengthRepo: StrengthRepository,
+    /** `AppGraph.currentBodyWeightKg` (P16.2) — what `strengthRepo.prescriptionFor` estimates an
+     * unlogged exercise's load from, for [prepareSetLog]. */
+    private val bodyWeightKg: suspend () -> Double,
     private val clock: Clock,
 ) : ViewModel() {
 
@@ -135,6 +146,7 @@ class TrainingViewModel(
             message = act.message,
             reviewReady = act.reviewReady,
             workoutsById = workouts.associateBy { it.id },
+            setLogPrescriptions = act.setLogPrescriptions,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TrainingUiState())
 
@@ -185,18 +197,44 @@ class TrainingViewModel(
     }
 
     /**
-     * "Mark done" on a `STRENGTH_*` session with a workout, once the [SetLogSheet] rows are
-     * confirmed (P14.7): writes the set logs — [rows] already excludes anything skipped — then
-     * marks the session done exactly like [markDone].
+     * Resolves today's prescription for every exercise of [workout] (P16.2) so the [SetLogSheet]
+     * about to open can pre-fill its rows from it, rather than from the workout's own stored
+     * numbers. Overwrites whatever a previous open left in [TrainingAction.setLogPrescriptions].
      */
-    fun completeStrengthSession(session: PlannedSession, rows: List<SetLogRow>) {
+    fun prepareSetLog(workout: StrengthWorkout) {
         viewModelScope.launch {
+            val weight = bodyWeightKg()
+            val prescriptions = workout.exercises.map { it.exerciseId }.distinct()
+                .mapNotNull { id -> ExerciseCatalog.byId(id)?.let { id to strengthRepo.prescriptionFor(it, weight) } }
+                .toMap()
+            action.update { it.copy(setLogPrescriptions = prescriptions) }
+        }
+    }
+
+    /**
+     * "Mark done" on a `STRENGTH_*` session with a workout, once the [SetLogSheet] rows and
+     * per-exercise [feedback] are confirmed (P14.7, P16.2): writes the set logs — [rows] already
+     * excludes anything skipped — through `saveSetLogs`, which also advances the progression for
+     * every exercise that carries a feedback, then marks the session done exactly like [markDone].
+     * The snackbar becomes "Next time: …" when at least one exercise actually advanced, else the
+     * plain "marked done" message (no rows logged, or nothing had a feedback).
+     */
+    fun completeStrengthSession(session: PlannedSession, rows: List<SetLogRow>, feedback: Map<String, Feedback>) {
+        viewModelScope.launch {
+            var message = UiMessage.of(R.string.training_session_marked_done)
             if (rows.isNotEmpty()) {
                 val now = clock.millis()
-                strengthRepo.insertSetLogs(rows.map { it.toStrengthSetLog(session.day, session.id, now) })
+                val logs = rows.map { it.toStrengthSetLog(session.day, session.id, now, feedback[it.exerciseId]) }
+                val newStates = when (val outcome = strengthRepo.saveSetLogs(logs)) {
+                    is Outcome.Ok -> outcome.value
+                    is Outcome.Err -> emptyMap()
+                }
+                if (newStates.isNotEmpty()) {
+                    message = UiMessage.of(R.string.training_next_time_format, nextTimeDetails(rows, newStates))
+                }
             }
             planRepo.setSessionStatus(session.id, PlannedStatus.COMPLETED)
-            action.update { it.copy(message = UiMessage.of(R.string.training_session_marked_done)) }
+            action.update { it.copy(message = message, setLogPrescriptions = emptyMap()) }
         }
     }
 

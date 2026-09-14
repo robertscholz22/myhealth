@@ -135,6 +135,9 @@ class RoomStrengthRepository(
         runCatchingApp { dao.deleteSetLog(id) }
     }
 
+    override suspend fun getRecentSetLogs(exerciseId: String, limit: Int): List<StrengthSetLog> =
+        withContext(ioDispatcher) { dao.getRecentSetLogs(exerciseId, limit).map { it.toDomain() } }
+
     override fun observeProgress(exerciseId: String): Flow<ExerciseProgress?> =
         dao.observeProgress(exerciseId).map { it?.toDomain() }
 

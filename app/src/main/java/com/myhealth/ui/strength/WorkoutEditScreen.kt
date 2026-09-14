@@ -55,7 +55,9 @@ import com.myhealth.ui.theme.MyHealthTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutEditScreen(id: Long, onBack: () -> Unit, modifier: Modifier = Modifier) {
-    val vm = rememberVm { graph -> WorkoutEditViewModel(id, graph.strengthRepo, graph.clock) }
+    val vm = rememberVm { graph ->
+        WorkoutEditViewModel(id, graph.strengthRepo, graph.profileRepo, graph.currentBodyWeightKg, graph.clock)
+    }
     val state by vm.state.collectAsStateWithLifecycle()
     var showPicker by remember { mutableStateOf(false) }
 
@@ -91,6 +93,7 @@ fun WorkoutEditScreen(id: Long, onBack: () -> Unit, modifier: Modifier = Modifie
 
     if (showPicker) {
         ExercisePickerSheet(
+            myEquipment = state.myEquipment,
             onPick = { exercise -> vm.addExercise(exercise.id); showPicker = false },
             onDismiss = { showPicker = false },
         )
@@ -212,6 +215,13 @@ private fun ExerciseRowCard(
             }
         },
     ) {
+        if (row.reps != null || row.seconds != null) {
+            Text(
+                text = prescriptionLabel(row.sets, row.asPrescription()),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             NumberField(
                 label = stringResource(R.string.workout_edit_sets_label),

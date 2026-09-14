@@ -29,6 +29,7 @@ import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.EventOccurrence
 import com.myhealth.domain.model.EventType
 import com.myhealth.domain.model.PlannedStatus
+import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.ui.activities.formatDistanceKm
 import com.myhealth.ui.activities.formatDuration
 import com.myhealth.ui.calendar.displayName
@@ -36,6 +37,7 @@ import com.myhealth.ui.calendar.formatMinuteOfDay
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.SportIcon
 import com.myhealth.ui.common.displayName
+import com.myhealth.ui.strength.workoutPrescriptionLine
 import com.myhealth.ui.theme.MyHealthTheme
 
 /**
@@ -51,8 +53,9 @@ fun WeekDayRow(
     onAddSession: (Long) -> Unit,
     onOpenActivity: (Long) -> Unit,
     modifier: Modifier = Modifier,
-    /** `workoutId -> name` (P14.7) — see `PlannedSessionCard`'s `workoutName`. */
-    workoutNames: Map<Long, String> = emptyMap(),
+    /** `workoutId -> StrengthWorkout` (P14.7/P16.2) — the source of `PlannedSessionCard`'s
+     * `workoutName` and `workoutExercisesLine`. */
+    workouts: Map<Long, StrengthWorkout> = emptyMap(),
 ) {
     SectionCard(
         title = dayHeaderLabel(row.day),
@@ -77,7 +80,8 @@ fun WeekDayRow(
             PlannedSessionCard(
                 session = session,
                 actions = actions,
-                workoutName = session.workoutId?.let { workoutNames[it] },
+                workoutName = session.workoutId?.let { workouts[it]?.name },
+                workoutExercisesLine = session.workoutId?.let { workouts[it] }?.let { workoutPrescriptionLine(it) },
             )
         }
         row.activities.forEach { CompletedActivityRow(it, onOpenActivity) }

@@ -55,6 +55,14 @@ interface StrengthRepository {
 
     suspend fun getSetLogsOfPlannedSession(plannedSessionId: Long): List<StrengthSetLog>
 
+    /**
+     * The most recently logged rows of [exerciseId], most recent day first (P16.2's Progression
+     * card, "up to the last 10 logged sessions"): [limit] bounds the **rows** returned, not the
+     * number of distinct days, so a caller after "N sessions" should ask for enough rows to cover
+     * them and group by [StrengthSetLog.day] itself.
+     */
+    suspend fun getRecentSetLogs(exerciseId: String, limit: Int): List<StrengthSetLog>
+
     suspend fun deleteSetLog(id: Long): Outcome<Unit>
 
     // ---- per-exercise load progression (`exercise_progress`, P16.1) ---------------------------

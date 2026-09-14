@@ -4,6 +4,7 @@ import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.CalendarDay
 import com.myhealth.domain.model.EventOccurrence
 import com.myhealth.domain.model.EventType
+import com.myhealth.domain.model.ExercisePrescription
 import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.StrengthWorkout
@@ -61,6 +62,9 @@ data class TrainingUiState(
     /** `workoutId -> StrengthWorkout` (P14.7): the card's workout-name line and the "Mark done"
      * set-log sheet both read a session's workout off here. */
     val workoutsById: Map<Long, StrengthWorkout> = emptyMap(),
+    /** `exerciseId -> ExercisePrescription` (P16.2), populated by `TrainingViewModel.prepareSetLog`
+     * for the workout of whichever session's [SetLogSheet] is currently open. */
+    val setLogPrescriptions: Map<String, ExercisePrescription> = emptyMap(),
 ) {
     val isCurrentWeek: Boolean get() = week.offset == 0
 

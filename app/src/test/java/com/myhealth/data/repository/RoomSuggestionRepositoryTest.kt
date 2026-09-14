@@ -409,6 +409,9 @@ class RoomSuggestionRepositoryTest {
 
         override suspend fun deleteSetLog(id: Long): Outcome<Unit> = Outcome.Ok(Unit)
 
+        override suspend fun getRecentSetLogs(exerciseId: String, limit: Int): List<StrengthSetLog> =
+            emptyList()
+
         override suspend fun saveSetLogs(
             logs: List<StrengthSetLog>,
         ): Outcome<Map<String, ExerciseProgress>> = Outcome.Ok(emptyMap())

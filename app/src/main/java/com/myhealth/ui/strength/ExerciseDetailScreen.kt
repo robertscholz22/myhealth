@@ -41,6 +41,7 @@ import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.strength.ExerciseCatalog
 import com.myhealth.domain.model.Equipment
 import com.myhealth.domain.model.Exercise
+import com.myhealth.domain.model.ExercisePrescription
 import com.myhealth.domain.model.MovementPattern
 import com.myhealth.domain.model.MuscleGroup
 import com.myhealth.domain.model.StrengthWorkout
@@ -52,6 +53,9 @@ import com.myhealth.ui.common.body.BodyFigureLegend
 import com.myhealth.ui.common.body.BodyFigureLegendKind
 import com.myhealth.ui.common.body.highlightFor
 import com.myhealth.ui.theme.MyHealthTheme
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /** One exercise, large figure + equipment/pattern/flags/cue + "Add to workout…" (PLAN §4.2
  * "Exercise detail", P14.7). */
@@ -59,14 +63,23 @@ import com.myhealth.ui.theme.MyHealthTheme
 @Composable
 fun ExerciseDetailScreen(exerciseId: String, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val vm = rememberVm { graph ->
-        ExercisesViewModel(graph.strengthRepo, graph.strengthWorkoutSeeder::seed, graph.clock)
+        ExercisesViewModel(
+            graph.strengthRepo,
+            graph.profileRepo,
+            graph.strengthWorkoutSeeder::seed,
+            graph.currentBodyWeightKg,
+            graph.clock,
+        )
     }
     val state by vm.state.collectAsStateWithLifecycle()
+    val progressionCard by vm.progressionCardState.collectAsStateWithLifecycle()
     val exercise = ExerciseCatalog.byId(exerciseId)
     var showPicker by remember { mutableStateOf(false) }
     var confirmedWorkout by remember { mutableStateOf<String?>(null) }
     val snackbar = remember { SnackbarHostState() }
     val addedToMessage = confirmedWorkout?.let { stringResource(R.string.exercise_detail_added_to_format, it) }
+
+    LaunchedEffect(exerciseId) { vm.loadProgressionCard(exerciseId) }
 
     LaunchedEffect(addedToMessage) {
         addedToMessage?.let {
@@ -103,7 +116,11 @@ fun ExerciseDetailScreen(exerciseId: String, onBack: () -> Unit, modifier: Modif
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
             )
         } else {
-            ExerciseDetailContent(exercise = exercise, modifier = Modifier.fillMaxSize().padding(innerPadding))
+            ExerciseDetailContent(
+                exercise = exercise,
+                progressionCard = progressionCard,
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+            )
         }
     }
 
@@ -121,7 +138,11 @@ fun ExerciseDetailScreen(exerciseId: String, onBack: () -> Unit, modifier: Modif
 }
 
 @Composable
-internal fun ExerciseDetailContent(exercise: Exercise, modifier: Modifier = Modifier) {
+internal fun ExerciseDetailContent(
+    exercise: Exercise,
+    modifier: Modifier = Modifier,
+    progressionCard: ProgressionCardState = ProgressionCardState(),
+) {
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(SCREEN_PADDING),
@@ -135,6 +156,9 @@ internal fun ExerciseDetailContent(exercise: Exercise, modifier: Modifier = Modi
                 )
                 BodyFigureLegend(kind = BodyFigureLegendKind.PRIMARY_SECONDARY)
             }
+        }
+        progressionCard.prescription?.let { prescription ->
+            item { ProgressionCard(prescription = prescription, card = progressionCard) }
         }
         item {
             SectionCard(title = stringResource(R.string.exercise_detail_section_details)) {
@@ -160,6 +184,42 @@ internal fun ExerciseDetailContent(exercise: Exercise, modifier: Modifier = Modi
 private fun DetailRow(label: String, value: String) {
     Text(text = "$label: $value", style = MaterialTheme.typography.bodyMedium)
 }
+
+/**
+ * The load-progression state of one exercise (PLAN §P16 "Where it shows", P16.2): today's
+ * prescription, the last feedback with its date, and up to 10 recent sessions.
+ */
+@Composable
+private fun ProgressionCard(prescription: ExercisePrescription, card: ProgressionCardState) {
+    SectionCard(title = stringResource(R.string.exercise_detail_section_progression)) {
+        Text(prescriptionOnlyLabel(prescription), style = MaterialTheme.typography.titleMedium)
+        val feedbackText = prescription.lastFeedback?.let { feedback ->
+            val date = card.updatedDay?.let { formatUpdatedDay(it) }
+            if (date != null) {
+                stringResource(R.string.exercise_detail_last_feedback_format, feedback.label(), date)
+            } else {
+                feedback.label()
+            }
+        }
+        feedbackText?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (card.sessions.isEmpty()) {
+            Text(
+                text = stringResource(R.string.exercise_detail_no_sessions),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            card.sessions.forEach { line ->
+                Text(line, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+private fun formatUpdatedDay(epochDay: Long): String =
+    LocalDate.ofEpochDay(epochDay).format(DateTimeFormatter.ofPattern("d MMM", Locale.US))
 
 @Composable
 private fun WorkoutPickerDialog(

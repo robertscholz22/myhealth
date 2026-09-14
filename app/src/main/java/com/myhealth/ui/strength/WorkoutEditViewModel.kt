@@ -3,8 +3,12 @@ package com.myhealth.ui.strength
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myhealth.R
+import com.myhealth.domain.engine.strength.EquipmentSetCodec
+import com.myhealth.domain.engine.strength.ExerciseCatalog
+import com.myhealth.domain.model.Equipment
 import com.myhealth.domain.model.MuscleGroup
 import com.myhealth.domain.model.StrengthWorkoutKind
+import com.myhealth.domain.repository.ProfileRepository
 import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.util.Outcome
 import com.myhealth.ui.common.UiMessage
@@ -25,6 +29,9 @@ data class WorkoutEditUiState(
     val saveError: UiMessage? = null,
     val loadError: UiMessage? = null,
     val saved: Boolean = false,
+    /** `profile.availableEquipmentJson`, decoded (P16.2) — what [ExercisePickerSheet] filters its
+     * results by. */
+    val myEquipment: Set<Equipment>? = null,
 ) {
     val highlight: Map<MuscleGroup, Float> get() = draft.highlight()
 }
@@ -37,6 +44,10 @@ data class WorkoutEditUiState(
 class WorkoutEditViewModel(
     private val id: Long,
     private val strengthRepo: StrengthRepository,
+    private val profileRepo: ProfileRepository,
+    /** `AppGraph.currentBodyWeightKg` (P16.2) — what [strengthRepo]'s `prescriptionFor` estimates
+     * an unlogged exercise's load from. */
+    private val bodyWeightKg: suspend () -> Double,
     private val clock: Clock,
 ) : ViewModel() {
 
@@ -45,6 +56,10 @@ class WorkoutEditViewModel(
 
     init {
         if (id != NEW_ID) load()
+        viewModelScope.launch {
+            val equipment = EquipmentSetCodec.decode(profileRepo.getProfile()?.availableEquipmentJson)
+            _state.update { it.copy(myEquipment = equipment) }
+        }
     }
 
     private fun load() {
@@ -53,9 +68,26 @@ class WorkoutEditViewModel(
             if (workout == null) {
                 _state.update { it.copy(isLoading = false, loadError = UiMessage.of(R.string.workout_edit_load_error)) }
             } else {
-                _state.update { it.copy(isLoading = false, draft = workoutEditDraftOf(workout)) }
+                _state.update { it.copy(isLoading = false, draft = fillMissingLoads(workoutEditDraftOf(workout))) }
             }
         }
+    }
+
+    /**
+     * Fills a `null` [WorkoutExerciseDraft.loadKg] from `prescriptionFor` (P16.2): the one field an
+     * `ExerciseSubstitution` row loses when a template is materialised against "my equipment"
+     * (§P16 "a substitute is never prescribed with the original's load"). Bodyweight rows and rows
+     * that already carry a load skip the lookup.
+     */
+    private suspend fun fillMissingLoads(draft: WorkoutEditDraft): WorkoutEditDraft {
+        if (draft.exercises.none { it.loadKg == null && !it.isBodyweight }) return draft
+        val weight = bodyWeightKg()
+        val rows = draft.exercises.map { row ->
+            if (row.loadKg != null || row.isBodyweight) return@map row
+            val exercise = ExerciseCatalog.byId(row.exerciseId) ?: return@map row
+            row.withPrescription(strengthRepo.prescriptionFor(exercise, weight))
+        }
+        return draft.copy(exercises = rows)
     }
 
     fun update(transform: (WorkoutEditDraft) -> WorkoutEditDraft) {
@@ -71,7 +103,26 @@ class WorkoutEditViewModel(
 
     fun setNotes(notes: String) = update { it.copy(notes = notes) }
 
-    fun addExercise(exerciseId: String) = update { it.addExercise(exerciseId) }
+    /**
+     * Appends [exerciseId] with `WorkoutEditDraft.addExercise`'s generic placeholder immediately
+     * (10 reps / a 30 s hold, no load) for instant feedback, then replaces it with the real
+     * prescription once `strengthRepo.prescriptionFor` resolves (P16.2's "prefill load/reps … when
+     * the row has none" — right after adding, a row's numbers are a placeholder, not a real one).
+     */
+    fun addExercise(exerciseId: String) {
+        val exercise = ExerciseCatalog.byId(exerciseId) ?: return
+        update { it.addExercise(exerciseId) }
+        viewModelScope.launch {
+            val prescription = strengthRepo.prescriptionFor(exercise, bodyWeightKg())
+            update { draft ->
+                val rows = draft.exercises.toMutableList()
+                val index = rows.indexOfLast { it.exerciseId == exerciseId }
+                if (index == -1) return@update draft
+                rows[index] = rows[index].copy(reps = null, seconds = null).withPrescription(prescription)
+                draft.copy(exercises = rows)
+            }
+        }
+    }
 
     fun removeExercise(index: Int) = update { it.removeExercise(index) }
 

@@ -1,6 +1,8 @@
 package com.myhealth.ui.strength
 
 import com.myhealth.domain.engine.strength.ExerciseCatalog
+import com.myhealth.domain.engine.strength.ProgressionDefaults
+import com.myhealth.domain.model.ExercisePrescription
 import com.myhealth.domain.model.MuscleGroup
 import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.model.StrengthWorkoutExercise
@@ -29,6 +31,32 @@ data class WorkoutExerciseDraft(
         const val DEFAULT_REPS = 10
     }
 }
+
+/** [prescriptionLabel]'s input built straight from this row's own numbers (P16.2) — a live caption
+ * under each editor row ("3 × 8 @ 50 kg") that always matches what the fields currently say, not an
+ * estimate. */
+fun WorkoutExerciseDraft.asPrescription(): ExercisePrescription = ExercisePrescription(
+    exerciseId = exerciseId,
+    loadKg = loadKg,
+    reps = reps,
+    seconds = seconds,
+    isEstimated = false,
+    perHand = ProgressionDefaults.isPerHand(exerciseId) && loadKg != null,
+)
+
+/**
+ * [reps]/[seconds]/[loadKg] filled in from [prescription] — but only where the row does not
+ * already carry a value, e.g. a load a previous edit typed in survives (P16.2's "prefill load/reps
+ * from `prescriptionFor` when the row has none"). Two callers rely on this: [WorkoutEditViewModel]
+ * clears a freshly-added row's generic 10-rep/30-second placeholder before merging, and it fills
+ * the `loadKg` an `ExerciseSubstitution` row lost when the template was materialised against "my
+ * equipment" — reps/seconds are left alone there, since the template already prescribed them.
+ */
+fun WorkoutExerciseDraft.withPrescription(prescription: ExercisePrescription): WorkoutExerciseDraft = copy(
+    reps = reps ?: prescription.reps,
+    seconds = seconds ?: prescription.seconds,
+    loadKg = loadKg ?: prescription.loadKg,
+)
 
 /** The workout editor's form state (§4.2 "Workout edit"): name, kind, ordered exercise rows. */
 data class WorkoutEditDraft(
