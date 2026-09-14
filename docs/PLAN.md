@@ -2922,21 +2922,46 @@ needed no change at all, because it only ever spoke about the `FRONT`/`BACK` map
 widened to check the profile's regions too, and `BodyFigure` now draws an explicit `FRONT + BACK`
 list instead of `BodyFace.entries` (which would have grown a third figure).
 
-*Clips*: **44**, not the ≈ 26 the paragraph guessed — the plan's own list already named 37 with an
-ellipsis, and 87 exercises across three faces needed the rest. `AnimationClips.kt` (33 strength) +
-`AnimationClipsMobility.kt` (11) for R10, both re-exported through `AnimationClips` so call sites
-have one namespace; the named-joint DSL and the `Keyframe`/`AnimationClip` types live in
-`AnimationPoses.kt`. In declaration order: `SQUAT, FRONT_SQUAT, HINGE, SINGLE_LEG_HINGE, LUNGE,
-SPLIT_SQUAT, STEP_UP, CALF_RAISE, JUMP, SWING, KNEE_ISOLATION, HIP_ABDUCTION, CARRY, BENCH_PRESS,
-PUSH_UP, OVERHEAD_PRESS, DIP, ROW_BENT, ROW_SEATED, PULL_UP, PULLDOWN, HANG, LEG_RAISE,
-LATERAL_RAISE, REAR_DELT, CURL, TRICEPS_EXTENSION, PLANK, SIDE_PLANK, DEAD_BUG, TWIST,
-BACK_EXTENSION, HIP_THRUST, HOLD_STRETCH_HIP, HOLD_STRETCH_HAMSTRING, HOLD_STRETCH_CALF,
-HOLD_STRETCH_SHOULDER, QUADRUPED_FLOW, ROTATION_THORACIC, FOAM_ROLL, SHOULDER_CIRCLE, WALL_SLIDE,
-NECK_TURN, STANDING`. Timing presets: `LIFT` 900 ms / 220–340 ms hold, `FAST` 520, `FLOW` 1100,
-`HOLD` 700 / 1500, `STRETCH` 1300 / 500 → 2400 (the deep keyframe). 15 clips carry `mirror = true`;
+*Clips*: **76** since 0.7.1 (the 0.7.0 set of 44 was authored blind and the owner judged most of
+them "pretty much off"; every clip was re-authored by the lead with a render-and-look loop, one
+clip per schematically distinct movement, and the shared generic stretches were split). Three
+files for R10, all re-exported through `AnimationClips` so call sites have one namespace:
+`AnimationClips.kt` (20 lower-body), `AnimationClipsUpper.kt` (25 upper-body and trunk),
+`AnimationClipsMobility.kt` (31 mobility + `STANDING`); the named-joint DSL and the
+`Keyframe`/`AnimationClip` types live in `AnimationPoses.kt`. In declaration order: `SQUAT,
+FRONT_SQUAT, GOBLET_SQUAT, DEEP_SQUAT, WALL_SIT, LEG_PRESS, HINGE, DEADLIFT, SINGLE_LEG_HINGE,
+LUNGE, SPLIT_SQUAT, STEP_UP, CALF_RAISE, JUMP, SWING, LEG_EXTENSION, LEG_CURL, NORDIC,
+HIP_ABDUCTION, CARRY, HIP_THRUST, BENCH_PRESS, PUSH_UP, PLANK, OVERHEAD_PRESS, DIP, ROW_BENT,
+ROW_SEATED, INVERTED_ROW, PULL_UP, PULLDOWN, HANG, LEG_RAISE, LATERAL_RAISE, REAR_DELT, FACE_PULL,
+CURL, TRICEPS_PUSHDOWN, SKULL_CRUSHER, SIDE_PLANK, DEAD_BUG, HOLLOW, TWIST, PALLOF, BACK_EXTENSION,
+COBRA, BIRD_DOG, COUCH_STRETCH, PIGEON, HIP_SWITCH_90_90, FIGURE_FOUR, STANDING_QUAD_STRETCH,
+WORLDS_GREATEST, LEG_SWINGS, HAMSTRING_STRETCH, CALF_STRETCH, ANKLE_ROCKS, CAT_COW, ROCK_BACK,
+CHILDS_POSE, THREAD_NEEDLE, DOWNWARD_DOG, OPEN_BOOK, SHOULDER_CARS, WALL_SLIDE, DOORWAY_PEC,
+LAT_STRETCH, TRICEPS_OVERHEAD_STRETCH, BICEPS_WALL_STRETCH, WRIST_CIRCLES, NECK_TURN,
+FOAM_ROLL_PRONE, FOAM_ROLL_SEATED, FOAM_ROLL_SUPINE, FOAM_ROLL_SIDE, STANDING`. Timing presets:
+`LIFT` 900 ms / 220–340 ms hold, `FAST` 520, `FLOW` 1100, `HOLD` 700 / 1500, `STRETCH` 1300 / 500
+→ 2400 (the deep keyframe), and since 0.7.1 `CIRCLE` 900 / 60 for the shoulder CARs — three
+keyframes 120° apart, closed through the wrap because **`BodyPose.lerp` interpolates joint angles
+along the shortest arc** (root rotation stays linear; `anui06`, and `an02` guards that no other
+clip asks a joint for ≥ 180° between neighbours). 23 clips carry `mirror = true`;
 `AnimationClip.mirrored()` is a true reflection on `FRONT`/`BACK` (swap sides *and* negate every
 angle, `rootOffsetX`, `rootAngle`) and a near/far limb swap on `SIDE`, whose bones cannot be turned
 round.
+
+*How the 0.7.1 poses were authored* (so the next pass can repeat it): the skeleton was exported
+once (a throw-away JVM test writing the segment outlines and pivots as JSON), the forward
+kinematics and the pose DSL were mirrored in ~100 lines of JavaScript, and every clip was written
+there with **planting helpers** instead of hand-tuned offsets — `ground` (the lowest point of the
+named segments sits on one floor line), `anchor` (a foot or hand keeps its x across keyframes),
+`pin` (a hand stays on the bar, so the body rises in a pull-up and drops in a dip) and `solve` (a
+bisection on the root angle so, e.g., a plank's elbows and toes both touch the floor — which is why
+`an07` now accepts 90 ± 15°). The Kotlin files are *generated* from that script (numbers rounded
+to 0.1, one scale per clip, auto-fitted into the 100 × 220 box), then reviewed on contact sheets
+rendered with headless Chrome. Conventions that were wrong in 0.7.0 and are now fixed in the
+source: prone poses point the toes (`ankle ≈ 70`) so the sole is not the lowest point; a lying
+figure is grounded on its whole outline; a far limb hidden behind the near one is angled out until
+it is visible; a hinge over one leg keeps `hipFar ≈ trunk` so the leg and the trunk stay in one
+line.
 
 *Lookup*: `ExerciseAnimations.clipFor(id): AnimationClip?` is the explicit 87-entry table and
 returns `null` off the end of it (an `init` check fails the build if the catalog and the table ever

@@ -79,4 +79,17 @@ class AnimatedPoseTest {
         val squat = AnimationClips.ALL.first { it.id == "SQUAT" }
         assertThat(clipViewport(squat).height).isGreaterThan(clipViewport(squat).width)
     }
+
+    @Test
+    fun anui06_joint_angles_take_the_shortest_arc_through_the_wrap() {
+        // 0.7.1: -240° → 0° continues the circle by -120°, it does not unwind +240°.
+        val a = BodyPose(angles = mapOf(BodySegmentId.UPPER_ARM_R to -240f))
+        val b = BodyPose(angles = mapOf(BodySegmentId.UPPER_ARM_R to 0f))
+        assertThat(a.lerp(b, 0.5f).angleOf(BodySegmentId.UPPER_ARM_R)).isWithin(0.01f).of(-300f)
+        // A plain small step is still linear, and the root rotation never takes the short cut.
+        val c = BodyPose(angles = mapOf(BodySegmentId.SHANK_L to 20f), rootAngle = -170f)
+        val d = BodyPose(angles = mapOf(BodySegmentId.SHANK_L to 60f), rootAngle = 170f)
+        assertThat(c.lerp(d, 0.25f).angleOf(BodySegmentId.SHANK_L)).isWithin(0.01f).of(30f)
+        assertThat(c.lerp(d, 0.5f).rootAngle).isWithin(0.01f).of(0f)
+    }
 }

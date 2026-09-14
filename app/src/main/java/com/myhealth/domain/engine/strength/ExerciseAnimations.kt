@@ -18,9 +18,11 @@ import com.myhealth.domain.model.MovementPattern
  * exercise at all has no pattern either, so [clipOrStanding] falls back to the static standing
  * figure (`an09`) — what the owner accepted custom entries would show.
  *
- * Several exercises deliberately share a clip: an incline press and a flat bench press are the same
- * schematic movement on a jointed stick figure, and so are a chin-up and a pull-up. The clip's
- * `mirror` flag, not the table, is what says a one-sided drill can be shown on the other side.
+ * A few exercises deliberately share a clip: an incline press and a flat bench press are the same
+ * schematic movement on a jointed stick figure, and so are a chin-up and a pull-up, a glute bridge
+ * and a hip thrust, or the three seated foam-roll positions. Since 0.7.1 every *movement* that is
+ * schematically different has its own clip (76 for 87 exercises). The clip's `mirror` flag, not
+ * the table, is what says a one-sided drill can be shown on the other side.
  */
 object ExerciseAnimations {
 
@@ -49,7 +51,7 @@ object ExerciseAnimations {
         MovementPattern.CORE -> A.PLANK
         MovementPattern.ISOLATION -> A.CURL
         MovementPattern.PLYOMETRIC -> A.JUMP
-        MovementPattern.MOBILITY -> A.QUADRUPED_FLOW
+        MovementPattern.MOBILITY -> A.CAT_COW
     }
 
     private val BY_ID: Map<String, AnimationClip> = mapOf(
@@ -62,8 +64,8 @@ object ExerciseAnimations {
         "BARBELL_ROW" to A.ROW_BENT,
         "DUMBBELL_ROW" to A.ROW_BENT,
         "SEATED_CABLE_ROW" to A.ROW_SEATED,
-        "INVERTED_ROW" to A.ROW_SEATED,
-        "FACE_PULL" to A.REAR_DELT,
+        "INVERTED_ROW" to A.INVERTED_ROW,
+        "FACE_PULL" to A.FACE_PULL,
         "BAND_PULL_APART" to A.REAR_DELT,
         "PULL_UP" to A.PULL_UP,
         "CHIN_UP" to A.PULL_UP,
@@ -72,18 +74,18 @@ object ExerciseAnimations {
         "REAR_DELT_FLY" to A.REAR_DELT,
         "BICEPS_CURL" to A.CURL,
         "HAMMER_CURL" to A.CURL,
-        "TRICEPS_PUSHDOWN" to A.TRICEPS_EXTENSION,
-        "SKULL_CRUSHER" to A.TRICEPS_EXTENSION,
+        "TRICEPS_PUSHDOWN" to A.TRICEPS_PUSHDOWN,
+        "SKULL_CRUSHER" to A.SKULL_CRUSHER,
         "FARMERS_CARRY" to A.CARRY,
         "DEAD_HANG" to A.HANG,
 
         // ---- lower body (22) -------------------------------------------------------------------
         "BARBELL_BACK_SQUAT" to A.SQUAT,
         "FRONT_SQUAT" to A.FRONT_SQUAT,
-        "GOBLET_SQUAT" to A.FRONT_SQUAT,
-        "LEG_PRESS" to A.SQUAT,
-        "WALL_SIT" to A.SQUAT,
-        "CONVENTIONAL_DEADLIFT" to A.HINGE,
+        "GOBLET_SQUAT" to A.GOBLET_SQUAT,
+        "LEG_PRESS" to A.LEG_PRESS,
+        "WALL_SIT" to A.WALL_SIT,
+        "CONVENTIONAL_DEADLIFT" to A.DEADLIFT,
         "ROMANIAN_DEADLIFT" to A.HINGE,
         "SINGLE_LEG_RDL" to A.SINGLE_LEG_HINGE,
         "HIP_THRUST" to A.HIP_THRUST,
@@ -93,9 +95,9 @@ object ExerciseAnimations {
         "REVERSE_LUNGE" to A.LUNGE,
         "BULGARIAN_SPLIT_SQUAT" to A.SPLIT_SQUAT,
         "STEP_UP" to A.STEP_UP,
-        "LEG_CURL" to A.KNEE_ISOLATION,
-        "LEG_EXTENSION" to A.KNEE_ISOLATION,
-        "NORDIC_HAMSTRING_CURL" to A.KNEE_ISOLATION,
+        "LEG_CURL" to A.LEG_CURL,
+        "LEG_EXTENSION" to A.LEG_EXTENSION,
+        "NORDIC_HAMSTRING_CURL" to A.NORDIC,
         "HIP_ABDUCTION" to A.HIP_ABDUCTION,
         "HIP_ADDUCTION" to A.HIP_ABDUCTION,
         "CALF_RAISE" to A.CALF_RAISE,
@@ -104,13 +106,13 @@ object ExerciseAnimations {
         // ---- trunk (10) ------------------------------------------------------------------------
         "PLANK" to A.PLANK,
         "SIDE_PLANK" to A.SIDE_PLANK,
-        "HOLLOW_HOLD" to A.DEAD_BUG,
+        "HOLLOW_HOLD" to A.HOLLOW,
         "COPENHAGEN_PLANK" to A.SIDE_PLANK,
         "DEAD_BUG" to A.DEAD_BUG,
-        "BIRD_DOG" to A.QUADRUPED_FLOW,
+        "BIRD_DOG" to A.BIRD_DOG,
         "HANGING_LEG_RAISE" to A.LEG_RAISE,
         "RUSSIAN_TWIST" to A.TWIST,
-        "PALLOF_PRESS" to A.TWIST,
+        "PALLOF_PRESS" to A.PALLOF,
         "BACK_EXTENSION" to A.BACK_EXTENSION,
     ) + MOBILITY_CLIP_IDS
 
@@ -127,43 +129,43 @@ object ExerciseAnimations {
 /** The 33 `MOB_` drills (P17), kept out of the map literal above so both stay inside R10. */
 private val MOBILITY_CLIP_IDS: Map<String, AnimationClip> = mapOf(
     // hips, knees and ankles
-    "MOB_COUCH_STRETCH" to A.HOLD_STRETCH_HIP,
-    "MOB_PIGEON" to A.HOLD_STRETCH_HIP,
-    "MOB_HIP_SWITCH_90_90" to A.HOLD_STRETCH_HIP,
-    "MOB_STANDING_HAMSTRING_STRETCH" to A.HOLD_STRETCH_HAMSTRING,
-    "MOB_WALL_CALF_STRETCH" to A.HOLD_STRETCH_CALF,
-    "MOB_ANKLE_ROCKS" to A.HOLD_STRETCH_CALF,
-    "MOB_DEEP_SQUAT_HOLD" to A.SQUAT,
-    "MOB_ADDUCTOR_ROCK_BACK" to A.QUADRUPED_FLOW,
-    "MOB_FIGURE_FOUR_GLUTE" to A.HOLD_STRETCH_HIP,
-    "MOB_STANDING_QUAD_STRETCH" to A.HOLD_STRETCH_HIP,
-    "MOB_WORLDS_GREATEST_STRETCH" to A.HOLD_STRETCH_HIP,
-    "MOB_LEG_SWINGS" to A.HOLD_STRETCH_HAMSTRING,
+    "MOB_COUCH_STRETCH" to A.COUCH_STRETCH,
+    "MOB_PIGEON" to A.PIGEON,
+    "MOB_HIP_SWITCH_90_90" to A.HIP_SWITCH_90_90,
+    "MOB_STANDING_HAMSTRING_STRETCH" to A.HAMSTRING_STRETCH,
+    "MOB_WALL_CALF_STRETCH" to A.CALF_STRETCH,
+    "MOB_ANKLE_ROCKS" to A.ANKLE_ROCKS,
+    "MOB_DEEP_SQUAT_HOLD" to A.DEEP_SQUAT,
+    "MOB_ADDUCTOR_ROCK_BACK" to A.ROCK_BACK,
+    "MOB_FIGURE_FOUR_GLUTE" to A.FIGURE_FOUR,
+    "MOB_STANDING_QUAD_STRETCH" to A.STANDING_QUAD_STRETCH,
+    "MOB_WORLDS_GREATEST_STRETCH" to A.WORLDS_GREATEST,
+    "MOB_LEG_SWINGS" to A.LEG_SWINGS,
 
     // spine and trunk
-    "MOB_CAT_COW" to A.QUADRUPED_FLOW,
-    "MOB_THREAD_THE_NEEDLE" to A.QUADRUPED_FLOW,
-    "MOB_THORACIC_ROTATION" to A.ROTATION_THORACIC,
-    "MOB_CHILDS_POSE" to A.QUADRUPED_FLOW,
-    "MOB_DOWNWARD_DOG" to A.QUADRUPED_FLOW,
-    "MOB_COBRA" to A.BACK_EXTENSION,
+    "MOB_CAT_COW" to A.CAT_COW,
+    "MOB_THREAD_THE_NEEDLE" to A.THREAD_NEEDLE,
+    "MOB_THORACIC_ROTATION" to A.OPEN_BOOK,
+    "MOB_CHILDS_POSE" to A.CHILDS_POSE,
+    "MOB_DOWNWARD_DOG" to A.DOWNWARD_DOG,
+    "MOB_COBRA" to A.COBRA,
 
     // shoulders, arms and neck
-    "MOB_SHOULDER_CARS" to A.SHOULDER_CIRCLE,
+    "MOB_SHOULDER_CARS" to A.SHOULDER_CARS,
     "MOB_WALL_SLIDES" to A.WALL_SLIDE,
-    "MOB_DOORWAY_PEC_STRETCH" to A.HOLD_STRETCH_SHOULDER,
+    "MOB_DOORWAY_PEC_STRETCH" to A.DOORWAY_PEC,
     "MOB_BAND_PULL_APART_SLOW" to A.REAR_DELT,
-    "MOB_DOORWAY_LAT_STRETCH" to A.HOLD_STRETCH_SHOULDER,
-    "MOB_OVERHEAD_TRICEPS_STRETCH" to A.HOLD_STRETCH_SHOULDER,
-    "MOB_WALL_BICEPS_STRETCH" to A.HOLD_STRETCH_SHOULDER,
-    "MOB_WRIST_CIRCLES" to A.SHOULDER_CIRCLE,
+    "MOB_DOORWAY_LAT_STRETCH" to A.LAT_STRETCH,
+    "MOB_OVERHEAD_TRICEPS_STRETCH" to A.TRICEPS_OVERHEAD_STRETCH,
+    "MOB_WALL_BICEPS_STRETCH" to A.BICEPS_WALL_STRETCH,
+    "MOB_WRIST_CIRCLES" to A.WRIST_CIRCLES,
     "MOB_NECK_ROTATIONS" to A.NECK_TURN,
 
     // foam roller
-    "MOB_FOAM_ROLL_QUADS" to A.FOAM_ROLL,
-    "MOB_FOAM_ROLL_HAMSTRINGS" to A.FOAM_ROLL,
-    "MOB_FOAM_ROLL_CALVES" to A.FOAM_ROLL,
-    "MOB_FOAM_ROLL_THORACIC" to A.FOAM_ROLL,
-    "MOB_FOAM_ROLL_LATS" to A.FOAM_ROLL,
-    "MOB_FOAM_ROLL_GLUTES" to A.FOAM_ROLL,
+    "MOB_FOAM_ROLL_QUADS" to A.FOAM_ROLL_PRONE,
+    "MOB_FOAM_ROLL_HAMSTRINGS" to A.FOAM_ROLL_SEATED,
+    "MOB_FOAM_ROLL_CALVES" to A.FOAM_ROLL_SEATED,
+    "MOB_FOAM_ROLL_THORACIC" to A.FOAM_ROLL_SUPINE,
+    "MOB_FOAM_ROLL_LATS" to A.FOAM_ROLL_SIDE,
+    "MOB_FOAM_ROLL_GLUTES" to A.FOAM_ROLL_SEATED,
 )

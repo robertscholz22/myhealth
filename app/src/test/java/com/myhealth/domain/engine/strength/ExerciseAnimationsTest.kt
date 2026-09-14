@@ -27,8 +27,10 @@ class ExerciseAnimationsTest {
         // A few spot checks that the table says what it means.
         assertThat(ExerciseAnimations.clipFor("BARBELL_BACK_SQUAT")).isEqualTo(AnimationClips.SQUAT)
         assertThat(ExerciseAnimations.clipFor("PLANK")).isEqualTo(AnimationClips.PLANK)
-        assertThat(ExerciseAnimations.clipFor("MOB_PIGEON")).isEqualTo(AnimationClips.HOLD_STRETCH_HIP)
-        assertThat(ExerciseAnimations.clipFor("MOB_FOAM_ROLL_LATS")).isEqualTo(AnimationClips.FOAM_ROLL)
+        assertThat(ExerciseAnimations.clipFor("MOB_PIGEON")).isEqualTo(AnimationClips.PIGEON)
+        assertThat(ExerciseAnimations.clipFor("MOB_FOAM_ROLL_LATS")).isEqualTo(AnimationClips.FOAM_ROLL_SIDE)
+        assertThat(ExerciseAnimations.clipFor("GLUTE_BRIDGE")).isEqualTo(AnimationClips.HIP_THRUST)
+        assertThat(ExerciseAnimations.clipFor("MOB_SHOULDER_CARS")).isEqualTo(AnimationClips.SHOULDER_CARS)
 
         // Every clip that exists is used by something — an unused one is a drawing nobody sees.
         val used = ExerciseCatalog.ALL.mapNotNull { ExerciseAnimations.clipFor(it.id) }.toSet()
@@ -61,6 +63,6 @@ class ExerciseAnimationsTest {
         }
         assertThat(ExerciseAnimations.defaultFor(MovementPattern.SQUAT)).isEqualTo(AnimationClips.SQUAT)
         assertThat(ExerciseAnimations.defaultFor(MovementPattern.MOBILITY))
-            .isEqualTo(AnimationClips.QUADRUPED_FLOW)
+            .isEqualTo(AnimationClips.CAT_COW)
     }
 }

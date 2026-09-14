@@ -7,7 +7,7 @@ import com.myhealth.domain.model.BodySegmentId
 /**
  * The clip vocabulary of P18: an [AnimationClip] is a short list of [Keyframe] poses the renderer
  * (P18.2) eases between and then loops back to the first, and this file is the little DSL the
- * eighty-seven clips in `AnimationClips` are written in — named joints instead of a raw
+ * seventy-six clips in `AnimationClips` are written in — named joints instead of a raw
  * `Map<BodySegmentId, Float>`, which is what keeps a keyframe one readable line.
  *
  * **Sign conventions** (degrees, positive is clockwise on screen, as `BodyModelTest.bm02` pinned):
@@ -97,6 +97,12 @@ internal val HOLD = Timing(transitionMs = 700, holdMs = 1500)
 
 /** A stretch: settle in slowly, then hold the end position. */
 internal val STRETCH = Timing(transitionMs = 1300, holdMs = 500, endHoldMs = 2400)
+
+/**
+ * A continuous circle (shoulder CARs): three keyframes 120° apart with next to no hold, closed
+ * through the wrap by the shortest-arc angle interpolation of `BodyPose.lerp`.
+ */
+internal val CIRCLE = Timing(transitionMs = 900, holdMs = 60)
 
 internal fun clip(
     id: String,

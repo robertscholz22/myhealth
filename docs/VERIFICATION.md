@@ -543,3 +543,28 @@ JSON backup exported first (2719 rows over 17 tables, `myhealth-backup-2026-09-1
 | Lateral raise: front view, arms sweep out to horizontal, deltoids highlighted, fills the frame | PASS | emu_p18_lateral_a.png, emu_p18_lateral_b.png |
 - POLISH-21 (fixed in 0.7.0): fit-to-content viewport for animated and static figures; tests `anui04_viewport_contains_every_keyframe_silhouette`, `anui05_horizontal_clip_viewport_is_landscape`.
 - NOTE-22: the pigeon pose reads as a lunge more than a floor stretch (the figure floats; no ground line). A ground line under clips with a floor contact and a slightly lower kneeling pose would help.
+
+## Session 18 — 2026-09-14 (JVM render loop + emulator, 0.7.1 debug build: animations re-authored)
+The owner reviewed the 0.7.0 animations on the review sheet and judged "most of them are pretty much off". Every one of the 44 clips was inspected on contact sheets (keyframes + in-between frames, floor line, joint dots) rendered from the app's own skeleton geometry through a JavaScript mirror of `BodyModel.kt` (fidelity check against the Kotlin export: worst deviation 0.013 units, i.e. rounding).
+
+| Finding in 0.7.0 | Fix in 0.7.1 |
+|---|---|
+| Six different hip stretches (couch, pigeon, 90/90, figure-four, quad stretch, world's greatest) shared one kneeling-lunge clip; leg swings played the hamstring stretch; bird dog, cat-cow, child's pose, downward dog and thread-the-needle all played one quadruped rock; all six foam-roll drills played one prone pose; four shoulder/arm stretches shared the triceps stretch | one clip per distinct movement: 76 clips for 87 exercises (only bench/incline, pull-up/chin-up, glute bridge/hip thrust, three seated foam rolls and the two curls still share) |
+| Leg curl / leg extension / Nordic played a standing knee bend that sank the whole figure by 25 units | `LEG_CURL` prone, `LEG_EXTENSION` seated, `NORDIC` kneeling with the trunk pivoting at the knee |
+| Back squat swung the arms to horizontal; front squat folded the forearms over the face | hands on the bar (`shoulder 35 / elbow −150`), elbows high with the hands at the shoulders; goblet, deep-squat hold, wall sit and leg press got their own clips |
+| Back extension lifted the legs with the trunk (`hip` not counter-rotated); prone figures had their toes below the floor | `hip = −2 → 22` keeps the legs down; prone clips point the toes; every lying clip is grounded on its whole outline |
+| Hip thrust rotated the trunk about the hips with floating feet; jump never left the floor; step-up had no step; dip and inverted row moved the hands instead of the body | bridge pivots at the shoulders (`torso −26`, head kept level) with the feet planted; jump has an airborne keyframe 28 units up; step-up lifts the body onto a 24-unit step; hands are pinned to the bar and the body moves |
+| Side plank lay flat with the arms sticking out; open book lay with the arms along the body | side plank is propped on the forearm with the top arm to the ceiling (`solve` on elbows + feet); open book sweeps the top arm from the ceiling over the head to the floor behind |
+| Shoulder CARs was an up-and-down arc | a true circle in profile: three keyframes 120° apart, `CIRCLE` timing, shortest-arc interpolation |
+
+| Step | Result | Evidence |
+|---|---|---|
+| Contact sheets of all 76 clips (4 keyframes + 5 in-betweens each) reviewed twice by the lead; large renders of the 12 doubtful ones (side plank, open book, hip thrust, world's greatest, couch stretch, standing quad stretch, rock-back, child's pose, leg curl, hollow, twist, thread the needle) | PASS | scratchpad `anim/new_*.png`, `anim/big_*.png` |
+| Kotlin export (`TmpExportTest`, deleted before commit) matches the JavaScript authoring model frame for frame | PASS | worst deviation 0.013 |
+| `bash tools/verify.sh` — `an01`…`an09`, `anui01`…`anui06` updated/added; `an07` accepts the real forearm-plank slope | see STATUS | |
+| Review sheet regenerated from the Kotlin export and republished (76 clips, floor line under every figure) | PASS | artifact link in the delivery message |
+
+- NOTE-22 (pigeon floats, no ground line): closed by 0.7.1 — every clip is planted on a floor line in the source, and the review sheet draws the floor.
+- NOTE-23: the front-view 90/90 hip switch and the Russian twist are the two clips this camera cannot show faithfully (both need a top-down or three-quarter view); they read as "knees swinging side to side" and "arms sweeping side to side" respectively.
+- NOTE-24: `an02`'s constant-scale rule means a clip with a very tall and a very wide keyframe (jump, world's greatest) is scaled to fit its widest frame; the viewport fit (POLISH-21) hides this.
+

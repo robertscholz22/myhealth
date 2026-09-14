@@ -273,11 +273,13 @@ class BodyModelTest {
         val plank = AnimationClips.PLANK
         assertThat(plank.face).isEqualTo(BodyFace.SIDE)
         plank.keyframes.forEach { frame ->
-            assertThat(frame.pose.rootAngle).isEqualTo(90f)
-            // Head, hip and ankle all sit on one horizontal line…
+            // Prone, with the slight head-up slope a forearm plank really has (0.7.1: the elbows
+            // and the toes are planted on one floor line, so the shoulders sit an upper arm higher).
+            assertThat(frame.pose.rootAngle).isWithin(15f).of(90f)
+            // Head, hip and ankle all sit close to one line…
             val ys = listOf(BodySegmentId.HEAD, BodySegmentId.PELVIS, BodySegmentId.FOOT_R)
                 .map { origin(plank.face, frame.pose, it).y }
-            assertThat(ys.max() - ys.min()).isLessThan(8f)
+            assertThat(ys.max() - ys.min()).isLessThan(30f)
             // …with the head at the +x end, because +90° is clockwise and the profile faces +x.
             assertThat(origin(plank.face, frame.pose, BodySegmentId.HEAD).x)
                 .isGreaterThan(origin(plank.face, frame.pose, BodySegmentId.FOOT_R).x + 40f)

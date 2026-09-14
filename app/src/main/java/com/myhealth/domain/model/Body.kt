@@ -93,6 +93,12 @@ data class BodyPose(
      * angle, the root offset, the root rotation and the root scale linearly. A segment either pose
      * leaves out counts as `0f`, so interpolating towards [STANDING] straightens the figure out
      * instead of dropping joints. [t] is clamped, which is what makes an eased 0…1 progress safe.
+     *
+     * Joint angles take the **shortest arc** (0.7.1): `-240° → 0°` turns a further −120° rather
+     * than unwinding +240°, which is what lets a three-keyframe circle (shoulder CARs) close
+     * through the wrap. No clip moves a joint more than 180° between two neighbouring keyframes,
+     * so every other transition is unchanged. The root rotation stays linear — a trunk never turns
+     * that far, and a hinge must not pick the other way round.
      */
     fun lerp(other: BodyPose, t: Float): BodyPose {
         val f = t.coerceIn(0f, 1f)
@@ -100,7 +106,7 @@ data class BodyPose(
         if (f == 1f) return other
         val ids = angles.keys + other.angles.keys
         return BodyPose(
-            angles = ids.associateWith { id -> mix(angleOf(id), other.angleOf(id), f) },
+            angles = ids.associateWith { id -> mixAngle(angleOf(id), other.angleOf(id), f) },
             rootOffsetX = mix(rootOffsetX, other.rootOffsetX, f),
             rootOffsetY = mix(rootOffsetY, other.rootOffsetY, f),
             rootAngle = mix(rootAngle, other.rootAngle, f),
@@ -109,6 +115,11 @@ data class BodyPose(
     }
 
     private fun mix(a: Float, b: Float, t: Float): Float = a + (b - a) * t
+
+    private fun mixAngle(a: Float, b: Float, t: Float): Float {
+        val delta = ((b - a + 180f).mod(360f)) - 180f
+        return a + delta * t
+    }
 
     companion object {
         /** Every joint at zero: the anatomical standing figure the geometry is drawn from. */

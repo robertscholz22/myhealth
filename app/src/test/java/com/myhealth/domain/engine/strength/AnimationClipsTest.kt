@@ -37,6 +37,19 @@ class AnimationClipsTest {
             }
             // A cyclic clip moves: two keyframes that are identical are only allowed for a hold.
             where.that(clip.durationMs).isGreaterThan(clip.transitionMs)
+            // 0.7.1: joint angles interpolate along the shortest arc, so no clip may ask a joint
+            // to travel 180° or more between neighbours — it would go the other way round. The
+            // one clip that wants exactly that is the shoulder circle, whose wrap (-240° → 0°)
+            // is meant to continue the circle by -120°.
+            if (clip.id == "SHOULDER_CARS") return@forEach
+            clip.keyframes.forEachIndexed { index, frame ->
+                val next = clip.keyframes[(index + 1) % clip.keyframes.size]
+                BodySegmentId.entries.forEach { id ->
+                    assertWithMessage("${clip.id} keyframe $index → next, $id")
+                        .that(abs(next.pose.angleOf(id) - frame.pose.angleOf(id)))
+                        .isLessThan(180f)
+                }
+            }
         }
 
         // The three faces are all in use; the profile carries the sagittal bulk of the catalog.
@@ -46,7 +59,7 @@ class AnimationClipsTest {
 
         // Spot check the two timings that differ most: a lift reps, a stretch holds.
         assertThat(AnimationClips.SQUAT.keyframes.last().holdMs).isEqualTo(340)
-        assertThat(AnimationClips.HOLD_STRETCH_HIP.keyframes.last().holdMs).isEqualTo(2400)
+        assertThat(AnimationClips.COUCH_STRETCH.keyframes.last().holdMs).isEqualTo(2400)
     }
 
     @Test
