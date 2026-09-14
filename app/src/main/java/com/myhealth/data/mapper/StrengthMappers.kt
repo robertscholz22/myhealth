@@ -1,9 +1,11 @@
 package com.myhealth.data.mapper
 
+import com.myhealth.data.db.entity.ExerciseProgressEntity
 import com.myhealth.data.db.entity.StrengthSetLogEntity
 import com.myhealth.data.db.entity.StrengthWorkoutEntity
 import com.myhealth.data.db.entity.StrengthWorkoutExerciseEntity
 import com.myhealth.data.db.relation.StrengthWorkoutWithExercises
+import com.myhealth.domain.model.ExerciseProgress
 import com.myhealth.domain.model.StrengthSetLog
 import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.model.StrengthWorkoutExercise
@@ -86,6 +88,7 @@ fun StrengthSetLogEntity.toDomain(): StrengthSetLog = StrengthSetLog(
     loadKg = loadKg,
     rpe = rpe,
     completedAtMillis = completedAtMillis,
+    feedback = feedback,
 )
 
 fun StrengthSetLog.toEntity(): StrengthSetLogEntity = StrengthSetLogEntity(
@@ -100,4 +103,29 @@ fun StrengthSetLog.toEntity(): StrengthSetLogEntity = StrengthSetLogEntity(
     loadKg = loadKg,
     rpe = rpe,
     completedAtMillis = completedAtMillis,
+    feedback = feedback,
+)
+
+/**
+ * `exercise_progress` ⇄ [ExerciseProgress] (§P16, P16.1) — a 1:1 mapping keyed on the catalog id,
+ * which is the table's primary key, so an upsert of the same exercise always replaces its state.
+ */
+fun ExerciseProgressEntity.toDomain(): ExerciseProgress = ExerciseProgress(
+    exerciseId = exerciseId,
+    loadKg = loadKg,
+    reps = reps,
+    seconds = seconds,
+    lastFeedback = lastFeedback,
+    isEstimated = isEstimated,
+    updatedDay = updatedDay,
+)
+
+fun ExerciseProgress.toEntity(): ExerciseProgressEntity = ExerciseProgressEntity(
+    exerciseId = exerciseId,
+    loadKg = loadKg,
+    reps = reps,
+    seconds = seconds,
+    lastFeedback = lastFeedback,
+    isEstimated = isEstimated,
+    updatedDay = updatedDay,
 )

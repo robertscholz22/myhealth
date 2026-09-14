@@ -37,6 +37,7 @@ import com.myhealth.data.db.entity.CycleEntryEntity
 import com.myhealth.data.db.entity.DailyHealthSummaryEntity
 import com.myhealth.data.db.entity.DailyLoadEntity
 import com.myhealth.data.db.entity.EventOverrideEntity
+import com.myhealth.data.db.entity.ExerciseProgressEntity
 import com.myhealth.data.db.entity.GoalEntity
 import com.myhealth.data.db.entity.ImportRecordEntity
 import com.myhealth.data.db.entity.IngredientEntity
@@ -63,7 +64,8 @@ import com.myhealth.data.db.migration.Migrations
 
 /**
  * The single Room database (PLAN §2.2): 26 tables plus the P8.5 `ingredient_fts` index, the
- * P11.1 `cycle_entry` table, the P12 `ride_best` table and the three P14 strength tables,
+ * P11.1 `cycle_entry` table, the P12 `ride_best` table, the three P14 strength tables and the
+ * P16.1 `exercise_progress` table,
  * `exportSchema = true`, schemas in `app/schemas`.
  *
  * Every version bump ships an explicit `Migration` in [Migrations] plus a row in `docs/PLAN.md`
@@ -112,8 +114,10 @@ import com.myhealth.data.db.migration.Migrations
         StrengthWorkoutEntity::class,
         StrengthWorkoutExerciseEntity::class,
         StrengthSetLogEntity::class,
+        // §P16 P16.1 per-exercise load progression
+        ExerciseProgressEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -157,7 +161,7 @@ abstract class MyHealthDatabase : RoomDatabase() {
     /** `cycle_entry` (P11.1). */
     abstract fun cycleDao(): CycleDao
 
-    /** The three strength tables (P14). */
+    /** The three strength tables (P14) plus `exercise_progress` (P16.1). */
     abstract fun strengthDao(): StrengthDao
 
     /** Whole-table access for the JSON backup (P8.4). */

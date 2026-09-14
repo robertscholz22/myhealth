@@ -51,6 +51,12 @@ internal class BackupMerge(private val dao: BackupDao) {
             dao::insertNutritionTargetSnapshot,
         )
         written += mergeKeyed(file.syncState, existing.syncState, { it.key }, dao::insertSyncState)
+        // P16.1: keyed by the catalog id it already is. The device's own state wins — a progression
+        // it has been advancing is newer than whatever the backup froze.
+        written += mergeKeyed(
+            file.exerciseProgress, existing.exerciseProgress, { it.exerciseId },
+            dao::insertExerciseProgress,
+        )
 
         val ingredients = mergeRoot(
             file.ingredient, existing.ingredient, { it.id },

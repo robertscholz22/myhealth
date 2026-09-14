@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Upsert
+import com.myhealth.data.db.entity.ExerciseProgressEntity
 import com.myhealth.data.db.entity.StrengthSetLogEntity
 import com.myhealth.data.db.entity.StrengthWorkoutEntity
 import com.myhealth.data.db.entity.StrengthWorkoutExerciseEntity
@@ -69,4 +70,29 @@ interface StrengthDao {
 
     @Query("DELETE FROM strength_set_log WHERE id = :id")
     suspend fun deleteSetLog(id: Long)
+
+    // ---- exercise_progress (P16.1) -----------------------------------------------------------
+
+    @Query("SELECT * FROM exercise_progress WHERE exerciseId = :exerciseId")
+    fun observeProgress(exerciseId: String): Flow<ExerciseProgressEntity?>
+
+    @Query("SELECT * FROM exercise_progress WHERE exerciseId = :exerciseId")
+    suspend fun getProgress(exerciseId: String): ExerciseProgressEntity?
+
+    @Query("SELECT * FROM exercise_progress ORDER BY exerciseId ASC")
+    suspend fun getAllProgress(): List<ExerciseProgressEntity>
+
+    /** The catalog id is the primary key, so this replaces the exercise's state in place. */
+    @Upsert
+    suspend fun upsertProgress(row: ExerciseProgressEntity)
+
+    @Query("DELETE FROM exercise_progress WHERE exerciseId = :exerciseId")
+    suspend fun deleteProgress(exerciseId: String)
+
+    /** The last sessions logged for one exercise — what the Progression card lists (P16.2). */
+    @Query(
+        "SELECT * FROM strength_set_log WHERE exerciseId = :exerciseId " +
+            "ORDER BY day DESC, setIndex ASC LIMIT :limit",
+    )
+    suspend fun getRecentSetLogs(exerciseId: String, limit: Int): List<StrengthSetLogEntity>
 }

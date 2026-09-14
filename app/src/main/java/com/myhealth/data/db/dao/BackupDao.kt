@@ -14,6 +14,7 @@ import com.myhealth.data.db.entity.CycleEntryEntity
 import com.myhealth.data.db.entity.DailyHealthSummaryEntity
 import com.myhealth.data.db.entity.DailyLoadEntity
 import com.myhealth.data.db.entity.EventOverrideEntity
+import com.myhealth.data.db.entity.ExerciseProgressEntity
 import com.myhealth.data.db.entity.GoalEntity
 import com.myhealth.data.db.entity.ImportRecordEntity
 import com.myhealth.data.db.entity.IngredientEntity
@@ -330,4 +331,13 @@ interface BackupDao {
 
     @Query("DELETE FROM strength_set_log")
     suspend fun deleteStrengthSetLog()
+
+    @Query("SELECT * FROM exercise_progress")
+    suspend fun allExerciseProgress(): List<ExerciseProgressEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertExerciseProgress(rows: List<ExerciseProgressEntity>): List<Long>
+
+    @Query("DELETE FROM exercise_progress")
+    suspend fun deleteExerciseProgress()
 }

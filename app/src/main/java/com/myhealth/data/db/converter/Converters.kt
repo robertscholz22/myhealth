@@ -5,6 +5,7 @@ import androidx.room.TypeConverter
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.DayType
 import com.myhealth.domain.model.EventType
+import com.myhealth.domain.model.Feedback
 import com.myhealth.domain.model.GoalStatus
 import com.myhealth.domain.model.GoalType
 import com.myhealth.domain.model.ImportKind
@@ -239,6 +240,17 @@ class Converters {
     @TypeConverter
     fun toStrengthWorkoutKind(value: String): StrengthWorkoutKind =
         decode(value, StrengthWorkoutKind.entries.toTypedArray(), StrengthWorkoutKind.CUSTOM)
+
+    /**
+     * `exercise_progress.lastFeedback` / `strength_set_log.feedback` (P16.1). The last-resort
+     * member is [Feedback.HARD] — the neutral one: an unreadable feedback must not move a load.
+     */
+    @TypeConverter
+    fun fromFeedback(value: Feedback): String = value.name
+
+    @TypeConverter
+    fun toFeedback(value: String): Feedback =
+        decode(value, Feedback.entries.toTypedArray(), Feedback.HARD)
 
     @TypeConverter
     fun fromImportKind(value: ImportKind): String = value.name

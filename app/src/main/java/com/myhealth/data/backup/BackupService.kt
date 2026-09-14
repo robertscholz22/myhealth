@@ -98,6 +98,7 @@ class BackupService(
         strengthWorkout = dao.allStrengthWorkout(),
         strengthWorkoutExercise = dao.allStrengthWorkoutExercise(),
         strengthSetLog = dao.allStrengthSetLog(),
+        exerciseProgress = dao.allExerciseProgress(),
     )
 
     /** Child-first wipe, then parent-first insert with the backup's own ids. */
@@ -109,6 +110,7 @@ class BackupService(
     private suspend fun deleteAllChildFirst() {
         // P14: the set log hangs off `planned_session` and `activity_session`, the exercise rows
         // off `strength_workout` — all three go before any of their parents.
+        dao.deleteExerciseProgress()
         dao.deleteStrengthSetLog()
         dao.deleteStrengthWorkoutExercise()
         dao.deleteCycleEntry()
@@ -178,6 +180,8 @@ class BackupService(
         written += dao.insertImportRecord(file.importRecord).size
         written += dao.insertCycleEntry(file.cycleEntry).size
         written += dao.insertStrengthSetLog(file.strengthSetLog).size
+        // P16.1: `exercise_progress` references nothing — the catalog is code, not a table.
+        written += dao.insertExerciseProgress(file.exerciseProgress).size
         return written
     }
 }

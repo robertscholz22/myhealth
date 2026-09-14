@@ -9,6 +9,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.data.db.entity.ActivitySourceRecordEntity
 import com.myhealth.data.db.entity.CycleEntryEntity
+import com.myhealth.data.db.entity.ExerciseProgressEntity
 import com.myhealth.data.db.entity.IngredientEntity
 import com.myhealth.data.db.entity.RideBestEntity
 import com.myhealth.data.db.entity.StrengthSetLogEntity
@@ -16,6 +17,7 @@ import com.myhealth.data.db.entity.StrengthWorkoutEntity
 import com.myhealth.data.db.entity.StrengthWorkoutExerciseEntity
 import com.myhealth.data.db.migration.Migrations
 import com.myhealth.domain.model.ActivitySource
+import com.myhealth.domain.model.Feedback
 import com.myhealth.domain.model.MeasureBasis
 import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.model.SessionType
@@ -414,6 +416,97 @@ class MyHealthMigrationTest {
                 assertThat(dao.getByTemplateId("UPPER_A")).isNull()
                 // The set log survives its workout — it records what actually happened.
                 assertThat(dao.observeSetLogsByDay(19_662L).first()).hasSize(1)
+            }
+        } finally {
+            migrated.close()
+        }
+    }
+
+    /**
+     * P16.1: an existing v6 database gains `profile.availableEquipmentJson`,
+     * `strength_set_log.feedback` and the `exercise_progress` table **in place**. The rows it
+     * already held survive with `NULL` in both new columns — which is exactly §P16's invariant
+     * that the feature is inert until the owner uses it — and the new table round-trips through
+     * the DAO, keyed on the catalog id rather than on an autoincrementing row id.
+     */
+    @Test
+    fun migration_6_to_7_adds_progress_table_and_columns() {
+        migrations.createDatabase(MIGRATION_DB, 6).use { v6 ->
+            v6.execSQL(
+                "INSERT INTO profile (id, displayName, sex, birthDay, heightCm, neatLevel, " +
+                    "goalPaceKgPerWeek, sleepTargetHours, preferredSportsJson, mobilityOnRestDays, " +
+                    "indoorTrainerAvailable, createdAtMillis, updatedAtMillis) VALUES " +
+                    "(1, 'Robert', 'MALE', 5000, 180.0, 'LIGHT_ACTIVE', 0.0, 8.0, '{}', 1, 0, 1, 1)",
+            )
+            v6.execSQL(
+                "INSERT INTO strength_set_log (id, day, plannedSessionId, activityId, exerciseId, " +
+                    "setIndex, reps, seconds, loadKg, rpe, completedAtMillis) VALUES " +
+                    "(1, 19662, NULL, NULL, 'BARBELL_BACK_SQUAT', 1, 5, NULL, 60.0, 8, 2000)",
+            )
+        }
+
+        migrations.runMigrationsAndValidate(MIGRATION_DB, 7, true, *Migrations.ALL)
+
+        val migrated = Room.databaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            MyHealthDatabase::class.java,
+            MIGRATION_DB,
+        ).addMigrations(*Migrations.ALL).build()
+        try {
+            runTest {
+                // Nothing before 0.5.0 restricted equipment or gave feedback.
+                val profile = checkNotNull(migrated.profileDao().observeProfile().first())
+                assertThat(profile.availableEquipmentJson).isNull()
+                val dao = migrated.strengthDao()
+                val logged = dao.observeSetLogsByDay(19_662L).first().single()
+                assertThat(logged.exerciseId).isEqualTo("BARBELL_BACK_SQUAT")
+                assertThat(logged.feedback).isNull()
+
+                // The new column takes a feedback from now on …
+                dao.insertSetLogs(
+                    listOf(
+                        StrengthSetLogEntity(
+                            day = 19_663L,
+                            exerciseId = "BARBELL_BACK_SQUAT",
+                            setIndex = 1,
+                            reps = 8,
+                            loadKg = 60.0,
+                            completedAtMillis = 3_000L,
+                            feedback = Feedback.TOO_EASY,
+                        ),
+                    ),
+                )
+                assertThat(dao.observeSetLogsByDay(19_663L).first().single().feedback)
+                    .isEqualTo(Feedback.TOO_EASY)
+
+                // … and `exercise_progress` stores one state per exercise, replaced in place.
+                dao.upsertProgress(
+                    ExerciseProgressEntity(
+                        exerciseId = "BARBELL_BACK_SQUAT",
+                        loadKg = 60.0,
+                        reps = 5,
+                        isEstimated = true,
+                        updatedDay = 19_663L,
+                    ),
+                )
+                dao.upsertProgress(
+                    ExerciseProgressEntity(
+                        exerciseId = "BARBELL_BACK_SQUAT",
+                        loadKg = 62.5,
+                        reps = 5,
+                        lastFeedback = Feedback.TOO_EASY,
+                        isEstimated = false,
+                        updatedDay = 19_664L,
+                    ),
+                )
+                val state = checkNotNull(dao.getProgress("BARBELL_BACK_SQUAT"))
+                assertThat(state.loadKg).isEqualTo(62.5)
+                assertThat(state.lastFeedback).isEqualTo(Feedback.TOO_EASY)
+                assertThat(state.isEstimated).isFalse()
+                assertThat(dao.getAllProgress()).hasSize(1)
+                assertThat(dao.observeProgress("BARBELL_BACK_SQUAT").first()?.updatedDay)
+                    .isEqualTo(19_664L)
+                assertThat(dao.getProgress("PLANK")).isNull()
             }
         } finally {
             migrated.close()

@@ -275,6 +275,15 @@ enum class MovementPattern {
 /** `strength_workout.kind` (§2.2.7). `CUSTOM` is the last-resort member of the converter. */
 enum class StrengthWorkoutKind { FULL, UPPER, LOWER, CORE, CUSTOM }
 
+/**
+ * How an exercise felt (§P16, P16.1) — the one input the load progression takes.
+ *
+ * Chosen per exercise in the set-log sheet and stored on each of that exercise's set rows;
+ * [HARD] is the default and the neutral member (it changes nothing), which is also what the
+ * Room converter decodes an unknown string to.
+ */
+enum class Feedback { TOO_EASY, EASY, HARD, TOO_HARD }
+
 /** A muscle group's fresh/loaded/fatigued band relative to `0.35 × CTL` (§3.12.4). */
 enum class MuscleLoadBand { FRESH, LOADED, FATIGUED }
 

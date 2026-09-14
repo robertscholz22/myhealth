@@ -10,6 +10,7 @@ import com.myhealth.data.db.entity.CycleEntryEntity
 import com.myhealth.data.db.entity.DailyHealthSummaryEntity
 import com.myhealth.data.db.entity.DailyLoadEntity
 import com.myhealth.data.db.entity.EventOverrideEntity
+import com.myhealth.data.db.entity.ExerciseProgressEntity
 import com.myhealth.data.db.entity.GoalEntity
 import com.myhealth.data.db.entity.ImportRecordEntity
 import com.myhealth.data.db.entity.IngredientEntity
@@ -93,6 +94,8 @@ data class BackupFile(
     val strengthWorkout: List<StrengthWorkoutEntity> = emptyList(),
     val strengthWorkoutExercise: List<StrengthWorkoutExerciseEntity> = emptyList(),
     val strengthSetLog: List<StrengthSetLogEntity> = emptyList(),
+    // §P16 P16.1 load progression
+    val exerciseProgress: List<ExerciseProgressEntity> = emptyList(),
 ) {
 
     /** Rows per SQLite table name, empty tables omitted — what the screen reports after a run. */
@@ -128,6 +131,7 @@ data class BackupFile(
         "strength_workout" to strengthWorkout.size,
         "strength_workout_exercise" to strengthWorkoutExercise.size,
         "strength_set_log" to strengthSetLog.size,
+        "exercise_progress" to exerciseProgress.size,
     ).filterValues { it > 0 }
 
     val totalRows: Int get() = rowsPerTable().values.sum()
@@ -138,8 +142,9 @@ data class BackupFile(
          * database moved to 4 (the "undo import" column) — a pre-existing drift corrected with
          * the P12 bump to 5. P14.1 raises it to **6** (zones + the three strength tables), so a
          * 0.4.0 export declares 6 and an older app refuses it, which is exactly the guarantee the
-         * field exists for.
+         * field exists for. P16.1 raises it to **7** ("my equipment", the set-log feedback and
+         * `exercise_progress`).
          */
-        const val CURRENT_SCHEMA_VERSION: Int = 6
+        const val CURRENT_SCHEMA_VERSION: Int = 7
     }
 }

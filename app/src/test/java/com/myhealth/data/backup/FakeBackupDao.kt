@@ -24,6 +24,7 @@ import com.myhealth.data.db.entity.ProfileEntity
 import com.myhealth.data.db.entity.RideBestEntity
 import com.myhealth.data.db.entity.RunningBestEntity
 import com.myhealth.data.db.entity.SleepSessionEntity
+import com.myhealth.data.db.entity.ExerciseProgressEntity
 import com.myhealth.data.db.entity.StrengthSetLogEntity
 import com.myhealth.data.db.entity.StrengthWorkoutEntity
 import com.myhealth.data.db.entity.StrengthWorkoutExerciseEntity
@@ -332,4 +333,13 @@ internal class FakeBackupDao : BackupDao {
         auto(strengthSetLog, rows, { it.id }) { row, id -> row.copy(id = id) }
 
     override suspend fun deleteStrengthSetLog() = strengthSetLog.clear()
+
+    val exerciseProgress: MutableList<ExerciseProgressEntity> = mutableListOf()
+
+    override suspend fun allExerciseProgress(): List<ExerciseProgressEntity> = exerciseProgress.toList()
+
+    override suspend fun insertExerciseProgress(rows: List<ExerciseProgressEntity>) =
+        keyed(exerciseProgress, rows) { it.exerciseId }
+
+    override suspend fun deleteExerciseProgress() = exerciseProgress.clear()
 }

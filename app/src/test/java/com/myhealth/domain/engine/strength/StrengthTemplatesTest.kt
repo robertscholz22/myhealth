@@ -2,6 +2,9 @@ package com.myhealth.domain.engine.strength
 
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.data.repository.StrengthWorkoutSeeder
+import com.myhealth.domain.model.Exercise
+import com.myhealth.domain.model.ExercisePrescription
+import com.myhealth.domain.model.ExerciseProgress
 import com.myhealth.domain.model.MuscleGroup
 import com.myhealth.domain.model.StrengthSetLog
 import com.myhealth.domain.model.StrengthWorkout
@@ -122,6 +125,8 @@ class StrengthTemplatesTest {
         val stored = MutableStateFlow<Map<Long, StrengthWorkout>>(emptyMap())
         private var nextId = 1L
 
+        val progress: MutableMap<String, ExerciseProgress> = mutableMapOf()
+
         override fun observeAll(): Flow<List<StrengthWorkout>> =
             stored.map { all -> all.values.sortedBy { it.name } }
 
@@ -153,6 +158,28 @@ class StrengthTemplatesTest {
             emptyList()
 
         override suspend fun deleteSetLog(id: Long): Outcome<Unit> = Outcome.Ok(Unit)
+
+        override suspend fun saveSetLogs(
+            logs: List<StrengthSetLog>,
+        ): Outcome<Map<String, ExerciseProgress>> = Outcome.Ok(emptyMap())
+
+        override fun observeProgress(exerciseId: String): Flow<ExerciseProgress?> =
+            MutableStateFlow(progress[exerciseId])
+
+        override suspend fun getProgress(exerciseId: String): ExerciseProgress? = progress[exerciseId]
+
+        override suspend fun getAllProgress(): List<ExerciseProgress> = progress.values.toList()
+
+        override suspend fun upsertProgress(progress: ExerciseProgress): Outcome<Unit> {
+            this.progress[progress.exerciseId] = progress
+            return Outcome.Ok(Unit)
+        }
+
+        override suspend fun prescriptionFor(
+            exercise: Exercise,
+            bodyWeightKg: Double,
+        ): ExercisePrescription =
+            ProgressionEngine.prescription(exercise, progress[exercise.id], bodyWeightKg)
     }
 
     private companion object {

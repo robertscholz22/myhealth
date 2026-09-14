@@ -36,6 +36,14 @@ data class Profile(
     val hrZoneBoundsJson: String? = null,
     /** Anchors the Friel zone scheme when no manual bounds exist (P14, DB v6; §3.9). */
     val lactateThresholdHrManual: Int? = null,
+    /**
+     * "My equipment" (P16.1, DB v7): a JSON array of [Equipment] names, e.g.
+     * `["BODYWEIGHT","DUMBBELL"]`. **`null` means everything** — the owner has not restricted
+     * anything and every template stays byte-identical. Decoded with
+     * `com.myhealth.domain.engine.strength.EquipmentSetCodec`, which ignores an unknown name
+     * rather than rejecting the blob.
+     */
+    val availableEquipmentJson: String? = null,
 ) {
     /** Whole years of age on [on], from [birthDay] (epoch day). */
     fun ageYears(on: LocalDate): Int = Period.between(birthDay.toLocalDate(), on).years

@@ -3,6 +3,12 @@ package com.myhealth.data.repository
 import com.myhealth.data.db.dao.StrengthDao
 import com.myhealth.data.mapper.toDomain
 import com.myhealth.data.mapper.toEntity
+import com.myhealth.domain.engine.strength.ExerciseCatalog
+import com.myhealth.domain.engine.strength.ProgressionDefaults
+import com.myhealth.domain.engine.strength.ProgressionEngine
+import com.myhealth.domain.model.Exercise
+import com.myhealth.domain.model.ExercisePrescription
+import com.myhealth.domain.model.ExerciseProgress
 import com.myhealth.domain.model.StrengthSetLog
 import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.repository.StrengthRepository
@@ -14,6 +20,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import java.time.Clock
+import java.time.LocalDate
 
 /**
  * Room-backed [StrengthRepository] over the three tables of §2.2.7 (P14.1).
@@ -28,9 +36,21 @@ import kotlinx.coroutines.withContext
  * [upsertWorkout] is also where §2.2.7's one rule SQLite cannot express is enforced: a row
  * prescribes **exactly one** of `reps` / `seconds`, and at least one set. A violation is a
  * [AppError.Validation], not an exception — the editor shows it on the offending field.
+ *
+ * P16.1 adds `exercise_progress`: [saveSetLogs] is the only writer of the progression (one
+ * `ProgressionEngine.next` per exercise and save), and [prescriptionFor] is the read side, which
+ * falls back to the engine's body-weight estimate when an exercise has never been logged.
  */
 class RoomStrengthRepository(
     private val dao: StrengthDao,
+    /**
+     * P16.1: the body weight the **initial** estimate is built on — the latest measurement, or
+     * [ProgressionDefaults.FALLBACK_BODY_WEIGHT_KG] (75 kg) when the database holds none. Wired to
+     * `BodyRepository.latestWeight` in `AppGraph`; a plain lambda rather than the repository
+     * itself, so this class keeps one dependency and the tests keep none.
+     */
+    private val bodyWeightKg: suspend () -> Double = { ProgressionDefaults.FALLBACK_BODY_WEIGHT_KG },
+    private val clock: Clock = Clock.systemDefaultZone(),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : StrengthRepository {
 
@@ -76,6 +96,33 @@ class RoomStrengthRepository(
             }
         }
 
+    /**
+     * P16.1: the set rows go in, then the progression is applied **once per exercise** — the
+     * feedback is chosen per exercise in the sheet and copied onto each of its set rows, so the
+     * first row that carries one decides. An exercise with no state yet is seeded from the body
+     * weight first, so the very first logged session already advances from a real starting point.
+     */
+    override suspend fun saveSetLogs(logs: List<StrengthSetLog>): Outcome<Map<String, ExerciseProgress>> =
+        withContext(ioDispatcher) {
+            runCatchingApp {
+                if (logs.isNotEmpty()) dao.insertSetLogs(logs.map { it.copy(id = 0L).toEntity() })
+                val today = today()
+                val weight = bodyWeightKg()
+                val advanced = mutableMapOf<String, ExerciseProgress>()
+                logs.mapNotNull { row -> row.feedback?.let { row.exerciseId to it } }
+                    .distinctBy { it.first }
+                    .forEach { (exerciseId, feedback) ->
+                        val exercise = ExerciseCatalog.byId(exerciseId) ?: return@forEach
+                        val current = dao.getProgress(exerciseId)?.toDomain()
+                            ?: ProgressionEngine.initial(exercise, weight, today)
+                        val next = ProgressionEngine.next(current, feedback, exercise, today)
+                        dao.upsertProgress(next.toEntity())
+                        advanced[exerciseId] = next
+                    }
+                advanced.toMap()
+            }
+        }
+
     override fun observeSetLogsByDay(day: Long): Flow<List<StrengthSetLog>> =
         dao.observeSetLogsByDay(day).map { rows -> rows.map { it.toDomain() } }
 
@@ -87,6 +134,28 @@ class RoomStrengthRepository(
     override suspend fun deleteSetLog(id: Long): Outcome<Unit> = withContext(ioDispatcher) {
         runCatchingApp { dao.deleteSetLog(id) }
     }
+
+    override fun observeProgress(exerciseId: String): Flow<ExerciseProgress?> =
+        dao.observeProgress(exerciseId).map { it?.toDomain() }
+
+    override suspend fun getProgress(exerciseId: String): ExerciseProgress? =
+        withContext(ioDispatcher) { dao.getProgress(exerciseId)?.toDomain() }
+
+    override suspend fun getAllProgress(): List<ExerciseProgress> =
+        withContext(ioDispatcher) { dao.getAllProgress().map { it.toDomain() } }
+
+    override suspend fun upsertProgress(progress: ExerciseProgress): Outcome<Unit> =
+        withContext(ioDispatcher) { runCatchingApp { dao.upsertProgress(progress.toEntity()) } }
+
+    override suspend fun prescriptionFor(
+        exercise: Exercise,
+        bodyWeightKg: Double,
+    ): ExercisePrescription = withContext(ioDispatcher) {
+        ProgressionEngine.prescription(exercise, dao.getProgress(exercise.id)?.toDomain(), bodyWeightKg)
+    }
+
+    /** Epoch day in the device's zone — what `exercise_progress.updatedDay` records. */
+    private fun today(): Long = LocalDate.now(clock).toEpochDay()
 
     /** The first broken row's error, or `null` when the whole workout is well formed. */
     private fun StrengthWorkout.validationError(): AppError.Validation? {

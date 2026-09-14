@@ -217,9 +217,37 @@ object Migrations {
     }
 
     /**
+     * 6 -> 7 (P16.1): "my equipment" and the load progression.
+     *
+     * Three additive changes, none of which touches an existing row: the nullable
+     * `profile.availableEquipmentJson` (`null` = every piece of equipment, so the upgrade changes
+     * nothing for the owner until they restrict the set), the nullable
+     * `strength_set_log.feedback`, and the new `exercise_progress` table whose primary key is the
+     * catalog id itself - a `TEXT` key, which is why the `CREATE TABLE` ends in
+     * `PRIMARY KEY(exerciseId)` rather than an autoincrementing rowid.
+     */
+    private val MIGRATION_6_7 = Migration(6, 7) { db ->
+        db.execSQL("ALTER TABLE `profile` ADD COLUMN `availableEquipmentJson` TEXT")
+        db.execSQL("ALTER TABLE `strength_set_log` ADD COLUMN `feedback` TEXT")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `exercise_progress` (" +
+                "`exerciseId` TEXT NOT NULL, `loadKg` REAL, `reps` INTEGER, `seconds` INTEGER, " +
+                "`lastFeedback` TEXT, `isEstimated` INTEGER NOT NULL, " +
+                "`updatedDay` INTEGER NOT NULL, PRIMARY KEY(`exerciseId`))",
+        )
+    }
+
+    /**
      * Every migration, oldest first. `.addMigrations(*ALL)` is the only call site, in
      * `MyHealthDatabase.build`, so adding a migration never changes it.
      */
     val ALL: Array<Migration> =
-        arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+        arrayOf(
+            MIGRATION_1_2,
+            MIGRATION_2_3,
+            MIGRATION_3_4,
+            MIGRATION_4_5,
+            MIGRATION_5_6,
+            MIGRATION_6_7,
+        )
 }

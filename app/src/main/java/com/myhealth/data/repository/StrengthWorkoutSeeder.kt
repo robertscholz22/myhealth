@@ -1,6 +1,8 @@
 package com.myhealth.data.repository
 
+import com.myhealth.domain.engine.strength.ExerciseSubstitution
 import com.myhealth.domain.engine.strength.StrengthTemplates
+import com.myhealth.domain.model.Equipment
 import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.util.Outcome
@@ -14,6 +16,12 @@ import java.time.Clock
  * or a strength suggestion is accepted, so a template that turns out to be wrong can be corrected
  * in a later release without a schema change.
  *
+ * Since P16.1 each template is **materialised against the owner's equipment** on the way in
+ * ([ExerciseSubstitution.materialise]): a row whose implement they do not have is swapped for the
+ * closest catalog exercise they can actually do, or dropped when nothing fits — the workout keeps
+ * the rest. [availableEquipment] returning `null` (nobody restricted anything, and every call site
+ * that predates P16) leaves every template byte-identical.
+ *
  * It is idempotent on [com.myhealth.domain.model.StrengthWorkout.templateId] (`sw05`): a template
  * whose row already exists is left exactly as it is — including the user's own edits to it — and
  * `uq_strength_workout_template` is the database-side backstop for the same rule. Seeding twice
@@ -22,6 +30,8 @@ import java.time.Clock
 class StrengthWorkoutSeeder(
     private val repo: StrengthRepository,
     private val clock: Clock = Clock.systemUTC(),
+    /** The profile's "my equipment" set; `null` means everything (P16.1). */
+    private val availableEquipment: suspend () -> Set<Equipment>? = { null },
 ) {
 
     /**
@@ -31,11 +41,15 @@ class StrengthWorkoutSeeder(
      */
     suspend fun seed(): Int {
         var inserted = 0
+        val available = availableEquipment()
         for (template in StrengthTemplates.ALL) {
             val templateId = template.templateId ?: continue
             if (repo.getByTemplateId(templateId) != null) continue
             val now = clock.millis()
-            val written = repo.upsertWorkout(template.copy(createdAtMillis = now, updatedAtMillis = now))
+            val materialised = ExerciseSubstitution.materialise(template, available)
+            val written = repo.upsertWorkout(
+                materialised.copy(createdAtMillis = now, updatedAtMillis = now),
+            )
             if (written is Outcome.Ok) inserted++
         }
         return inserted

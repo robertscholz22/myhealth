@@ -29,6 +29,7 @@ fun ProfileEntity.toDomain(): Profile = Profile(
     updatedAtMillis = updatedAtMillis,
     hrZoneBoundsJson = hrZoneBoundsJson,
     lactateThresholdHrManual = lactateThresholdHrManual,
+    availableEquipmentJson = availableEquipmentJson,
 )
 
 fun Profile.toEntity(): ProfileEntity = ProfileEntity(
@@ -52,4 +53,5 @@ fun Profile.toEntity(): ProfileEntity = ProfileEntity(
     updatedAtMillis = updatedAtMillis,
     hrZoneBoundsJson = hrZoneBoundsJson,
     lactateThresholdHrManual = lactateThresholdHrManual,
+    availableEquipmentJson = availableEquipmentJson,
 )

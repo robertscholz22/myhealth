@@ -11,6 +11,7 @@ import com.myhealth.data.db.entity.MealLogItemEntity
 import com.myhealth.data.db.entity.ProfileEntity
 import com.myhealth.data.db.entity.RideBestEntity
 import com.myhealth.data.db.entity.RunningBestEntity
+import com.myhealth.data.db.entity.ExerciseProgressEntity
 import com.myhealth.data.db.entity.StrengthSetLogEntity
 import com.myhealth.data.db.entity.StrengthWorkoutEntity
 import com.myhealth.data.db.entity.StrengthWorkoutExerciseEntity
@@ -21,6 +22,7 @@ import com.myhealth.domain.model.NeatLevel
 import com.myhealth.domain.model.QuantityUnit
 import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.model.Sex
+import com.myhealth.domain.model.Feedback
 import com.myhealth.domain.model.StrengthWorkoutKind
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
@@ -217,6 +219,17 @@ internal object BackupFixtures {
             completedAtMillis = START,
         )
 
+    /** P16.1: the progression state of one exercise; `exerciseId` is both PK and MERGE key. */
+    fun exerciseProgress(exerciseId: String = "BARBELL_BENCH_PRESS") =
+        ExerciseProgressEntity(
+            exerciseId = exerciseId,
+            loadKg = 60.0,
+            reps = 8,
+            lastFeedback = Feedback.HARD,
+            isEstimated = false,
+            updatedDay = DAY,
+        )
+
     fun file(exportedAtMillis: Long = START, appVersion: String = "1.0") = BackupFile(
         exportedAtMillis = exportedAtMillis,
         appVersion = appVersion,
@@ -234,5 +247,6 @@ internal object BackupFixtures {
         strengthWorkout = listOf(strengthWorkout()),
         strengthWorkoutExercise = listOf(strengthWorkoutExercise()),
         strengthSetLog = listOf(strengthSetLog()),
+        exerciseProgress = listOf(exerciseProgress()),
     )
 }

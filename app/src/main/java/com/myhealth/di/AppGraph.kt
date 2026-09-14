@@ -46,6 +46,8 @@ import com.myhealth.data.repository.RoomSyncStateRepository
 import com.myhealth.data.repository.RoomTransactionRunner
 import com.myhealth.domain.engine.calendar.EventActivityLinker
 import com.myhealth.domain.engine.nutrition.NutritionTargetEngine
+import com.myhealth.domain.engine.strength.EquipmentSetCodec
+import com.myhealth.domain.engine.strength.ProgressionDefaults
 import com.myhealth.domain.engine.suggest.SuggestionEngine
 import com.myhealth.domain.repository.ActivityImporter
 import com.myhealth.domain.repository.ActivityRepository
@@ -168,15 +170,31 @@ class AppGraph(private val app: Application) {
     /** `ride_best` (P12); read by the Bike screen and the FTP estimate. */
     val rideBestRepo: RideBestRepository by lazy { RoomRideBestRepository(db.rideBestDao()) }
 
-    /** The three strength tables (§2.2.7, P14): workouts, their rows and the per-set log. */
-    val strengthRepo: StrengthRepository by lazy { RoomStrengthRepository(db.strengthDao()) }
+    /**
+     * The three strength tables (§2.2.7, P14): workouts, their rows and the per-set log — plus
+     * `exercise_progress` (P16.1). The body weight the initial load estimate is built on is the
+     * latest measurement within a year, falling back to 75 kg when there is none.
+     */
+    val strengthRepo: StrengthRepository by lazy {
+        RoomStrengthRepository(
+            dao = db.strengthDao(),
+            bodyWeightKg = {
+                bodyRepo.latestWeight(ProgressionDefaults.BODY_WEIGHT_MAX_AGE_DAYS)?.weightKg
+                    ?: ProgressionDefaults.FALLBACK_BODY_WEIGHT_KG
+            },
+            clock = clock,
+        )
+    }
 
     /**
-     * Materialises the six built-in workouts of `StrengthTemplates` (§3.12.3, P14.4). Idempotent
-     * on `templateId`, so every caller may simply seed before it reads.
+     * Materialises the six built-in workouts of `StrengthTemplates` (§3.12.3, P14.4), rewritten
+     * against the profile's "my equipment" set (P16.1). Idempotent on `templateId`, so every
+     * caller may simply seed before it reads.
      */
     val strengthWorkoutSeeder: StrengthWorkoutSeeder by lazy {
-        StrengthWorkoutSeeder(strengthRepo, clock)
+        StrengthWorkoutSeeder(strengthRepo, clock) {
+            EquipmentSetCodec.decode(profileRepo.getProfile()?.availableEquipmentJson)
+        }
     }
 
     /**

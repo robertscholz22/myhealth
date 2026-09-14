@@ -115,4 +115,48 @@ data class StrengthSetLog(
     val loadKg: Double? = null,
     val rpe: Int? = null,
     val completedAtMillis: Long,
+    /**
+     * How the exercise felt (P16.1, DB v7). Chosen **once per exercise** in the set-log sheet and
+     * copied onto every one of its set rows, so a row alone still says what the feedback was; the
+     * repository applies it to `exercise_progress` exactly once per exercise and save.
+     */
+    val feedback: Feedback? = null,
+)
+
+/**
+ * `exercise_progress` (§P16, P16.1) — the current prescription of one catalog exercise, keyed by
+ * its [exerciseId] (one row per exercise, never per workout: the owner squats the same weight
+ * whichever workout the squat is in).
+ *
+ * [loadKg] is `null` for a bodyweight exercise, and **per hand** for the exercises
+ * `ProgressionDefaults.isPerHand` names. Exactly one of [reps] / [seconds] is set, matching
+ * `Exercise.isTimed`. [isEstimated] marks a state that `ProgressionEngine.initial` guessed from
+ * body weight and no one has confirmed yet — the UI prints it with a "~".
+ */
+data class ExerciseProgress(
+    val exerciseId: String,
+    val loadKg: Double? = null,
+    val reps: Int? = null,
+    val seconds: Int? = null,
+    val lastFeedback: Feedback? = null,
+    val isEstimated: Boolean = true,
+    /** Epoch day of the last change — what the Progression card prints next to the feedback. */
+    val updatedDay: Long = 0L,
+)
+
+/**
+ * What to do for one exercise **today** (P16.1): the stored [ExerciseProgress] when there is one,
+ * otherwise `ProgressionEngine.initial`'s body-weight estimate. Never stored — it is the pure
+ * function's result, so the UI can compute it without a write.
+ */
+data class ExercisePrescription(
+    val exerciseId: String,
+    val loadKg: Double? = null,
+    val reps: Int? = null,
+    val seconds: Int? = null,
+    /** Estimated from body weight rather than confirmed by a feedback — printed as "~". */
+    val isEstimated: Boolean = true,
+    /** [loadKg] is the weight of **one** dumbbell/kettlebell, not the pair. */
+    val perHand: Boolean = false,
+    val lastFeedback: Feedback? = null,
 )

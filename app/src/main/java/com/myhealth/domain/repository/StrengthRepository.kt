@@ -1,5 +1,8 @@
 package com.myhealth.domain.repository
 
+import com.myhealth.domain.model.Exercise
+import com.myhealth.domain.model.ExercisePrescription
+import com.myhealth.domain.model.ExerciseProgress
 import com.myhealth.domain.model.StrengthSetLog
 import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.util.Outcome
@@ -8,6 +11,10 @@ import kotlinx.coroutines.flow.Flow
 /**
  * The three strength tables (PLAN §2.2.7, P14) behind one interface: workouts with their ordered
  * exercises, and the optional per-set log.
+ *
+ * Since P16.1 it also owns `exercise_progress`: the per-exercise load/rep state the progression
+ * engine advances, plus [prescriptionFor], which answers "what should I do today" from that state
+ * or from a body-weight estimate when the exercise has never been logged.
  *
  * A workout is always read and written **whole** — [upsertWorkout] takes the header plus the
  * complete ordered exercise list and returns the workout's id — because a half-written workout is
@@ -35,9 +42,36 @@ interface StrengthRepository {
 
     suspend fun insertSetLogs(logs: List<StrengthSetLog>): Outcome<Unit>
 
+    /**
+     * Inserts [logs] **and applies the progression** (P16.1): for every distinct exercise among
+     * them that carries a [com.myhealth.domain.model.Feedback], `ProgressionEngine.next` runs
+     * exactly once — a feedback is chosen per exercise, not per set — and the resulting state is
+     * stored. Returns the new state per exercise id, which is what the "Next time: …" snackbar
+     * prints. Rows without a feedback are logged and change nothing.
+     */
+    suspend fun saveSetLogs(logs: List<StrengthSetLog>): Outcome<Map<String, ExerciseProgress>>
+
     fun observeSetLogsByDay(day: Long): Flow<List<StrengthSetLog>>
 
     suspend fun getSetLogsOfPlannedSession(plannedSessionId: Long): List<StrengthSetLog>
 
     suspend fun deleteSetLog(id: Long): Outcome<Unit>
+
+    // ---- per-exercise load progression (`exercise_progress`, P16.1) ---------------------------
+
+    fun observeProgress(exerciseId: String): Flow<ExerciseProgress?>
+
+    suspend fun getProgress(exerciseId: String): ExerciseProgress?
+
+    /** Every stored state, for the screens that prescribe a whole workout at once. */
+    suspend fun getAllProgress(): List<ExerciseProgress>
+
+    suspend fun upsertProgress(progress: ExerciseProgress): Outcome<Unit>
+
+    /**
+     * What to do for [exercise] today: the stored state, or `ProgressionEngine.initial`'s estimate
+     * from [bodyWeightKg] when there is none. Reads only — an estimate is never written until a
+     * feedback confirms it.
+     */
+    suspend fun prescriptionFor(exercise: Exercise, bodyWeightKg: Double): ExercisePrescription
 }

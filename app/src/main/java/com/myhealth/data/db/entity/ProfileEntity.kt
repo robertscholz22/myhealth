@@ -47,6 +47,11 @@ data class ProfileEntity(
     val hrZoneBoundsJson: String? = null,
     /** Lactate-threshold HR anchoring the Friel scheme (P14, DB v6; §3.9). */
     val lactateThresholdHrManual: Int? = null,
+    /**
+     * "My equipment" as a JSON array of `Equipment` names (P16, DB v7); `null` means everything.
+     * Nullable, so the migration adds it with a plain `ALTER TABLE … ADD COLUMN`.
+     */
+    val availableEquipmentJson: String? = null,
 ) {
     companion object {
         const val SINGLETON_ID: Long = 1L

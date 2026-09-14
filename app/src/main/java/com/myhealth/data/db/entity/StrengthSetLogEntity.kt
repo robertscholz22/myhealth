@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.myhealth.domain.model.Feedback
 import kotlinx.serialization.Serializable
 
 /**
@@ -49,4 +50,10 @@ data class StrengthSetLogEntity(
     val loadKg: Double? = null,
     val rpe: Int? = null,
     val completedAtMillis: Long,
+    /**
+     * How the exercise felt (P16.1, DB v7). One feedback is chosen per exercise in the set-log
+     * sheet and written onto every set row of that exercise, so the row alone is a complete
+     * record; the repository applies it to `exercise_progress` once per exercise and save.
+     */
+    val feedback: Feedback? = null,
 )
