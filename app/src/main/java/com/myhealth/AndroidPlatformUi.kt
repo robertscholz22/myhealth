@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -15,10 +16,16 @@ import com.myhealth.ui.common.PlatformUi
 private const val HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata"
 
 /**
- * Falls back to the raw string when the SDK's own (deprecated)
- * `HealthConnectClient.getHealthConnectSettingsAction()` accessor is unavailable to callers.
+ * BUG-20: the androidx action only resolves to the Health Connect APK (Android ≤ 13); from
+ * Android 14 Health Connect is part of the system and answers the framework action instead.
+ * Same choice as `HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS`.
  */
-private const val ACTION_HEALTH_CONNECT_SETTINGS = "androidx.health.ACTION_HEALTH_CONNECT_SETTINGS"
+private val ACTION_HEALTH_CONNECT_SETTINGS =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        "android.health.connect.action.HEALTH_HOME_SETTINGS"
+    } else {
+        "androidx.health.ACTION_HEALTH_CONNECT_SETTINGS"
+    }
 
 /** [PlatformUi] on Android: the CameraX/ML Kit scanner and the Health Connect permission flow. */
 class AndroidPlatformUi(

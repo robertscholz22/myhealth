@@ -659,3 +659,25 @@ Emulator `myhealth_api35`, date 4 Oct 2026. Release build (R8) because P20.2 rep
 
 - NOTE-31: `ride_power.fit` (5 Feb 2026 16:25 UTC = 17:25 Berlin) lands next to the owner's CSV Zwift ride (16:25 local) instead of merging with it: the fixture's instant was taken from the owner's ride as UTC. Fixture artefact; matcher and mapper unchanged, decoder output identical to the SDK.
 
+
+## Session 24 — 2026-10-04 (emulator, 0.9.3 **release** build: P20.3 UI in the shared module on Compose Multiplatform)
+Emulator `myhealth_api35`, date 4 Oct 2026. Release build (R8). Started from the published **v0.9.2** APK: onboarding, the owner's 0.9.2 backup (3213 rows) imported with **Replace**, 18 screens captured as text (each from a fresh launch, scrolled to the end, union of all texts), then upgraded in place to 0.9.3 and captured again.
+
+| Step | Result | Evidence |
+|---|---|---|
+| `bash tools/verify.sh` | PASS | 1093 unit tests (2 corpus tests skipped), lint clean, debug 91.0 MB, release 13.9 MB |
+| `bash tools/connected.sh emulator-5554` | PASS | 26/26 |
+| String oracle (one-off instrumented test, before `strings.xml` was trimmed) | PASS | all 1003 strings and 99 format strings × 2 argument sets identical to `Resources.getString` |
+| 18 screens v0.9.2 → 0.9.3 (Today, Calendar, Nutrition, Training, More, Activities, Body & Health, Running PRs, Bike & power, Zones, Strength, Exercises, Load, Ingredients, Templates, Goals, Import, Settings) | PASS | 17 text-identical; Exercises differed only at the scroll window's edge — a full scroll on 0.9.3 (153 texts) contains every 0.9.2 name. Today 2510 kcal, ATL 32 / CTL 36 / ACWR 0.88 on both |
+| Export on 0.9.2 and on 0.9.3 → JSON diff | PASS | only `appVersion`, `exportedAtMillis` and `dailyLoad.computedAtMillis` |
+| 0.9.3: import the 0.9.2 export (Replace, new document opener) → export → diff | PASS | same three fields only |
+| FIT import via the picker (`run_5k.fit`) and via an ACTION_VIEW intent (`ride_power.fit`); CSV `garmin_de.csv` via ACTION_VIEW | PASS | 1/1, 1/1, 3/3 saved; names and "FIT file"/"Garmin CSV" in history (`p203_import_fit.png`) |
+| Health Connect: permission sheet through `PlatformUi` → all granted, additional access sheet, Sync now | PASS | permissions show Granted; "Last synced 23:09" |
+| "Open Health Connect settings" | **FOUND → FIXED** | BUG-20 (since P2): the button did nothing on Android 14+ — `androidx.health.ACTION_HEALTH_CONNECT_SETTINGS` only resolves to the old Health Connect APK (`am start` on the emulator: "unable to resolve"). Fix: `android.health.connect.action.HEALTH_HOME_SETTINGS` from API 34, as `HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS`. Rebuilt 0.9.3: the button opens Health Connect |
+| Scan screen via the platform slot: camera permission, preview, Barcode/Label tabs | PASS | `p203_scan_camera.png` |
+| Label "From photo" (bundled-model one-off build, NOTE-8) → "Check the scan" with the captured image (`loadHalfSizeImage`) → Accept | PASS | Calories 373, per 100 g, per-serving toggle (`p203_ocr_review.png`); shipped build: "Text recognition model is still downloading" + Retry, as in session 3 |
+| Manual Open Food Facts lookup 3017620422003 | PASS | Nutella filled in |
+| Settings → "Use wallpaper colours" on/off | PASS | nav bar colour switches to the wallpaper scheme and back to green |
+| Exercise detail animation (Barbell back squat) | PASS | moves at animator scale 1, still pose at scale 0 (reduced motion) |
+| Calendar month swipes; date picker in New event | PASS | Oct → Nov → Sep; picked 15 Oct → field 2026-10-15 (`p203_event_date.png`) |
+| logcat | PASS | no FATAL / ANR for `com.myhealth` |
