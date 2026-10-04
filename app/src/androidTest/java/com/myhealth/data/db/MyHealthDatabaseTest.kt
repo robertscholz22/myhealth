@@ -1,15 +1,19 @@
 package com.myhealth.data.db
 
+import android.database.sqlite.SQLiteBlobTooBigException
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.data.db.entity.ActivitySessionEntity
+import com.myhealth.data.db.entity.ImportRecordEntity
 import com.myhealth.data.db.entity.IngredientEntity
 import com.myhealth.data.db.entity.MealLogEntity
 import com.myhealth.data.db.entity.MealLogItemEntity
 import com.myhealth.data.db.entity.ProfileEntity
+import com.myhealth.data.repository.RoomImportRepository
 import com.myhealth.domain.model.ActivitySource
+import com.myhealth.domain.model.ImportKind
 import com.myhealth.domain.model.MealSlot
 import com.myhealth.domain.model.MeasureBasis
 import com.myhealth.domain.model.NeatLevel
@@ -169,5 +173,40 @@ class MyHealthDatabaseTest {
 
         db.mealDao().deleteById(logId)
         assertThat(db.mealDao().observeDay(19_662L).first()).isEmpty()
+    }
+
+    /**
+     * BUG-19 on real SQLite: a 3 MB `errorsJson` (what ≤ 0.9.1 stored for a whole Garmin export)
+     * does not fit Android's cursor window, so reading the import history crashed. The repair
+     * query shrinks it without loading it, and a normal row is left alone.
+     */
+    @Test
+    fun bug19_oversized_import_errors_are_repaired_without_reading_them() = runTest {
+        val dao = db.importDao()
+        dao.upsert(
+            ImportRecordEntity(
+                kind = ImportKind.GARMIN_ZIP, fileName = "export.zip", fileHashSha256 = "big",
+                importedAtMillis = 2_000L, errorsJson = "[" + "x".repeat(3_000_000) + "]",
+            ),
+        )
+        dao.upsert(
+            ImportRecordEntity(
+                kind = ImportKind.FIT_FILE, fileName = "run.fit", fileHashSha256 = "small",
+                importedAtMillis = 1_000L, errorsJson = SMALL_ERRORS,
+            ),
+        )
+        val before = runCatching { dao.observeRecent(10).first() }
+        assertThat(before.exceptionOrNull()).isInstanceOf(SQLiteBlobTooBigException::class.java)
+
+        assertThat(dao.replaceOversizedErrors(RoomImportRepository.MAX_ERRORS_JSON_CHARS, RoomImportRepository.OVERSIZED_ERRORS_JSON))
+            .isEqualTo(1)
+
+        val after = dao.observeRecent(10).first()
+        assertThat(after.map { it.errorsJson })
+            .containsExactly(RoomImportRepository.OVERSIZED_ERRORS_JSON, SMALL_ERRORS).inOrder()
+    }
+
+    private companion object {
+        const val SMALL_ERRORS = """[{"item":"run.fit","message":"fit: no session message in the file"}]"""
     }
 }

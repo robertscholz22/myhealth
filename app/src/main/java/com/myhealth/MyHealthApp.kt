@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 /**
@@ -30,6 +31,9 @@ class MyHealthApp : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         graph = AppGraph(this)
+
+        // BUG-19: shrink oversized import error lists (≤ 0.9.1) before any screen reads them.
+        graph.appScope.launch { graph.importRepo.repairOversizedErrors() }
 
         // Schedule (and re-schedule on change) the periodic sync at the user's configured
         // interval (P2.7) — an app-lifetime subscription, not a one-shot background task.

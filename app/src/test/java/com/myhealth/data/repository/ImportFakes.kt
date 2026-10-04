@@ -77,6 +77,8 @@ class FakeImportRepository : ImportRepository {
     override suspend fun undo(importId: Long): Outcome<ImportUndoSummary> =
         checkNotNull(undoDelegate) { "No undo delegate set on FakeImportRepository" }(importId)
 
+    override suspend fun repairOversizedErrors(): Outcome<Int> = Outcome.Ok(0)
+
     /** Set by a test that exercises the orphan-cleanup path; otherwise never called (BUG-12b). */
     var removeOrphanedImportDataDelegate: (suspend () -> Outcome<ImportUndoSummary>)? = null
 
@@ -116,6 +118,12 @@ class FakeImportDao : ImportDao {
 
     override fun observeRecent(limit: Int): Flow<List<ImportRecordEntity>> =
         rows.map { list -> list.sortedByDescending { it.importedAtMillis }.take(limit) }
+
+    override suspend fun replaceOversizedErrors(maxChars: Int, replacement: String): Int {
+        val oversized = rows.value.filter { (it.errorsJson?.length ?: 0) > maxChars }
+        rows.value = rows.value.map { if (it in oversized) it.copy(errorsJson = replacement) else it }
+        return oversized.size
+    }
 }
 
 /**

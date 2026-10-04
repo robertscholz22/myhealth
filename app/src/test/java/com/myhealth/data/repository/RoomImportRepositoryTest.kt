@@ -2,11 +2,11 @@ package com.myhealth.data.repository
 
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.domain.model.ActivitySource
+import com.myhealth.domain.model.ActivitySourceRecord
 import com.myhealth.domain.model.ImportKind
 import com.myhealth.domain.model.ImportRecord
-import com.myhealth.domain.util.Outcome
 import com.myhealth.domain.repository.ActivityIngestItem
-import com.myhealth.domain.model.ActivitySourceRecord
+import com.myhealth.domain.util.Outcome
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -34,6 +34,18 @@ class RoomImportRepositoryTest {
         onUndone = { day -> recomputeDays += day },
         ioDispatcher = Dispatchers.Unconfined,
     )
+
+    @Test
+    fun bug19_only_error_lists_above_the_limit_are_replaced() = runTest {
+        repo.record(record("export.zip", "big").copy(errorsJson = "x".repeat(RoomImportRepository.MAX_ERRORS_JSON_CHARS + 1)))
+        repo.record(record("edge.zip", "edge").copy(errorsJson = "x".repeat(RoomImportRepository.MAX_ERRORS_JSON_CHARS)))
+        repo.record(record("a.csv", "ok"))
+
+        assertThat(repo.repairOversizedErrors()).isEqualTo(Outcome.Ok(1))
+        assertThat(repo.getByHash("big")?.errorsJson).isEqualTo(RoomImportRepository.OVERSIZED_ERRORS_JSON)
+        assertThat(repo.getByHash("edge")?.errorsJson?.length).isEqualTo(RoomImportRepository.MAX_ERRORS_JSON_CHARS)
+        assertThat(repo.repairOversizedErrors()).isEqualTo(Outcome.Ok(0))
+    }
 
     @Test
     fun a_record_round_trips_by_id_hash_and_recency() = runTest {

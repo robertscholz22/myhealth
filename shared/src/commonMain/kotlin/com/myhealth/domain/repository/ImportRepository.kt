@@ -32,6 +32,14 @@ interface ImportRepository {
     suspend fun undo(importId: Long): Outcome<ImportUndoSummary>
 
     /**
+     * BUG-19: shrinks the error list of imports written by ≤ 0.9.1, which stored one error per
+     * wellness FIT file of a Garmin export — megabytes in one row, more than Android's cursor
+     * window holds, so the Import screen and the backup export crashed reading it. Run on app
+     * start; returns the number of rows repaired.
+     */
+    suspend fun repairOversizedErrors(): Outcome<Int>
+
+    /**
      * Removes source records of a file-import kind (`CSV_IMPORT`/`FIT_IMPORT`) that were never
      * stamped with an `import_record` (BUG-12b hotfix 1.0.3): activities imported before DB v4,
      * which "Undo import" cannot find because it selects by `importRecordId`. Each is removed

@@ -74,6 +74,10 @@ class RoomImportRepository(
         outcome
     }
 
+    override suspend fun repairOversizedErrors(): Outcome<Int> = withContext(ioDispatcher) {
+        runCatchingApp { importDao.replaceOversizedErrors(MAX_ERRORS_JSON_CHARS, OVERSIZED_ERRORS_JSON) }
+    }
+
     override suspend fun removeOrphanedImportData(): Outcome<ImportUndoSummary> = withContext(ioDispatcher) {
         var minAffectedDay: Long? = null
         val outcome = runCatchingApp {
@@ -127,14 +131,25 @@ class RoomImportRepository(
         return summary to minDay
     }
 
-    private companion object {
+    companion object {
         /** The undo fallback's time window (BUG-12): Garmin's own export timestamps this loosely. */
-        const val UNDO_FALLBACK_WINDOW_MILLIS = 15 * 60 * 1000L
+        private const val UNDO_FALLBACK_WINDOW_MILLIS = 15 * 60 * 1000L
 
-        val FILE_IMPORT_SOURCES = listOf(ActivitySource.CSV_IMPORT, ActivitySource.FIT_IMPORT)
+        /**
+         * BUG-19: an `errorsJson` above this many characters is replaced. Since 0.9.2 an import
+         * lists at most `ImportService.MAX_LISTED_ERRORS` errors (well under 100 000 characters);
+         * even 200 000 non-ASCII characters stay far below the 2 MB cursor-window row limit.
+         */
+        const val MAX_ERRORS_JSON_CHARS = 200_000
+
+        /** What a repaired row's `errorsJson` says instead (the `ItemErrorDto` list format). */
+        const val OVERSIZED_ERRORS_JSON =
+            """[{"item":"…","message":"The error list was too long to keep and was removed."}]"""
+
+        private val FILE_IMPORT_SOURCES = listOf(ActivitySource.CSV_IMPORT, ActivitySource.FIT_IMPORT)
 
         /** Which [ActivitySource] an import kind's arrivals are stamped with (§2.4). */
-        fun fileImportSourcesOf(kind: ImportKind): List<ActivitySource> = when (kind) {
+        private fun fileImportSourcesOf(kind: ImportKind): List<ActivitySource> = when (kind) {
             ImportKind.GARMIN_CSV -> listOf(ActivitySource.CSV_IMPORT)
             ImportKind.FIT_FILE, ImportKind.GARMIN_ZIP -> listOf(ActivitySource.FIT_IMPORT)
             ImportKind.JSON_BACKUP -> emptyList()

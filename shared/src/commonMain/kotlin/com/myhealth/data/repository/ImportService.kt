@@ -148,6 +148,9 @@ class ImportService(
     ) {
         private val buffer = mutableListOf<ActivityIngestItem>()
         private val errors = mutableListOf<ImportItemError>()
+
+        /** Errors beyond [MAX_LISTED_ERRORS]: counted, not listed (BUG-19). */
+        private var unlistedErrors = 0
         private var counts = ImportCounts()
         private var minDay: Long? = null
 
@@ -155,7 +158,7 @@ class ImportService(
             ImportKind.FIT_FILE -> addFit(stream.readByteArray(), fileName)
             ImportKind.GARMIN_CSV -> addCsv(stream.readByteArray(), fileName)
             ImportKind.GARMIN_ZIP -> walkArchive(stream)
-            ImportKind.JSON_BACKUP -> errors += ImportItemError(
+            ImportKind.JSON_BACKUP -> addError(
                 fileName,
                 "JSON backups are restored from the Backup screen, not the importer.",
             )
@@ -164,28 +167,33 @@ class ImportService(
         private suspend fun walkArchive(stream: BufferedSource) {
             val result = walker.walk(stream) { entry ->
                 when (entry.kind) {
-                    ArchiveEntryKind.FIT -> addFit(entry.bytes, entry.path)
+                    ArchiveEntryKind.FIT -> addFit(entry.bytes, entry.path, inArchive = true)
                     ArchiveEntryKind.CSV -> addCsv(entry.bytes, entry.path)
                 }
             }
             result.rejectedPaths.forEach {
-                errors += ImportItemError(it, "Rejected: the entry path escapes the archive root.")
+                addError(it, "Rejected: the entry path escapes the archive root.")
             }
             result.depthSkippedPaths.forEach {
-                errors += ImportItemError(it, "Skipped: nested deeper than ${GarminArchiveWalker.DEFAULT_MAX_DEPTH} archives.")
+                addError(it, "Skipped: nested deeper than ${GarminArchiveWalker.DEFAULT_MAX_DEPTH} archives.")
             }
             if (result.truncatedBySize) {
-                errors += ImportItemError("<archive>", "Stopped: the archive exceeds the uncompressed size limit.")
+                addError("<archive>", "Stopped: the archive exceeds the uncompressed size limit.")
             }
         }
 
-        private suspend fun addFit(bytes: ByteArray, itemName: String) {
+        /**
+         * BUG-19: a Garmin export holds tens of thousands of FIT files without a session —
+         * wellness, monitoring, sleep and settings files. Inside an archive they are not
+         * activities and are skipped silently; a single FIT the user picked must be an activity.
+         */
+        private suspend fun addFit(bytes: ByteArray, itemName: String, inArchive: Boolean = false) {
             when (val decoded = fitDecoder.decode(bytes)) {
                 is Outcome.Err -> fail(itemName, decoded.error)
                 is Outcome.Ok -> {
                     val items = fitMapper.toIngestItems(decoded.value, clock.timeZone, clock.millis())
                     if (items.isEmpty()) {
-                        fail(itemName, AppError.Parse("fit", "no session message in the file"))
+                        if (!inArchive) fail(itemName, AppError.Parse("fit", "no session message in the file"))
                     } else {
                         offer(items, itemName)
                     }
@@ -195,7 +203,7 @@ class ImportService(
 
         private suspend fun addCsv(bytes: ByteArray, itemName: String) {
             val result = csvParser.parse(bytes.decodeToString())
-            result.errors.forEach { errors += ImportItemError(itemName, it) }
+            result.errors.forEach { addError(itemName, it) }
             counts = counts.copy(failed = counts.failed + result.errors.size)
             offer(result.rows.map { csvParser.toIngestItem(it, clock.millis()) }, itemName)
         }
@@ -208,7 +216,7 @@ class ImportService(
                 minDay = minOf(minDay ?: item.session.day, item.session.day)
                 if (buffer.size >= chunkSize) ingestBuffer(itemName)
             }
-            collector.emit(ImportProgress.Working(counts, itemName, errors.toList()))
+            collector.emit(ImportProgress.Working(counts, itemName, listedErrors()))
         }
 
         /** Every arrival of this run carries the id of the `import_record` that produced it. */
@@ -230,16 +238,32 @@ class ImportService(
                 )
                 is Outcome.Err -> {
                     counts = counts.copy(failed = counts.failed + chunk.size)
-                    errors += ImportItemError(itemName ?: "<chunk>", describe(outcome.error))
+                    addError(itemName ?: "<chunk>", describe(outcome.error))
                 }
             }
-            collector.emit(ImportProgress.Working(counts, itemName, errors.toList()))
+            collector.emit(ImportProgress.Working(counts, itemName, listedErrors()))
         }
 
         private fun fail(itemName: String, error: AppError) {
             counts = counts.copy(failed = counts.failed + 1)
-            errors += ImportItemError(itemName, describe(error))
+            addError(itemName, describe(error))
         }
+
+        /**
+         * BUG-19: only the first [MAX_LISTED_ERRORS] errors are kept, so `import_record.errorsJson`
+         * stays far below Android's 2 MB cursor-window row limit (3.5 MB of errors crashed the
+         * Import screen); [ImportCounts.failed] still counts every one.
+         */
+        private fun addError(item: String, message: String) {
+            if (errors.size < MAX_LISTED_ERRORS) errors += ImportItemError(item, message) else unlistedErrors++
+        }
+
+        private fun listedErrors(): List<ImportItemError> =
+            if (unlistedErrors == 0) {
+                errors.toList()
+            } else {
+                errors + ImportItemError(MORE_ERRORS_ITEM, "$unlistedErrors more errors not listed")
+            }
 
         /** Writes the audit row, then asks for the load recompute the new activities invalidate. */
         suspend fun finish(fileName: String, hash: String): ImportProgress {
@@ -252,7 +276,7 @@ class ImportService(
                 itemsParsed = counts.parsed,
                 itemsInserted = counts.inserted + counts.merged,
                 itemsDuplicate = counts.duplicate,
-                errorsJson = errors.takeIf { it.isNotEmpty() }
+                errorsJson = listedErrors().takeIf { it.isNotEmpty() }
                     ?.let { list -> json.encodeToString(list.map { ItemErrorDto(it.item, it.message) }) },
             )
             val stored = when (val outcome = importRepo.record(record)) {
@@ -260,7 +284,7 @@ class ImportService(
                 is Outcome.Err -> record
             }
             minDay?.let { onImported(it) }
-            return ImportProgress.Finished(stored, counts, errors.toList())
+            return ImportProgress.Finished(stored, counts, listedErrors())
         }
     }
 
@@ -272,6 +296,12 @@ class ImportService(
     }
 
     companion object {
+        /** BUG-19: per-item errors stored on one `import_record` row; the rest is a count. */
+        const val MAX_LISTED_ERRORS: Int = 200
+
+        /** The item name of the trailing "N more errors not listed" entry. */
+        const val MORE_ERRORS_ITEM: String = "…"
+
         /** PLAN P7.5: chunks of 50, which is also the in-flight memory guard. */
         const val CHUNK_SIZE: Int = 50
     }

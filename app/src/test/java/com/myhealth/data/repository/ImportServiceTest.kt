@@ -1,11 +1,16 @@
 package com.myhealth.data.repository
 
+import com.garmin.fit.DateTime
+import com.garmin.fit.FileEncoder
+import com.garmin.fit.FileIdMesg
+import com.garmin.fit.Fit
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.data.fit.GarminCsvParser
 import com.myhealth.data.fit.RunFixtureEncoder
 import com.myhealth.data.fit.zipOf
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ActivitySourceRecord
+import com.myhealth.domain.model.ImportItemError
 import com.myhealth.domain.model.ImportKind
 import com.myhealth.domain.model.ImportProgress
 import com.myhealth.domain.repository.ActivityIngestItem
@@ -16,6 +21,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.TimeZone
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
 import org.junit.Test
 import java.time.Clock
 import java.time.Instant
@@ -105,6 +112,64 @@ class ImportServiceTest {
         // the two are merged by §2.4 on the way in.
         assertThat(dao.rows()).hasSize(5)
         assertThat(dao.rows().first().mergedSourcesCsv).isEqualTo("FIT_IMPORT,CSV_IMPORT")
+    }
+
+    @Test
+    fun bug19a_fit_files_without_a_session_are_skipped_inside_an_archive_only() = runTest {
+        val wellness = monitoringFit()
+        val archive = zipOf(
+            "DI_CONNECT/uploads/run.fit" to RunFixtureEncoder.ensure().readBytes(),
+            "DI_CONNECT/uploads/monitor_1.fit" to wellness,
+            "DI_CONNECT/uploads/monitor_2.fit" to wellness,
+        )
+        val zipped = service(FakeImportContentSource("export.zip", archive))
+            .import("content://zip", ImportKind.GARMIN_ZIP).toList()
+            .filterIsInstance<ImportProgress.Finished>().single()
+        assertThat(zipped.counts.parsed).isEqualTo(1)
+        assertThat(zipped.counts.inserted).isEqualTo(1)
+        assertThat(zipped.counts.failed).isEqualTo(0)
+        assertThat(zipped.errors).isEmpty()
+        assertThat(zipped.record.errorsJson).isNull()
+
+        // A single file the user picked must be an activity: still an error.
+        val single = service(FakeImportContentSource("monitor.fit", wellness))
+            .import("content://fit", ImportKind.FIT_FILE).toList()
+            .filterIsInstance<ImportProgress.Finished>().single()
+        assertThat(single.counts.failed).isEqualTo(1)
+        assertThat(single.errors.single().message).isEqualTo("fit: no session message in the file")
+    }
+
+    @Test
+    fun bug19b_only_the_first_two_hundred_errors_are_listed_and_the_rest_is_counted() = runTest {
+        val broken = (1..250).map { "DI_CONNECT/uploads/broken_$it.fit" to ByteArray(40) { 7 } }
+        val archive = zipOf(*broken.toTypedArray())
+        val finished = service(FakeImportContentSource("export.zip", archive))
+            .import("content://zip", ImportKind.GARMIN_ZIP).toList()
+            .filterIsInstance<ImportProgress.Finished>().single()
+        assertThat(finished.counts.failed).isEqualTo(250)
+        assertThat(finished.errors).hasSize(ImportService.MAX_LISTED_ERRORS + 1)
+        assertThat(finished.errors.first().item).isEqualTo("DI_CONNECT/uploads/broken_1.fit")
+        assertThat(finished.errors.last())
+            .isEqualTo(ImportItemError(ImportService.MORE_ERRORS_ITEM, "50 more errors not listed"))
+        val stored = Json.parseToJsonElement(finished.record.errorsJson!!).jsonArray
+        assertThat(stored).hasSize(ImportService.MAX_LISTED_ERRORS + 1)
+    }
+
+    /** A FIT file with only a file id, like the wellness/monitoring files of a Garmin export. */
+    private fun monitoringFit(): ByteArray {
+        val file = java.io.File.createTempFile("monitor", ".fit").apply { deleteOnExit() }
+        val encoder = FileEncoder(file, Fit.ProtocolVersion.V2_0)
+        encoder.write(
+            FileIdMesg().apply {
+                type = com.garmin.fit.File.MONITORING_B
+                manufacturer = 1
+                product = 3121
+                serialNumber = 42L
+                timeCreated = DateTime(1_100_000_000L)
+            },
+        )
+        encoder.close()
+        return file.readBytes()
     }
 
     @Test

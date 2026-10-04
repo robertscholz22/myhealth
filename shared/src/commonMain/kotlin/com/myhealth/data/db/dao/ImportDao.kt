@@ -24,4 +24,11 @@ interface ImportDao {
 
     @Query("SELECT * FROM import_record ORDER BY importedAtMillis DESC LIMIT :limit")
     fun observeRecent(limit: Int): Flow<List<ImportRecordEntity>>
+
+    /**
+     * BUG-19 repair: replaces every `errorsJson` longer than [maxChars] with [replacement].
+     * `length()` is evaluated inside SQLite, so the oversized rows are never loaded into a cursor.
+     */
+    @Query("UPDATE import_record SET errorsJson = :replacement WHERE length(errorsJson) > :maxChars")
+    suspend fun replaceOversizedErrors(maxChars: Int, replacement: String): Int
 }
