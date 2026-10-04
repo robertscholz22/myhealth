@@ -620,4 +620,4 @@ Emulator `myhealth_api35`; onboarding, then the owner's backups imported with **
 | Training → Generate (4–10 Oct): "Recovery week · target 142 AU · 175 AU suggested · 1 rest day", recovery runs 6:42 /km, mobility/spin rationale texts | PASS | identical to the 0.8.1 walkthrough (session 20) |
 | Nutrition (2550 kcal target) and Calendar month view render | PASS | `p20_cal_emu.png` |
 
-- NOTE-28: the comparison of the nutrition target with the phone (0.8.1) was skipped — the phone was disconnected; the nutrition engine is covered by `nut*` fixtures with fixed expected values.
+- NOTE-28: the nutrition target was first not compared with the phone (it had disconnected). Done after the phone came back: phone backup taken (`myhealth-backup-2026-10-04-pre090.json`, 3148 rows), v0.9.0 installed from the release; Pixel shows 2510 kcal, and the same backup on the emulator gives 2510 kcal with the v0.8.1 release and again after upgrading in place to v0.9.0. Goals and the Training phase line on the Pixel match 0.8.1.
