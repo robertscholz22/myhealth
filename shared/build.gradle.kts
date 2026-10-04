@@ -43,6 +43,7 @@ kotlin {
             api(libs.cmp.material3)
             api(libs.cmp.icons.extended)
             api(libs.cmp.resources)
+            api(libs.cmp.ui.tooling.preview)
             api(libs.cmp.lifecycle.vm.compose)
             api(libs.cmp.lifecycle.runtime.compose)
             api(libs.cmp.navigation.compose)

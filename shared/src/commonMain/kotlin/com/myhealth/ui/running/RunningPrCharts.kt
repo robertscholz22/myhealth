@@ -21,7 +21,8 @@ fun prProgressionSeries(efforts: List<RunningBest>): List<ChartSeries> =
     efforts
         .groupBy { it.distanceMeters }
         .filterValues { it.size >= MIN_EFFORTS_FOR_PROGRESSION }
-        .toSortedMap()
+        .entries
+        .sortedBy { it.key }
         .map { (distance, rows) ->
             ChartSeries(
                 name = distanceLabel(distance),

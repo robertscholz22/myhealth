@@ -192,7 +192,7 @@ class SuggestionReviewViewModel(
  * around the numbers are passed in already resolved, since this is a plain (non-`@Composable`)
  * function and cannot call `stringResource` itself.
  */
-internal fun SuggestionReviewUiState.headerLine(
+fun SuggestionReviewUiState.headerLine(
     targetLabel: String,
     suggestedLabel: String,
     restDaySingular: String,

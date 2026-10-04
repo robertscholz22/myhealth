@@ -94,7 +94,7 @@ fun BodySkeleton.outlinePolygons(
 }
 
 /** `true` when ([x], [y]) is inside [polygon] — the ray-casting test `groupAt` hit-tests with. */
-internal fun pointInPolygon(polygon: MusclePaths.Polygon, x: Float, y: Float): Boolean {
+fun pointInPolygon(polygon: MusclePaths.Polygon, x: Float, y: Float): Boolean {
     if (polygon.size < 3) return false
     var inside = false
     var j = polygon.lastIndex
@@ -114,7 +114,7 @@ internal fun pointInPolygon(polygon: MusclePaths.Polygon, x: Float, y: Float): B
  * A rigid transform (rotation + translation) from a segment's local frame to the box. Kept as the
  * four numbers rather than a matrix class so the model owes nothing to Compose or `android.graphics`.
  */
-internal data class BodyFrame(val cos: Float, val sin: Float, val tx: Float, val ty: Float) {
+data class BodyFrame(val cos: Float, val sin: Float, val tx: Float, val ty: Float) {
 
     fun apply(point: BodyPoint): BodyPoint =
         BodyPoint(cos * point.x - sin * point.y + tx, sin * point.x + cos * point.y + ty)
@@ -142,7 +142,7 @@ internal data class BodyFrame(val cos: Float, val sin: Float, val tx: Float, val
  * The chain hangs off [rootFrame], which is where a pose's root scale, rotation and translation
  * enter — so they move the figure as one rigid (uniformly scaled) body, whatever the joints do.
  */
-internal fun frames(segments: List<BodySegment>, pose: BodyPose): Map<BodySegmentId, BodyFrame> {
+fun frames(segments: List<BodySegment>, pose: BodyPose): Map<BodySegmentId, BodyFrame> {
     val byId = segments.associateBy { it.id }
     val root = rootFrame(pose)
     val resolved = HashMap<BodySegmentId, BodyFrame>(segments.size)
