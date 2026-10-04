@@ -1,6 +1,5 @@
 package com.myhealth.ui.camera
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,9 +37,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import com.myhealth.resources.*
+import com.myhealth.ui.common.loadHalfSizeImage
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -61,8 +61,6 @@ import com.myhealth.ui.common.NumberField
 import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.theme.MyHealthTheme
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * Review of a scanned label before it becomes an ingredient (PLAN §4.2 "OCR review", P4.9): the
@@ -268,16 +266,10 @@ private fun OcrValueRow(
  */
 @Composable
 private fun CapturedImage(path: String) {
-    val bitmap by produceState<android.graphics.Bitmap?>(initialValue = null, path) {
-        value = withContext(Dispatchers.IO) {
-            runCatching {
-                BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = 2 })
-            }.getOrNull()
-        }
-    }
+    val bitmap by produceState<ImageBitmap?>(initialValue = null, path) { value = loadHalfSizeImage(path) }
     val current = bitmap ?: return
     Image(
-        bitmap = current.asImageBitmap(),
+        bitmap = current,
         contentDescription = stringResource(Res.string.ocr_review_captured_image_content_description),
         contentScale = ContentScale.Crop,
         modifier = Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(CARD_CORNER_RADIUS)),

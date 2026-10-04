@@ -29,7 +29,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import com.myhealth.resources.*
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -65,7 +64,6 @@ fun AddFoodScreen(
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    val context = LocalContext.current
 
     LaunchedEffect(state.added) { if (state.added) onBack() }
     LaunchedEffect(state.message) {

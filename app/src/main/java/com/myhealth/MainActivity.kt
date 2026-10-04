@@ -8,9 +8,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myhealth.di.LocalAppGraph
 import com.myhealth.domain.model.AppSettings
+import com.myhealth.ui.common.LocalPlatformUi
 import com.myhealth.ui.nav.MyHealthNavHost
 import com.myhealth.ui.theme.MyHealthTheme
 import com.myhealth.ui.theme.isDarkTheme
@@ -28,7 +30,8 @@ class MainActivity : ComponentActivity() {
             val settings by graph.settings.settings.collectAsStateWithLifecycle(
                 initialValue = AppSettings(),
             )
-            CompositionLocalProvider(LocalAppGraph provides graph) {
+            val platform = remember { AndroidPlatformUi(this, graph.hcIntegration) }
+            CompositionLocalProvider(LocalAppGraph provides graph, LocalPlatformUi provides platform) {
                 MyHealthTheme(
                     darkTheme = isDarkTheme(settings.themeMode),
                     dynamicColor = settings.useDynamicColor,

@@ -41,6 +41,9 @@ class IntegrationsViewModel(
     clock: PlatformClock,
 ) : ViewModel() {
 
+    /** Every permission the "Grant permissions" button asks for. */
+    val allPermissions: Set<String> get() = hc.allPermissions
+
     private val granted = MutableStateFlow<Set<String>>(emptySet())
     private val backfillStartDay =
         MutableStateFlow(clock.today().minusDays(DEFAULT_BACKFILL_DAYS).toEpochDays())

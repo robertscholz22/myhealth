@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.myhealth.resources.*
+import com.myhealth.ui.common.LocalPlatformUi
 import com.myhealth.ui.common.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -33,7 +34,6 @@ import com.myhealth.ui.calendar.DayDetailNavActions
 import com.myhealth.ui.calendar.DayDetailScreen
 import com.myhealth.ui.calendar.EventEditScreen
 import com.myhealth.ui.camera.OcrReviewScreen
-import com.myhealth.ui.camera.ScanScreen
 import com.myhealth.ui.common.PlaceholderScreen
 import com.myhealth.ui.cycle.CycleScreen
 import com.myhealth.ui.goals.GoalEditScreen
@@ -79,6 +79,7 @@ fun MyHealthNavHost(
     navController: NavHostController = rememberNavController(),
 ) {
     val graph = appGraph()
+    val platform = LocalPlatformUi.current
     val loadState by remember(graph) {
         graph.profileRepo.observeProfile().map { profile -> ProfileLoadState.Loaded(profile != null) }
     }.collectAsStateWithLifecycle(initialValue = ProfileLoadState.Loading)
@@ -250,7 +251,7 @@ fun MyHealthNavHost(
                         )
                     }
                     composable<ScanRoute> {
-                        ScanScreen(
+                        platform.ScanScreen(
                             onBack = { navController.popBackStack() },
                             onReview = { navController.navigate(OcrReviewRoute) },
                             // A barcode lookup is done with the camera: drop Scan from the stack

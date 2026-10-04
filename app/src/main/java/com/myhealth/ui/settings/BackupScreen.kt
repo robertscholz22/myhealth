@@ -1,8 +1,5 @@
 package com.myhealth.ui.settings
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
-import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -24,6 +21,8 @@ import com.myhealth.data.time.systemClock
 import com.myhealth.data.time.today
 import com.myhealth.resources.*
 import com.myhealth.ui.common.formatDeviceDateTime
+import com.myhealth.ui.common.rememberDocumentCreator
+import com.myhealth.ui.common.rememberDocumentOpener
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -51,17 +50,13 @@ fun BackupScreen(modifier: Modifier = Modifier) {
     val vm = rememberVm { graph -> BackupViewModel(graph.backupRepo) }
     val state by vm.state.collectAsStateWithLifecycle()
 
-    val exportLauncher = rememberLauncherForActivityResult(CreateDocument(BACKUP_MIME)) { uri ->
-        vm.export(uri?.toString())
-    }
-    val importLauncher = rememberLauncherForActivityResult(OpenDocument()) { uri ->
-        vm.import(uri?.toString())
-    }
+    val exportDocument = rememberDocumentCreator(BACKUP_MIME) { uri -> vm.export(uri) }
+    val importDocument = rememberDocumentOpener(persistReadAccess = false) { uri -> vm.import(uri) }
 
     BackupContent(
         state = state,
-        onExport = { exportLauncher.launch(defaultBackupFileName(systemClock().today())) },
-        onImport = { importLauncher.launch(arrayOf(BACKUP_MIME, "*/*")) },
+        onExport = { exportDocument(defaultBackupFileName(systemClock().today())) },
+        onImport = { importDocument(listOf(BACKUP_MIME, "*/*")) },
         onMode = vm::setImportMode,
         onDismissError = vm::dismissError,
         modifier = modifier.fillMaxSize(),

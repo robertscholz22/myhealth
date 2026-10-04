@@ -1,11 +1,5 @@
 package com.myhealth.ui.imports
 
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.provider.OpenableColumns
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -27,8 +21,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import com.myhealth.resources.*
+import com.myhealth.ui.common.rememberDocumentInfo
+import com.myhealth.ui.common.rememberDocumentOpener
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -43,7 +38,7 @@ import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.theme.MyHealthTheme
 
 /** MIME filter for the document picker (§4.2): Garmin exports arrive under all of these. */
-private val IMPORT_MIME_TYPES = arrayOf(
+private val IMPORT_MIME_TYPES = listOf(
     "application/zip",
     "text/csv",
     "text/comma-separated-values",
@@ -59,26 +54,21 @@ fun ImportScreen(modifier: Modifier = Modifier) {
     val state by vm.state.collectAsStateWithLifecycle()
     val sharedUri by vm.sharedUri.collectAsStateWithLifecycle()
     val message by vm.message.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
+    val documentInfo = rememberDocumentInfo()
 
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    val picker = rememberDocumentOpener(persistReadAccess = true) { uri ->
         if (uri != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
-            }
-            vm.start(uri.toString(), displayNameOf(context, uri), context.contentResolver.getType(uri))
+            val info = documentInfo(uri)
+            vm.start(uri, info.displayName, info.mimeType)
         }
     }
 
     // A `.fit`/`.csv`/`.zip` shared into the app starts importing as soon as this screen opens.
     LaunchedEffect(sharedUri) {
         val uri = sharedUri ?: return@LaunchedEffect
-        val parsed = Uri.parse(uri)
-        vm.start(uri, displayNameOf(context, parsed), context.contentResolver.getType(parsed))
+        val info = documentInfo(uri)
+        vm.start(uri, info.displayName, info.mimeType)
         vm.clearSharedUri()
     }
 
@@ -93,7 +83,7 @@ fun ImportScreen(modifier: Modifier = Modifier) {
     Scaffold(modifier = modifier, snackbarHost = { SnackbarHost(snackbar) }) { innerPadding ->
         ImportContent(
             state = state,
-            onPickFile = { picker.launch(IMPORT_MIME_TYPES) },
+            onPickFile = { picker(IMPORT_MIME_TYPES) },
             onImportAnyway = vm::importAnyway,
             onDismissResult = vm::dismissResult,
             onUndo = vm::undo,
@@ -198,15 +188,6 @@ private fun CountsRow(work: ImportWorkState) {
     )
 }
 
-/** `OpenableColumns.DISPLAY_NAME` when the provider offers it, else the last path segment. */
-private fun displayNameOf(context: Context, uri: Uri): String {
-    runCatching {
-        context.contentResolver
-            .query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
-            ?.use { cursor -> if (cursor.moveToFirst() && !cursor.isNull(0)) return cursor.getString(0) }
-    }
-    return uri.lastPathSegment?.substringAfterLast('/') ?: uri.toString()
-}
 
 @Preview(showBackground = true)
 @Composable

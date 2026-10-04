@@ -93,35 +93,35 @@ import java.time.ZoneId
  * Rules: holds no Activity/Compose references; everything a test needs must be constructible
  * without an `AppGraph`; engines are stateless and take a [Clock] so tests can pin "today".
  */
-class AppGraph(private val app: Application) {
+class AppGraph(private val app: Application) : UiGraph {
 
     val appScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    val clock: Clock by lazy { Clock.systemDefaultZone() }
+    override val clock: Clock by lazy { Clock.systemDefaultZone() }
 
     /** Every "day" boundary in the app is a local day in this zone (§1.6). */
     val zoneId: ZoneId by lazy { clock.zone }
 
     val db: MyHealthDatabase by lazy { buildMyHealthDatabase(app, debug = BuildConfig.DEBUG) }
 
-    val settings: SettingsRepository by lazy { DataStoreSettingsRepository(app) }
+    override val settings: SettingsRepository by lazy { DataStoreSettingsRepository(app) }
 
-    val profileRepo: ProfileRepository by lazy { RoomProfileRepository(db.profileDao()) }
+    override val profileRepo: ProfileRepository by lazy { RoomProfileRepository(db.profileDao()) }
 
-    val bodyRepo: BodyRepository by lazy { RoomBodyRepository(db.bodyDao(), clock) }
+    override val bodyRepo: BodyRepository by lazy { RoomBodyRepository(db.bodyDao(), clock) }
 
-    val syncStateRepo: SyncStateRepository by lazy { RoomSyncStateRepository(db.syncStateDao()) }
+    override val syncStateRepo: SyncStateRepository by lazy { RoomSyncStateRepository(db.syncStateDao()) }
 
-    val healthRepo: HealthRepository by lazy { RoomHealthRepository(db.healthDao(), db.sleepDao()) }
+    override val healthRepo: HealthRepository by lazy { RoomHealthRepository(db.healthDao(), db.sleepDao()) }
 
     /** `ingredient` search/CRUD, archive-vs-delete on removal (§2.2.5, P4.2). */
-    val ingredientRepo: IngredientRepository by lazy {
+    override val ingredientRepo: IngredientRepository by lazy {
         RoomIngredientRepository(db.ingredientDao(), db.mealDao(), clock)
     }
 
     /** `meal_log`/`meal_template` CRUD; the snapshot-on-log rule of §2.2.5 lives in its writer
      * (P4.4/P4.5). */
-    val mealRepo: MealRepository by lazy {
+    override val mealRepo: MealRepository by lazy {
         RoomMealRepository(db.mealDao(), db.ingredientDao(), clock)
     }
 
@@ -130,7 +130,7 @@ class AppGraph(private val app: Application) {
      * `profile.sex == FEMALE`, and it is the only gate the suggestion and nutrition repositories
      * consult before they read any cycle data.
      */
-    val cycleRepo: CycleRepository by lazy {
+    override val cycleRepo: CycleRepository by lazy {
         RoomCycleRepository(
             cycleDao = db.cycleDao(),
             profileRepo = profileRepo,
@@ -147,7 +147,7 @@ class AppGraph(private val app: Application) {
      * profile/body/health/activity/plan/calendar repositories and recomputes only when the
      * `inputsHash` changed (P4.12).
      */
-    val nutritionRepo: NutritionRepository by lazy {
+    override val nutritionRepo: NutritionRepository by lazy {
         RoomNutritionRepository(
             nutritionDao = db.nutritionDao(),
             profileRepo = profileRepo,
@@ -167,14 +167,14 @@ class AppGraph(private val app: Application) {
         ActivityIngestor(db.activityDao(), RoomTransactionRunner(db), clock)
     }
 
-    val activityRepo: ActivityRepository by lazy {
+    override val activityRepo: ActivityRepository by lazy {
         RoomActivityRepository(db.activityDao(), ingestor, clock)
     }
 
-    val runningBestRepo: RunningBestRepository by lazy { RoomRunningBestRepository(db.runningBestDao()) }
+    override val runningBestRepo: RunningBestRepository by lazy { RoomRunningBestRepository(db.runningBestDao()) }
 
     /** `ride_best` (P12); read by the Bike screen and the FTP estimate. */
-    val rideBestRepo: RideBestRepository by lazy { RoomRideBestRepository(db.rideBestDao()) }
+    override val rideBestRepo: RideBestRepository by lazy { RoomRideBestRepository(db.rideBestDao()) }
 
     /**
      * The body weight `ProgressionEngine`'s initial estimate is built on (P16.1/P16.2): the latest
@@ -182,7 +182,7 @@ class AppGraph(private val app: Application) {
      * [strengthRepo]'s own writer and every UI caller of `StrengthRepository.prescriptionFor`
      * (`ExercisesViewModel`, `TrainingViewModel`) so the two never disagree on "today's" weight.
      */
-    val currentBodyWeightKg: suspend () -> Double = {
+    override val currentBodyWeightKg: suspend () -> Double = {
         bodyRepo.latestWeight(ProgressionDefaults.BODY_WEIGHT_MAX_AGE_DAYS)?.weightKg
             ?: ProgressionDefaults.FALLBACK_BODY_WEIGHT_KG
     }
@@ -192,7 +192,7 @@ class AppGraph(private val app: Application) {
      * `exercise_progress` (P16.1). The body weight the initial load estimate is built on is the
      * latest measurement within a year, falling back to 75 kg when there is none.
      */
-    val strengthRepo: StrengthRepository by lazy {
+    override val strengthRepo: StrengthRepository by lazy {
         RoomStrengthRepository(
             dao = db.strengthDao(),
             bodyWeightKg = currentBodyWeightKg,
@@ -205,7 +205,7 @@ class AppGraph(private val app: Application) {
      * against the profile's "my equipment" set (P16.1). Idempotent on `templateId`, so every
      * caller may simply seed before it reads.
      */
-    val strengthWorkoutSeeder: StrengthWorkoutSeeder by lazy {
+    override val strengthWorkoutSeeder: StrengthWorkoutSeeder by lazy {
         StrengthWorkoutSeeder(strengthRepo, clock) {
             EquipmentSetCodec.decode(profileRepo.getProfile()?.availableEquipmentJson)
         }
@@ -217,7 +217,7 @@ class AppGraph(private val app: Application) {
      * depends on this repository in turn — see [RoomLoadRepository]'s doc for why that would
      * otherwise be a circular `by lazy` initialization.
      */
-    val loadRepo: LoadRepository by lazy {
+    override val loadRepo: LoadRepository by lazy {
         RoomLoadRepository(db.loadDao()) { day -> loadRecomputeService.recompute(day) }
     }
 
@@ -240,13 +240,13 @@ class AppGraph(private val app: Application) {
     }
 
     /** `goal`; enforces the single-primary-goal rule of P6.1. */
-    val goalRepo: GoalRepository by lazy { RoomGoalRepository(db.goalDao(), clock) }
+    override val goalRepo: GoalRepository by lazy { RoomGoalRepository(db.goalDao(), clock) }
 
     /** `training_plan` + `planned_session`; enforces the single-`ACTIVE`-plan rule (P3.2). */
-    val planRepo: PlanRepository by lazy { RoomPlanRepository(db.planDao(), clock) }
+    override val planRepo: PlanRepository by lazy { RoomPlanRepository(db.planDao(), clock) }
 
     /** The `CalendarDay` aggregate of §2.3 plus event/override CRUD and linking (P3.2). */
-    val calendarRepo: CalendarRepository by lazy {
+    override val calendarRepo: CalendarRepository by lazy {
         RoomCalendarRepository(
             eventDao = db.eventDao(),
             planDao = db.planDao(),
@@ -272,7 +272,7 @@ class AppGraph(private val app: Application) {
      * [suggestionEngine], and copies accepted suggestions into `planned_session`. Accepting
      * changes a day's nutrition target, hence the [SyncScheduler.requestTargetRecompute] hook.
      */
-    val suggestionRepo: SuggestionRepository by lazy {
+    override val suggestionRepo: SuggestionRepository by lazy {
         RoomSuggestionRepository(
             suggestionDao = db.suggestionDao(),
             planRepo = planRepo,
@@ -297,7 +297,7 @@ class AppGraph(private val app: Application) {
     // ---- FIT / CSV / ZIP import (P7.5) --------------------------------------------------
 
     /** `import_record` (§2.2.6): the file-hash guard against importing the same export twice. */
-    val importRepo: ImportRepository by lazy {
+    override val importRepo: ImportRepository by lazy {
         RoomImportRepository(
             importDao = db.importDao(),
             activityDao = db.activityDao(),
@@ -311,7 +311,7 @@ class AppGraph(private val app: Application) {
      * so a FIT file merges with an already-synced activity under the §2.4 precedence, and it asks
      * for a load recompute from the earliest day it touched.
      */
-    val importService: ActivityImporter by lazy {
+    override val importService: ActivityImporter by lazy {
         ImportService(
             content = AndroidImportContentSource(app),
             activityRepo = activityRepo,
@@ -327,7 +327,7 @@ class AppGraph(private val app: Application) {
      * the Import screen to pick it up (P7.6). Set by [com.myhealth.MainActivity], cleared by the
      * screen once it has started the import.
      */
-    val pendingImportUri: MutableStateFlow<String?> = MutableStateFlow(null)
+    override val pendingImportUri: MutableStateFlow<String?> = MutableStateFlow(null)
 
     // ---- JSON backup (P8.4) --------------------------------------------------------------
 
@@ -336,7 +336,7 @@ class AppGraph(private val app: Application) {
      * about the rows as they are stored, not about the domain view of them, and REPLACE has to be
      * able to write ids the domain models do not even expose.
      */
-    val backupRepo: BackupRepository by lazy {
+    override val backupRepo: BackupRepository by lazy {
         BackupService(
             dao = db.backupDao(),
             transaction = { block -> db.withTransaction { block() } },
@@ -352,7 +352,7 @@ class AppGraph(private val app: Application) {
 
     /** The Integrations screen's (P2.8) only window onto Health Connect — `ui/` may not import
      * `com.myhealth.data.*` directly, so this `di`-owned seam stands in for [healthConnect]. */
-    val hcIntegration: HcIntegration by lazy { HealthConnectIntegration(healthConnect) }
+    override val hcIntegration: HealthConnectIntegration by lazy { HealthConnectIntegration(healthConnect) }
 
     val hcMapper: HcMapper by lazy { HealthConnectMapper() }
 
@@ -390,7 +390,7 @@ class AppGraph(private val app: Application) {
     val cacheDir: File get() = app.cacheDir
 
     /** The one-slot Scan → OcrReview → IngredientEdit hand-off (P4.8). */
-    val draftStore: DraftStore by lazy { DraftStore() }
+    override val draftStore: DraftStore by lazy { DraftStore() }
 
     /** Both ML Kit detectors are expensive to create, so the process keeps one of each (P4.8). */
     private val textSource: MlKitTextSource by lazy { MlKitTextSource() }
@@ -404,11 +404,11 @@ class AppGraph(private val app: Application) {
     val offClient: OffClient by lazy { OffClient(settings, OffThrottle(clock)) }
 
     /** Barcode → prefilled draft, shared by the scan path and the editor's manual lookup (P4.10). */
-    val offLookup: OffLookup by lazy { OffProductLookup(offClient) }
+    override val offLookup: OffLookup by lazy { OffProductLookup(offClient) }
 
     /** WorkManager entry point (P2.7); on-demand initialized from [com.myhealth.MyHealthApp]'s
      * `Configuration.Provider` since the default `androidx.startup` initializer is disabled. */
-    val syncScheduler: SyncScheduler by lazy { WorkManagerSyncScheduler(WorkManager.getInstance(app), clock) }
+    override val syncScheduler: SyncScheduler by lazy { WorkManagerSyncScheduler(WorkManager.getInstance(app), clock) }
 
     // One lazy val per remaining repository / engine / worker helper is added from P3 onwards.
 }

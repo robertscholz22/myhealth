@@ -24,7 +24,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import com.myhealth.resources.*
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -118,7 +117,6 @@ private fun DayDetailContent(
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
     LaunchedEffect(state.message) {
         val message = state.message
         if (message != null) {

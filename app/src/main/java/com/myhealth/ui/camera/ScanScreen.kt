@@ -55,6 +55,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.myhealth.di.AppGraph
 import com.myhealth.di.rememberVm
 import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.ErrorBanner
@@ -81,7 +82,9 @@ fun ScanScreen(
 ) {
     val context = LocalContext.current
     val graphVm = rememberVm { graph ->
-        ScanViewModel(graph.scanSources, graph.offLookup, graph.draftStore, graph.cacheDir)
+        // The camera sources and cacheDir are Android-only, so they live on AppGraph, not UiGraph.
+        val android = graph as AppGraph
+        ScanViewModel(android.scanSources, android.offLookup, android.draftStore, android.cacheDir)
     }
     val state by graphVm.state.collectAsStateWithLifecycle()
 

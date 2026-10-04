@@ -2,7 +2,8 @@ package com.myhealth.ui.camera
 
 import com.myhealth.domain.model.NutritionFactsDraft
 import com.myhealth.domain.util.EngineWarning
-import java.util.concurrent.atomic.AtomicReference
+import kotlin.concurrent.atomics.AtomicReference
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 /**
  * A scanned product on its way to the ingredient editor (PLAN P4.8/P4.10): the parsed or
@@ -34,21 +35,22 @@ data class ScanDraft(
  * this process-wide singleton (held by `AppGraph`) and the consumer [take]s it, leaving the slot
  * empty so a later, unrelated visit to the editor never sees a stale scan.
  */
+@OptIn(ExperimentalAtomicApi::class)
 class DraftStore {
 
     private val slot = AtomicReference<ScanDraft?>(null)
 
     fun put(draft: ScanDraft) {
-        slot.set(draft)
+        slot.store(draft)
     }
 
     /** Reads without consuming — the review screen may be recreated on rotation. */
-    fun peek(): ScanDraft? = slot.get()
+    fun peek(): ScanDraft? = slot.load()
 
     /** Reads and clears — used by the ingredient editor, which prefills exactly once. */
-    fun take(): ScanDraft? = slot.getAndSet(null)
+    fun take(): ScanDraft? = slot.exchange(null)
 
     fun clear() {
-        slot.set(null)
+        slot.store(null)
     }
 }

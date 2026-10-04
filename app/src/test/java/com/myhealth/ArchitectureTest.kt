@@ -94,7 +94,7 @@ class ArchitectureTest {
          * libraries; the rest of androidx is not.
          */
         val JVM_ONLY = Regex(
-            """^import (java\.|javax\.|android\.|androidx\.(?!room\.|sqlite\.|datastore\.core\.|datastore\.preferences\.core\.|compose\.(runtime|foundation|ui|material3|material\.icons|animation)\.|lifecycle\.(ViewModel|viewModelScope|compose|viewmodel|SavedStateHandle)|navigation\.))""",
+            """^import (java\.|javax\.|android\.|androidx\.(?!room\.|sqlite\.|datastore\.core\.|datastore\.preferences\.core\.|compose\.(runtime|foundation|ui|material3|material\.icons|animation)\.|lifecycle\.(ViewModel|viewModelScope|compose|viewmodel|SavedStateHandle|createSavedStateHandle)|navigation\.))""",
         )
 
         /** `shared/src/commonMain/kotlin/com/myhealth` (P20.1). */

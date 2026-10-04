@@ -1,6 +1,5 @@
 package com.myhealth.ui.common.body
 
-import android.provider.Settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,8 +16,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import com.myhealth.resources.*
+import com.myhealth.ui.common.isReducedMotionEnabled
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -157,16 +156,6 @@ private fun SizedFigureBox(
 /** A horizontal clip may be at most this many times wider than it is tall (≈ 1.5 × 220 dp on a phone). */
 private const val MAX_WIDTH_FACTOR = 1.5f
 
-/** `true` when the device's "Remove animations" developer option is on. Read once per composition
- * — the setting does not change while a figure is on screen, and there is no change listener to
- * key a `remember` off anyway. */
-@Composable
-private fun isReducedMotionEnabled(): Boolean {
-    val context = LocalContext.current
-    return remember(context) {
-        Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
-    }
-}
 
 private const val NANOS_PER_MILLI = 1_000_000L
 

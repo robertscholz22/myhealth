@@ -2,11 +2,9 @@ package com.myhealth.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
 import com.myhealth.domain.model.ThemeMode
+import com.myhealth.ui.common.dynamicColorScheme
 
 /**
  * App theme: Material 3 with the green scheme of [LightColors]/[DarkColors] (PLAN P8.6a).
@@ -21,13 +19,8 @@ fun MyHealthTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val context = LocalContext.current
-    val colorScheme = when {
-        dynamicColor && darkTheme -> dynamicDarkColorScheme(context)
-        dynamicColor -> dynamicLightColorScheme(context)
-        darkTheme -> DarkColors
-        else -> LightColors
-    }
+    val colorScheme = (if (dynamicColor) dynamicColorScheme(darkTheme) else null)
+        ?: if (darkTheme) DarkColors else LightColors
     MaterialTheme(
         colorScheme = colorScheme,
         typography = MyHealthTypography,

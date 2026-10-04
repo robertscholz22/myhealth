@@ -35,7 +35,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import com.myhealth.domain.util.utcDateOfMillis
 import com.myhealth.domain.util.utcMidnightMillis
 import com.myhealth.resources.*
@@ -66,7 +65,6 @@ fun CycleScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val vm = rememberVm { graph -> CycleViewModel(graph.cycleRepo, graph.clock) }
     val state by vm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    val context = LocalContext.current
 
     LaunchedEffect(state.message) {
         state.message?.let {

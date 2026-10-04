@@ -1,10 +1,5 @@
 package com.myhealth.ui.settings
 
-import android.content.ActivityNotFoundException
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -23,17 +18,15 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import com.myhealth.resources.*
+import com.myhealth.ui.common.LocalPlatformUi
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myhealth.di.HcStatus
-import com.myhealth.di.appGraph
 import com.myhealth.di.rememberVm
 import com.myhealth.ui.common.DatePickerField
 import com.myhealth.ui.common.SCREEN_PADDING
@@ -45,32 +38,22 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
-private const val HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata"
-
-/**
- * Falls back to the raw string when the SDK's own (deprecated)
- * `HealthConnectClient.getHealthConnectSettingsAction()` accessor is unavailable to callers.
- */
-private const val ACTION_HEALTH_CONNECT_SETTINGS = "androidx.health.ACTION_HEALTH_CONNECT_SETTINGS"
 
 @Composable
 fun IntegrationsScreen(modifier: Modifier = Modifier) {
-    val graph = appGraph()
     val vm = rememberVm { g -> IntegrationsViewModel(g.hcIntegration, g.syncStateRepo, g.syncScheduler, g.clock) }
     val state by vm.state.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-
-    val contract = remember(graph) { graph.hcIntegration.permissionContract() }
-    val launcher = rememberLauncherForActivityResult(contract) { result ->
+    val platform = LocalPlatformUi.current
+    val requestPermissions = platform.rememberHealthPermissionRequest { result ->
         vm.onPermissionsResult(result)
         vm.refreshGranted()
     }
 
     IntegrationsContent(
         state = state,
-        onGrantPermissions = { launcher.launch(graph.hcIntegration.allPermissions) },
-        onOpenPlayStore = { openPlayStore(context) },
-        onOpenHcSettings = { openHealthConnectSettings(context) },
+        onGrantPermissions = { requestPermissions(vm.allPermissions) },
+        onOpenPlayStore = platform::openHealthAppStore,
+        onOpenHcSettings = platform::openHealthSettings,
         onSyncNow = vm::syncNow,
         onBackfillStartDayChange = vm::setBackfillStartDay,
         onStartBackfill = vm::startBackfill,
@@ -253,23 +236,7 @@ private fun formatInstant(millis: Long): String =
     Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
         .usText("yyyy-MM-dd HH:mm")
 
-private fun openPlayStore(context: Context) {
-    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$HEALTH_CONNECT_PACKAGE"))
-    try {
-        context.startActivity(intent)
-    } catch (e: ActivityNotFoundException) {
-        // No Play Store on this device — nothing more we can do from here.
-    }
-}
 
-private fun openHealthConnectSettings(context: Context) {
-    val intent = Intent(ACTION_HEALTH_CONNECT_SETTINGS)
-    try {
-        context.startActivity(intent)
-    } catch (e: ActivityNotFoundException) {
-        // Health Connect is not installed — the status card already says so.
-    }
-}
 
 @Preview(showBackground = true, name = "Available")
 @Composable

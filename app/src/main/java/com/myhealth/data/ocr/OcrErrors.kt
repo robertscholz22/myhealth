@@ -19,10 +19,10 @@ import kotlin.coroutines.resumeWithException
 object OcrErrors {
 
     /** Synthetic `AppError.Network.code`: the on-demand model is not on the device yet. */
-    const val MODEL_NOT_READY = 1001
+    const val MODEL_NOT_READY = OcrErrorCodes.MODEL_NOT_READY
 
     /** Synthetic `AppError.Network.code`: ML Kit failed for a reason a retry will not fix. */
-    const val RECOGNITION_FAILED = 1002
+    const val RECOGNITION_FAILED = OcrErrorCodes.RECOGNITION_FAILED
 
     /** ML Kit codes that mean "the optional module is still being fetched / is unavailable". */
     private val RETRYABLE = setOf(

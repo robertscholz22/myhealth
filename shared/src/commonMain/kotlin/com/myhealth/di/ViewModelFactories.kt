@@ -14,7 +14,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
  * Usage: `val vm = rememberVm { graph -> TodayViewModel(graph.profileRepo, graph.clock) }`
  */
 @Composable
-inline fun <reified VM : ViewModel> rememberVm(noinline create: (AppGraph) -> VM): VM {
+inline fun <reified VM : ViewModel> rememberVm(noinline create: (UiGraph) -> VM): VM {
     val graph = appGraph()
     return viewModel(factory = viewModelFactory { initializer { create(graph) } })
 }
@@ -27,7 +27,7 @@ inline fun <reified VM : ViewModel> rememberVm(noinline create: (AppGraph) -> VM
  */
 @Composable
 inline fun <reified VM : ViewModel> rememberVmWithSavedState(
-    noinline create: (AppGraph, SavedStateHandle) -> VM,
+    noinline create: (UiGraph, SavedStateHandle) -> VM,
 ): VM {
     val graph = appGraph()
     return viewModel(factory = viewModelFactory { initializer { create(graph, createSavedStateHandle()) } })

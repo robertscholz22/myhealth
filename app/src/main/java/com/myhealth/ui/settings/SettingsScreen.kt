@@ -20,7 +20,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import com.myhealth.resources.*
 import com.myhealth.ui.common.stringResource
@@ -63,7 +62,6 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val message by vm.message.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
 
     // The orphan-cleanup result (or its failure) is reported once, then cleared.
