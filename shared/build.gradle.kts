@@ -31,12 +31,16 @@ kotlin {
             api(libs.room.runtime)
             api(libs.datastore.prefs.core)
             implementation(libs.kotlinx.serialization.json.okio)
+            implementation(libs.ktor.client.core)
+            implementation(libs.atomicfu)
         }
         androidMain.dependencies {
             implementation(libs.datastore.prefs)
+            implementation(libs.ktor.client.okhttp)
         }
         iosMain.dependencies {
             implementation(libs.sqlite.bundled)
+            implementation(libs.ktor.client.darwin)
         }
     }
 }

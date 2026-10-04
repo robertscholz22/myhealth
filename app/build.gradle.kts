@@ -109,7 +109,6 @@ dependencies {
     implementation(libs.mlkit.barcode)
 
     // P4.10 — Open Food Facts client.
-    implementation(libs.okhttp)
 
     // P7.1 — Garmin FIT SDK (com.garmin:fit) for .fit file decoding.
     implementation(libs.garmin.fit)
@@ -119,6 +118,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)
+    testImplementation(libs.ktor.client.mock)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(kotlin("test"))
