@@ -5,7 +5,7 @@ import com.myhealth.domain.model.GoalStatus
 import com.myhealth.domain.model.GoalType
 import com.myhealth.testutil.Fixtures
 import org.junit.Test
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /** The goal editor's pure form logic (PLAN §4.2 "Goal edit", P6.1). */
 class GoalDraftTest {
@@ -80,7 +80,7 @@ class GoalDraftTest {
         val draft = GoalDraft(
             type = GoalType.BODY_WEIGHT,
             title = "  80 kg  ",
-            targetDay = LocalDate.of(2026, 12, 24),
+            targetDay = LocalDate(2026, 12, 24),
             targetDistanceMeters = 5000.0,
             targetMinutes = 20,
             targetWeightKg = 80.0,
@@ -95,7 +95,7 @@ class GoalDraftTest {
         assertThat(goal.targetTimeSec).isNull()
         assertThat(goal.targetValue).isNull()
         assertThat(goal.priority).isEqualTo(1)
-        assertThat(goal.targetDay).isEqualTo(LocalDate.of(2026, 12, 24).toEpochDay())
+        assertThat(goal.targetDay).isEqualTo(LocalDate(2026, 12, 24).toEpochDays())
         assertThat(goal.createdAtMillis).isEqualTo(clock.millis())
 
         val secondary = draft.copy(isPrimary = false).toGoal(clock)
@@ -107,7 +107,7 @@ class GoalDraftTest {
         val original = GoalDraft(
             type = GoalType.RACE_TIME,
             title = "Sub-20 5k",
-            targetDay = LocalDate.of(2026, 11, 15),
+            targetDay = LocalDate(2026, 11, 15),
             targetDistanceMeters = 5000.0,
             targetMinutes = 20,
             targetSeconds = 0,
@@ -158,7 +158,7 @@ class GoalDraftTest {
         val race = GoalDraft(
             type = GoalType.RACE_TIME,
             title = "Sub-20 5k",
-            targetDay = LocalDate.of(2026, 11, 15),
+            targetDay = LocalDate(2026, 11, 15),
             targetDistanceMeters = 5000.0,
             targetMinutes = 20,
             targetSeconds = 0,

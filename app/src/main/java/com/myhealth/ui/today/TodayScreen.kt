@@ -51,7 +51,7 @@ import com.myhealth.ui.common.StatTile
 import com.myhealth.ui.common.displayName
 import com.myhealth.ui.common.fmtDecimal
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.ZoneId
+import kotlinx.datetime.TimeZone
 
 @Composable
 fun TodayScreen(
@@ -289,7 +289,7 @@ private fun SyncStatusBanner(state: TodayUiState, onSyncNow: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = lastSyncedLabel(state.lastSyncSuccessAtMillis, ZoneId.systemDefault()),
+                    text = lastSyncedLabel(state.lastSyncSuccessAtMillis, TimeZone.currentSystemDefault()),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Button(onClick = onSyncNow, enabled = !state.isSyncing) {

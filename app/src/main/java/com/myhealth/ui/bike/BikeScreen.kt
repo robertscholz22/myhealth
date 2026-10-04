@@ -36,7 +36,7 @@ import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /** "Bike & power" (PLAN "UI.", More entry, P12.4): the FTP card and the power/time PR tables. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -165,7 +165,7 @@ private fun BikeContentPreview() {
                     watts = 285,
                     source = FtpSource.STREAM_20MIN,
                     basisActivityId = 1L,
-                    basisDay = LocalDate.of(2026, 9, 2).toEpochDay(),
+                    basisDay = LocalDate(2026, 9, 2).toEpochDays(),
                 ),
                 powerBests = listOf(
                     RideBest(
@@ -173,7 +173,7 @@ private fun BikeContentPreview() {
                         kind = RideBestKind.POWER_20MIN,
                         value = 300.0,
                         activityId = 1L,
-                        day = LocalDate.of(2026, 9, 2).toEpochDay(),
+                        day = LocalDate(2026, 9, 2).toEpochDays(),
                         isEstimated = false,
                         createdAtMillis = 0L,
                     ),

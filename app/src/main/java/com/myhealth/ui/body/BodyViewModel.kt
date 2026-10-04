@@ -2,6 +2,7 @@ package com.myhealth.ui.body
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.repository.BodyRepository
@@ -16,8 +17,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /**
  * Backs [BodyScreen] — latest weight + goal delta, "Log weight", the P8.3 charts (weight with a
@@ -29,15 +30,15 @@ class BodyViewModel(
     private val bodyRepo: BodyRepository,
     private val healthRepo: HealthRepository,
     private val syncScheduler: SyncScheduler,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
     private val dialogOpen = MutableStateFlow(false)
     private val range = MutableStateFlow(BodyRange.D90)
-    private fun today(): LocalDate = LocalDate.now(clock)
+    private fun today(): LocalDate = clock.today()
 
     private val windowed = range.flatMapLatest { selected ->
-        val to = today().toEpochDay()
+        val to = today().toEpochDays()
         combine(
             bodyRepo.observeRange(to - selected.days + 1, to),
             healthRepo.observeRange(to - selected.days + 1, to),
@@ -45,8 +46,8 @@ class BodyViewModel(
     }
 
     private val sleep = healthRepo.observeSleepRange(
-        today().toEpochDay() - SLEEP_BAR_NIGHTS + 1,
-        today().toEpochDay(),
+        today().toEpochDays() - SLEEP_BAR_NIGHTS + 1,
+        today().toEpochDays(),
     )
 
     val state: StateFlow<BodyUiState> = combine(
@@ -63,7 +64,7 @@ class BodyViewModel(
             measurements = measurements.withinLastDays(selected.days, today()).sortedByRecencyDescending(),
             health = health,
             sleep = nights,
-            today = today().toEpochDay(),
+            today = today().toEpochDays(),
             showLogDialog = showDialog,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BodyUiState())
@@ -85,7 +86,7 @@ class BodyViewModel(
             bodyRepo.insert(
                 BodyMeasurement(
                     measuredAtMillis = clock.millis(),
-                    day = today().toEpochDay(),
+                    day = today().toEpochDays(),
                     weightKg = weightKg,
                     bodyFatPercent = bodyFatPercent,
                     muscleMassKg = null,

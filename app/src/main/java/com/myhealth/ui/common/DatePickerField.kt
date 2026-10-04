@@ -19,14 +19,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.myhealth.domain.util.utcDateOfMillis
+import com.myhealth.domain.util.utcMidnightMillis
 import com.myhealth.resources.*
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
+import kotlin.time.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 
 /**
  * Read-only date field (§4.3) that opens a Material 3 [DatePickerDialog] on tap. Dates are
@@ -47,7 +48,7 @@ fun DatePickerField(
 
     Box(modifier = modifier.fillMaxWidth()) {
         OutlinedTextField(
-            value = value?.format(DateTimeFormatter.ISO_LOCAL_DATE) ?: "",
+            value = value?.toString() ?: "",
             onValueChange = {},
             readOnly = true,
             enabled = false,
@@ -66,14 +67,14 @@ fun DatePickerField(
 
     if (showDialog) {
         val state = rememberDatePickerState(
-            initialSelectedDateMillis = value?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli(),
+            initialSelectedDateMillis = value?.utcMidnightMillis(),
         )
         DatePickerDialog(
             onDismissRequest = { showDialog = false },
             confirmButton = {
                 TextButton(onClick = {
                     state.selectedDateMillis?.let { millis ->
-                        onValueChange(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
+                        onValueChange(utcDateOfMillis(millis))
                     }
                     showDialog = false
                 }) { Text(stringResource(Res.string.common_ok)) }
@@ -89,6 +90,6 @@ fun DatePickerField(
 @Composable
 private fun DatePickerFieldPreview() {
     MyHealthTheme(dynamicColor = false) {
-        DatePickerField(label = "Birth date", value = LocalDate.of(1990, 5, 20), onValueChange = {})
+        DatePickerField(label = "Birth date", value = LocalDate(1990, 5, 20), onValueChange = {})
     }
 }

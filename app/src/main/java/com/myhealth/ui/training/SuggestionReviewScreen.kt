@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.myhealth.resources.*
+import com.myhealth.ui.common.mathRound
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -189,7 +190,7 @@ private fun ReviewHeaderCard(
                 Res.string.review_selected_summary,
                 state.selectedIds.size,
                 state.sessions.size,
-                Math.round(state.selectedLoad),
+                mathRound(state.selectedLoad),
             ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -239,7 +240,7 @@ private fun SuggestionCard(
             text = listOfNotNull(
                 session.targetDurationMin?.let { "$it min" },
                 session.targetPaceSecPerKm?.let { formatPaceSecPerKm(it) },
-                "${Math.round(session.estimatedTrimp)} AU",
+                "${mathRound(session.estimatedTrimp)} AU",
             ).joinToString(" · "),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

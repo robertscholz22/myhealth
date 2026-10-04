@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.myhealth.resources.*
+import com.myhealth.ui.common.mathRound
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -45,6 +46,7 @@ import com.myhealth.ui.activities.formatDistanceKm
 import com.myhealth.ui.calendar.OverflowMenu
 import com.myhealth.ui.calendar.displayName
 import com.myhealth.ui.common.SportIcon
+import com.myhealth.ui.common.zeroPad
 import com.myhealth.ui.theme.MyHealthTheme
 import com.myhealth.ui.zones.zoneChipLabel
 
@@ -183,13 +185,13 @@ fun plannedSessionSubtitle(session: PlannedSession, linkedLabel: String): String
     session.targetDurationMin?.let { add("$it min") }
     formatDistanceKm(session.targetDistanceMeters)?.let { add(it) }
     session.targetPaceSecPerKm?.let { add(formatPaceSecPerKm(it)) }
-    session.estimatedTrimp?.let { add("${Math.round(it)} AU") }
+    session.estimatedTrimp?.let { add("${mathRound(it)} AU") }
     add(session.status.displayName())
     if (session.linkedActivityId != null) add(linkedLabel)
 }.joinToString(" · ")
 
 /** `"5:30 /km"` from seconds per kilometre. */
-fun formatPaceSecPerKm(secPerKm: Int): String = "%d:%02d /km".format(secPerKm / 60, secPerKm % 60)
+fun formatPaceSecPerKm(secPerKm: Int): String = "${secPerKm / 60}:${(secPerKm % 60).zeroPad(2)} /km"
 
 /** The target-zone chip of §4.1/§4.2's plan-UI rows ("Z2 · 134–147 bpm"); renders nothing when the
  * session type has no zone target or the zone model has not resolved yet. */

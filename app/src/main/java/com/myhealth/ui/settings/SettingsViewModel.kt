@@ -2,6 +2,7 @@ package com.myhealth.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.domain.engine.bike.BikeDefaults
 import com.myhealth.domain.engine.bike.FtpEstimate
 import com.myhealth.domain.engine.bike.FtpEstimator
@@ -26,8 +27,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /** How many `POWER_20MIN` rows the FTP hint considers (mirrors `GoalsViewModel`, P12.4). */
 private const val FTP_HINT_CANDIDATES = 50
@@ -40,7 +41,7 @@ class SettingsViewModel(
     private val rideBestRepo: RideBestRepository,
     private val activityRepo: ActivityRepository,
     private val syncScheduler: SyncScheduler,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
     private val orphanCleanupMessage = MutableStateFlow<UiMessage?>(null)
@@ -48,18 +49,18 @@ class SettingsViewModel(
     /** One-shot result of [removeOrphanedImportData], resolved and shown by the screen's snackbar. */
     val message: StateFlow<UiMessage?> = orphanCleanupMessage.asStateFlow()
 
-    private fun today(): LocalDate = LocalDate.now(clock)
+    private fun today(): LocalDate = clock.today()
 
     /** The FTP estimate ignoring any manual override (P12.4 "UI." — the override field's hint). */
     private val ftpEstimate: Flow<FtpEstimate?> = combine(
         rideBestRepo.observeByKind(RideBestKind.POWER_20MIN, FTP_HINT_CANDIDATES),
-        activityRepo.observeRange(today().toEpochDay() - BikeDefaults.FTP_WINDOW_DAYS, today().toEpochDay()),
+        activityRepo.observeRange(today().toEpochDays() - BikeDefaults.FTP_WINDOW_DAYS, today().toEpochDays()),
     ) { twentyMinuteBests, rides ->
         FtpEstimator.estimateFromSummaries(
             manualWatts = null,
             powerBests = twentyMinuteBests,
             rides = rides,
-            todayDay = today().toEpochDay(),
+            todayDay = today().toEpochDays(),
         )
     }
 

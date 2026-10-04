@@ -2,6 +2,7 @@ package com.myhealth.ui.zones
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.domain.engine.load.HrBounds
 import com.myhealth.domain.engine.load.HrZoneModel
 import com.myhealth.domain.engine.load.PolarisationSplit
@@ -28,8 +29,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /**
  * Backs [ZonesScreen] (PLAN §4.2 "Zones & paces", P14.6): the athlete's [HrZoneModel], the
@@ -55,10 +56,10 @@ class ZonesViewModel(
     private val runningBestRepo: RunningBestRepository,
     private val healthRepo: HealthRepository,
     private val settingsRepo: SettingsRepository,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
-    private fun today(): Long = LocalDate.now(clock).toEpochDay()
+    private fun today(): Long = clock.today().toEpochDays()
 
     val state: StateFlow<ZonesUiState> = combine(
         profileRepo.observeProfile(),

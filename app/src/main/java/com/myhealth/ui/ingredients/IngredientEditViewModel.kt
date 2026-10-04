@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Clock
+import com.myhealth.data.time.PlatformClock
 
 /**
  * Backs [IngredientEditScreen] (PLAN §4.2 Ingredient edit, P4.3, P4.9/P4.10).
@@ -31,7 +31,7 @@ class IngredientEditViewModel(
     private val id: Long,
     private val barcode: String?,
     private val ingredientRepo: IngredientRepository,
-    private val clock: Clock,
+    private val clock: PlatformClock,
     private val draftStore: DraftStore,
     private val offLookup: OffLookup,
 ) : ViewModel() {

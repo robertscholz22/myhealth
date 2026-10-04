@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.myhealth.resources.*
+import com.myhealth.ui.common.formatResourceString
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -46,7 +47,7 @@ import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.resolve
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /** Type-dependent goal form (PLAN §4.2 "Goal edit", P6.1). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -272,7 +273,7 @@ private fun TypeFields(
                         if (option.eventId == -1L) {
                             option.title
                         } else {
-                            String.format(raceOptionFormat, option.title, LocalDate.ofEpochDay(option.day).toString())
+                            formatResourceString(raceOptionFormat, arrayOf(option.title, LocalDate.fromEpochDays(option.day).toString()))
                         }
                     },
                     onSelect = { option -> onLinkRace(option.takeIf { it.eventId != -1L }) },

@@ -2,6 +2,9 @@ package com.myhealth.ui.load
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.minuteOfDay
+import com.myhealth.data.time.timeZone
+import com.myhealth.data.time.today
 import com.myhealth.domain.engine.load.RecoveryEngine
 import com.myhealth.domain.engine.load.RecoveryInput
 import com.myhealth.domain.engine.strength.MuscleLoadEngine
@@ -29,10 +32,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
-import java.time.Clock
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
+import com.myhealth.data.time.PlatformClock
+import kotlin.time.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 
 private const val RECOVERY_LOOKBACK_DAYS = 30L
 private const val BEDTIME_HISTORY_DAYS = 14L
@@ -67,12 +70,12 @@ class LoadViewModel(
     private val activityRepo: ActivityRepository,
     private val planRepo: PlanRepository,
     private val strengthRepo: StrengthRepository,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
     private val range = MutableStateFlow(LoadRange.D28)
 
-    private fun today(): Long = LocalDate.now(clock).toEpochDay()
+    private fun today(): Long = clock.today().toEpochDays()
 
     private val series = range.flatMapLatest { r ->
         loadRepo.observeRange(today() - r.days + 1, today())
@@ -84,7 +87,7 @@ class LoadViewModel(
         healthRepo.observeRange(today() - RECOVERY_LOOKBACK_DAYS, today()),
         healthRepo.observeSleepRange(today() - BEDTIME_HISTORY_DAYS, today()),
     ) { latest, profile, health, sleep ->
-        recoveryStateFor(latest, profile, health, sleep, today(), clock.zone)
+        recoveryStateFor(latest, profile, health, sleep, today(), clock.timeZone)
     }
 
     private val muscleLoad = combine(
@@ -154,7 +157,7 @@ private fun recoveryStateFor(
     health: List<DailyHealthSummary>,
     sleep: List<SleepRecord>,
     today: Long,
-    zone: ZoneId,
+    zone: TimeZone,
 ): RecoveryState? {
     if (profile == null) return null
     val day = latest?.day ?: today
@@ -180,5 +183,5 @@ private fun recoveryStateFor(
     return RecoveryEngine.compute(input)
 }
 
-private fun minuteOfDay(atMillis: Long, zone: ZoneId): Int =
-    Instant.ofEpochMilli(atMillis).atZone(zone).toLocalTime().toSecondOfDay() / 60
+private fun minuteOfDay(atMillis: Long, zone: TimeZone): Int =
+    minuteOfDay(atMillis, zone)

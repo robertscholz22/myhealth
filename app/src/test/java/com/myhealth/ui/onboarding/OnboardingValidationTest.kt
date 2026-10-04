@@ -2,8 +2,11 @@ package com.myhealth.ui.onboarding
 
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.domain.model.Sex
+import com.myhealth.domain.util.plusDays
 import org.junit.Test
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
+import kotlinx.datetime.DateTimeUnit
 
 /**
  * Unit tests for the pure `validate(draft)` function (PLAN P1.10). [TODAY] is fixed so birth-date
@@ -11,12 +14,12 @@ import java.time.LocalDate
  */
 class OnboardingValidationTest {
 
-    private val TODAY = LocalDate.of(2026, 9, 12)
+    private val TODAY = LocalDate(2026, 9, 12)
 
     private val validDraft = OnboardingDraft(
         displayName = "Robert",
         sex = Sex.MALE,
-        birthDay = LocalDate.of(1990, 1, 1),
+        birthDay = LocalDate(1990, 1, 1),
         heightCm = 180.0,
         weightKg = 78.0,
         goalWeightKg = 75.0,
@@ -53,14 +56,14 @@ class OnboardingValidationTest {
 
     @Test
     fun birth_date_less_than_ten_years_ago_is_invalid() {
-        val errors = validate(validDraft.copy(birthDay = TODAY.minusYears(5)), TODAY)
+        val errors = validate(validDraft.copy(birthDay = TODAY.minus(5, DateTimeUnit.YEAR)), TODAY)
 
         assertThat(errors).containsKey(OnboardingField.BIRTH_DATE)
     }
 
     @Test
     fun birth_date_exactly_ten_years_ago_is_valid() {
-        val errors = validate(validDraft.copy(birthDay = TODAY.minusYears(10)), TODAY)
+        val errors = validate(validDraft.copy(birthDay = TODAY.minus(10, DateTimeUnit.YEAR)), TODAY)
 
         assertThat(errors).doesNotContainKey(OnboardingField.BIRTH_DATE)
     }

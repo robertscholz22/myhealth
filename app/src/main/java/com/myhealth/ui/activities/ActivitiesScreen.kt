@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.myhealth.resources.*
+import com.myhealth.ui.common.mathRound
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -42,11 +43,11 @@ import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SourceBadgeRow
 import com.myhealth.ui.common.SportIcon
 import com.myhealth.ui.common.displayName
+import com.myhealth.ui.common.usText
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import kotlin.time.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 @Composable
 fun ActivitiesScreen(onOpenDetail: (Long) -> Unit, modifier: Modifier = Modifier) {
@@ -181,11 +182,11 @@ private fun activityRowStatsLine(activity: ActivitySummary): String = buildList 
     activity.trimp?.let { add("TRIMP ${fmtInt(it.roundToDisplayInt())}") }
 }.joinToString(" · ")
 
-private fun Double.roundToDisplayInt(): Int = Math.round(this).toInt()
+private fun Double.roundToDisplayInt(): Int = mathRound(this).toInt()
 
 private fun formatStartAt(startAtMillis: Long): String =
-    Instant.ofEpochMilli(startAtMillis).atZone(ZoneId.systemDefault())
-        .format(DateTimeFormatter.ofPattern("MMM d, HH:mm", Locale.US))
+    Instant.fromEpochMilliseconds(startAtMillis).toLocalDateTime(TimeZone.currentSystemDefault())
+        .usText("MMM d, HH:mm")
 
 @Preview(showBackground = true, name = "Populated")
 @Composable

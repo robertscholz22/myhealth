@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Clock
+import com.myhealth.data.time.PlatformClock
 
 private const val PICKER_LIMIT = 50
 private const val SEARCH_DEBOUNCE_MS = 250L
@@ -37,7 +37,7 @@ class MealTemplateEditViewModel(
     private val id: Long,
     private val mealRepo: MealRepository,
     private val ingredientRepo: IngredientRepository,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(

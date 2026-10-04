@@ -38,11 +38,12 @@ import com.myhealth.di.rememberVm
 import com.myhealth.ui.common.DatePickerField
 import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
+import com.myhealth.ui.common.usText
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import kotlin.time.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 private const val HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata"
 
@@ -231,8 +232,8 @@ private fun BackfillSection(
         )
         DatePickerField(
             label = stringResource(Res.string.integrations_backfill_from_label),
-            value = LocalDate.ofEpochDay(startDay),
-            onValueChange = { onStartDayChange(it.toEpochDay()) },
+            value = LocalDate.fromEpochDays(startDay),
+            onValueChange = { onStartDayChange(it.toEpochDays()) },
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -242,15 +243,15 @@ private fun BackfillSection(
             if (isRunning) CircularProgressIndicator(modifier = Modifier.size(24.dp))
         }
         val progressText = completeDay?.let {
-            stringResource(Res.string.integrations_backfill_progress_format, LocalDate.ofEpochDay(it).toString())
+            stringResource(Res.string.integrations_backfill_progress_format, LocalDate.fromEpochDays(it).toString())
         } ?: stringResource(Res.string.integrations_backfill_none_yet)
         Text(progressText, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
 private fun formatInstant(millis: Long): String =
-    Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault())
-        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+    Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.currentSystemDefault())
+        .usText("yyyy-MM-dd HH:mm")
 
 private fun openPlayStore(context: Context) {
     val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$HEALTH_CONNECT_PACKAGE"))
@@ -285,8 +286,8 @@ private fun IntegrationsContentAvailablePreview() {
                     SyncChannelRow("hc.exercise", "Workouts", lastSuccessAtMillis = 0L, lastError = null),
                     SyncChannelRow("hc.body", "Body measurements", lastSuccessAtMillis = null, lastError = "storage: disk full"),
                 ),
-                backfillStartDay = LocalDate.of(2025, 9, 12).toEpochDay(),
-                backfillCompleteDay = LocalDate.of(2026, 1, 1).toEpochDay(),
+                backfillStartDay = LocalDate(2025, 9, 12).toEpochDays(),
+                backfillCompleteDay = LocalDate(2026, 1, 1).toEpochDays(),
             ),
             onGrantPermissions = {},
             onOpenPlayStore = {},

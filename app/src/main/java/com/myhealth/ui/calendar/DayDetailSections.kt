@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.myhealth.resources.*
+import com.myhealth.ui.common.mathRound
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -211,7 +212,7 @@ internal fun ActivitiesSection(activities: List<ActivitySummary>, onOpenActivity
                             formatDuration(activity.durationSec),
                             formatDistanceKm(activity.distanceMeters),
                             activity.avgHr?.let { "$it bpm" },
-                            activity.trimp?.let { stringResource(Res.string.daydetail_activity_trimp, Math.round(it)) },
+                            activity.trimp?.let { stringResource(Res.string.daydetail_activity_trimp, mathRound(it)) },
                         ).joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

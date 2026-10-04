@@ -2,6 +2,7 @@ package com.myhealth.ui.today
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.domain.engine.calendar.EventActivityLinker
 import com.myhealth.domain.engine.calendar.LinkProposal
 import com.myhealth.domain.engine.strength.MuscleLoadEngine
@@ -52,8 +53,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.myhealth.ui.nutrition.intakeOf
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /** The four fields combined ahead of [TodaySyncData] — kept typed rather than an `Array<Any?>`
  * cast, since `combine` only has typed overloads up to five flows (PLAN §1.4). */
@@ -125,10 +126,10 @@ class TodayViewModel(
     private val suggestionRepo: SuggestionRepository,
     private val cycleRepo: CycleRepository,
     private val strengthRepo: StrengthRepository,
-    clock: Clock,
+    clock: PlatformClock,
 ) : ViewModel() {
 
-    private val today = LocalDate.now(clock).toEpochDay()
+    private val today = clock.today().toEpochDays()
 
     init {
         viewModelScope.launch { nutritionRepo.ensureTarget(today) }

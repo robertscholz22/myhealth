@@ -53,13 +53,13 @@ import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.SourceBadgeRow
 import com.myhealth.ui.common.displayName
 import com.myhealth.ui.common.fmtDecimal
+import com.myhealth.ui.common.usText
 import com.myhealth.ui.theme.MyHealthTheme
 import com.myhealth.ui.zones.zoneNameRes
 import com.myhealth.ui.zones.zoneRowLabel
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import kotlin.time.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -376,5 +376,5 @@ private fun DeleteConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
 }
 
 private fun formatStartAtFull(startAtMillis: Long): String =
-    Instant.ofEpochMilli(startAtMillis).atZone(ZoneId.systemDefault())
-        .format(DateTimeFormatter.ofPattern("EEEE, MMM d yyyy · HH:mm", Locale.US))
+    Instant.fromEpochMilliseconds(startAtMillis).toLocalDateTime(TimeZone.currentSystemDefault())
+        .usText("EEEE, MMM d yyyy · HH:mm")

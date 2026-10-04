@@ -51,6 +51,11 @@ object UsDateText {
     private val DAYS = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 }
 
+/** `format(DateTimeFormatter.ofPattern(pattern, Locale.US))`. */
+fun LocalDate.usText(pattern: String): String = UsDateText.format(this, pattern)
+
+fun LocalDateTime.usText(pattern: String): String = UsDateText.format(this, pattern)
+
 /** `String.format("%0${width}d", this)`: the sign counts towards the width, as in Java. */
 fun Int.zeroPad(width: Int): String {
     if (this >= 0) return toString().padStart(width, '0')

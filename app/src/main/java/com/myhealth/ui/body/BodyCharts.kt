@@ -3,12 +3,11 @@ package com.myhealth.ui.body
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.model.DailyHealthSummary
 import com.myhealth.domain.model.SleepRecord
-import com.myhealth.domain.util.toLocalDate
+import com.myhealth.domain.util.epochDayDate
 import com.myhealth.ui.common.charts.ChartPoint
 import com.myhealth.ui.common.charts.dailySeries
 import com.myhealth.ui.common.charts.movingAverage
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.myhealth.ui.common.usText
 
 /** The smoothing window of the dashed weight trend line (PLAN P8.3). */
 const val WEIGHT_AVERAGE_WINDOW: Int = 7
@@ -16,8 +15,8 @@ const val WEIGHT_AVERAGE_WINDOW: Int = 7
 /** Nights shown by the sleep-duration bars. */
 const val SLEEP_BAR_NIGHTS: Int = 14
 
-private val DAY_LABEL: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.US)
-private val NIGHT_LABEL: DateTimeFormatter = DateTimeFormatter.ofPattern("d/M", Locale.US)
+private const val DAY_LABEL = "d MMM"
+private const val NIGHT_LABEL = "d/M"
 
 /**
  * One point per day in `[fromDay, toDay]`, `x` = epoch day. Days with several readings average
@@ -67,12 +66,12 @@ fun sleepHoursBars(records: List<SleepRecord>, fromNight: Long, toNight: Long): 
 fun dayAxisLabels(fromDay: Long, toDay: Long): List<String> {
     if (toDay < fromDay) return emptyList()
     val middle = fromDay + (toDay - fromDay) / 2
-    return listOf(fromDay, middle, toDay).distinct().map { it.toLocalDate().format(DAY_LABEL) }
+    return listOf(fromDay, middle, toDay).distinct().map { it.epochDayDate().usText(DAY_LABEL) }
 }
 
 /** Shorter labels for the 14-night sleep bars, which have far less room per slot. */
 fun nightAxisLabels(fromNight: Long, toNight: Long): List<String> {
     if (toNight < fromNight) return emptyList()
     val middle = fromNight + (toNight - fromNight) / 2
-    return listOf(fromNight, middle, toNight).distinct().map { it.toLocalDate().format(NIGHT_LABEL) }
+    return listOf(fromNight, middle, toNight).distinct().map { it.epochDayDate().usText(NIGHT_LABEL) }
 }

@@ -26,8 +26,8 @@ import com.myhealth.domain.model.NutritionTarget
 import com.myhealth.domain.model.WaterLog
 import com.myhealth.ui.common.NumberField
 import com.myhealth.ui.common.SectionCard
+import com.myhealth.ui.common.zeroPad
 import com.myhealth.ui.theme.MyHealthTheme
-import java.util.Locale
 
 /** The quick-add amounts of the water card (PLAN P4.13). */
 val WATER_QUICK_AMOUNTS_ML: List<Int> = listOf(250, 500)
@@ -140,7 +140,7 @@ fun waterRemainingLabel(target: NutritionTarget?, totalMl: Int): String {
 /** "07:20" from a `water_log` row's minute of day, or "—" when it has none. */
 fun waterEntryTime(log: WaterLog): String {
     val minute = log.atMinuteOfDay ?: return "—"
-    return String.format(Locale.US, "%02d:%02d", minute / 60, minute % 60)
+    return "${(minute / 60).zeroPad(2)}:${(minute % 60).zeroPad(2)}"
 }
 
 @Preview(showBackground = true, widthDp = 380)

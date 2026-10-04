@@ -6,12 +6,11 @@ import com.myhealth.domain.model.CycleEntry
 import com.myhealth.domain.model.CycleForecast
 import com.myhealth.domain.model.CyclePhase
 import com.myhealth.domain.model.CycleStatus
-import com.myhealth.domain.util.toLocalDate
+import com.myhealth.domain.util.epochDayDate
 import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.myhealth.ui.common.usText
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.StringResource
 
 /** ViewModel state for [CycleScreen] (PLAN §5 P11.3): the current status card, the "Log period
@@ -66,7 +65,7 @@ fun historyRows(entries: List<CycleEntry>): List<CycleHistoryRow> {
 fun dayOfCycleLabel(dayOfCycle: Int, cycleLengthDays: Int): String =
     "Day $dayOfCycle of ~$cycleLengthDays"
 
-private val CYCLE_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.US)
+private const val CYCLE_DATE_FORMAT = "d MMM"
 
 /**
  * "Next period in 5 days (20 Sep)", "Period expected today (20 Sep)" on the day itself, or
@@ -74,7 +73,7 @@ private val CYCLE_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("
  * unit-tested in `CycleUiStateTest`.
  */
 fun countdownLabel(today: Long, nextPeriodStart: Long): String {
-    val date = nextPeriodStart.toLocalDate().format(CYCLE_DATE_FORMAT)
+    val date = nextPeriodStart.epochDayDate().usText(CYCLE_DATE_FORMAT)
     val days = nextPeriodStart - today
     return when {
         days > 0 -> "Next period in $days ${dayWord(days)} ($date)"
@@ -84,12 +83,12 @@ fun countdownLabel(today: Long, nextPeriodStart: Long): String {
 }
 
 /** "Ovulation ~20 Sep". Pure — unit-tested in `CycleUiStateTest`. */
-fun ovulationLabel(ovulationDay: Long): String = "Ovulation ~${ovulationDay.toLocalDate().format(CYCLE_DATE_FORMAT)}"
+fun ovulationLabel(ovulationDay: Long): String = "Ovulation ~${ovulationDay.epochDayDate().usText(CYCLE_DATE_FORMAT)}"
 
 /** "Fertile window 15 Sep – 21 Sep". Pure — unit-tested in `CycleUiStateTest`. */
 fun fertileWindowLabel(fertileWindow: ClosedRange<Long>): String {
-    val start = fertileWindow.start.toLocalDate().format(CYCLE_DATE_FORMAT)
-    val end = fertileWindow.endInclusive.toLocalDate().format(CYCLE_DATE_FORMAT)
+    val start = fertileWindow.start.epochDayDate().usText(CYCLE_DATE_FORMAT)
+    val end = fertileWindow.endInclusive.epochDayDate().usText(CYCLE_DATE_FORMAT)
     return "Fertile window $start – $end"
 }
 
@@ -118,7 +117,7 @@ fun confidenceLine(confidence: CycleConfidence, entries: List<CycleEntry>): UiMe
 
 /** A fully populated state used by the screen's `@Preview`s. */
 internal fun previewCycleUiState(): CycleUiState {
-    val today = LocalDate.of(2026, 9, 14).toEpochDay()
+    val today = LocalDate(2026, 9, 14).toEpochDays()
     val start = today - 3
     return CycleUiState(
         isLoading = false,

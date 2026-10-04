@@ -44,6 +44,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.myhealth.data.time.systemClock
+import com.myhealth.data.time.today
+import com.myhealth.domain.util.utcDateOfMillis
+import com.myhealth.domain.util.utcMidnightMillis
 import com.myhealth.resources.*
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.semantics.Role
@@ -60,9 +64,9 @@ import com.myhealth.ui.common.body.BodyFigure
 import com.myhealth.ui.common.body.highlightFor
 import com.myhealth.ui.common.resolve
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneOffset
+import kotlin.time.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 
 /** Built-in and user workouts, kind chip + exercise count + estimated minutes + a figure thumbnail
  * (PLAN §4.2 "Strength workouts", P14.7, More entry). */
@@ -259,14 +263,14 @@ private fun WorkoutOverflowMenu(onDuplicate: () -> Unit, onDelete: () -> Unit, o
 @Composable
 private fun PlanForDayDialog(onConfirm: (LocalDate) -> Unit, onDismiss: () -> Unit) {
     val state = rememberDatePickerState(
-        initialSelectedDateMillis = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+        initialSelectedDateMillis = systemClock().today().utcMidnightMillis(),
     )
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(onClick = {
                 state.selectedDateMillis?.let { millis ->
-                    onConfirm(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
+                    onConfirm(utcDateOfMillis(millis))
                 }
             }) { Text(stringResource(Res.string.common_ok)) }
         },

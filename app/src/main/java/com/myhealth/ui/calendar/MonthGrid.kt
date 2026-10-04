@@ -14,7 +14,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.myhealth.domain.model.CalendarDay
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /**
  * The month grid of P3.4: ISO weeks, Monday first, always 6 rows × 7 cells so the height never
@@ -37,7 +37,7 @@ fun MonthGrid(
         cells.chunked(7).forEach { week ->
             Row(modifier = Modifier.fillMaxWidth()) {
                 week.forEach { date ->
-                    val epochDay = date.toEpochDay()
+                    val epochDay = date.toEpochDays()
                     DayCell(
                         date = date,
                         day = days[epochDay],
@@ -75,8 +75,8 @@ internal fun WeekdayHeader(modifier: Modifier = Modifier) {
 @Preview(showBackground = true, widthDp = 380)
 @Composable
 private fun MonthGridPreview() {
-    val anchor = LocalDate.of(2026, 9, 1)
-    val populated = LocalDate.of(2026, 9, 14).toEpochDay()
+    val anchor = LocalDate(2026, 9, 1)
+    val populated = LocalDate(2026, 9, 14).toEpochDays()
     MyHealthTheme(dynamicColor = false) {
         MonthGrid(
             anchor = anchor,

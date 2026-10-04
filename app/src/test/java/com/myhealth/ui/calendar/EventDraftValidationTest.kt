@@ -2,9 +2,10 @@ package com.myhealth.ui.calendar
 
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.domain.model.EventType
+import com.myhealth.domain.util.minusDays
 import org.junit.Test
-import java.time.DayOfWeek
-import java.time.LocalDate
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
 
 /** Unit tests for the pure `validate(draft)` function (PLAN P3.6). */
 class EventDraftValidationTest {
@@ -12,7 +13,7 @@ class EventDraftValidationTest {
     private val validDraft = EventDraft(
         type = EventType.APPOINTMENT,
         title = "Physio",
-        date = LocalDate.of(2026, 9, 14),
+        date = LocalDate(2026, 9, 14),
     )
 
     @Test

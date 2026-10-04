@@ -23,8 +23,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.myhealth.domain.model.CalendarDay
+import com.myhealth.ui.common.mathRound
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /** The four marker dots a day cell can show, in render order (PLAN §4.2 Calendar). */
 enum class DayMarker { EVENT, PLANNED, ACTIVITY, MEAL }
@@ -70,7 +71,7 @@ fun kcalDeltaBar(day: CalendarDay?): KcalDeltaBar? {
     return KcalDeltaBar(
         level = level,
         fraction = (intakeKcal / targetKcal).coerceIn(0.0, 1.0).toFloat(),
-        deltaKcal = Math.round(delta).toInt(),
+        deltaKcal = mathRound(delta).toInt(),
     )
 }
 
@@ -139,7 +140,7 @@ fun DayCell(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = date.dayOfMonth.toString(),
+                text = date.day.toString(),
                 style = MaterialTheme.typography.bodySmall,
                 color = numberColor,
             )
@@ -210,8 +211,8 @@ private fun DayCellPreview() {
     MyHealthTheme(dynamicColor = false) {
         Row {
             DayCell(
-                date = LocalDate.of(2026, 9, 14),
-                day = previewCalendarDay(LocalDate.of(2026, 9, 14).toEpochDay()),
+                date = LocalDate(2026, 9, 14),
+                day = previewCalendarDay(LocalDate(2026, 9, 14).toEpochDays()),
                 isInAnchorMonth = true,
                 isToday = true,
                 isSelected = false,
@@ -219,7 +220,7 @@ private fun DayCellPreview() {
                 modifier = Modifier.size(48.dp, 56.dp),
             )
             DayCell(
-                date = LocalDate.of(2026, 9, 15),
+                date = LocalDate(2026, 9, 15),
                 day = null,
                 isInAnchorMonth = false,
                 isToday = false,

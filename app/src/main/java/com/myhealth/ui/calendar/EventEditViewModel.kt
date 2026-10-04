@@ -2,10 +2,11 @@ package com.myhealth.ui.calendar
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.domain.model.EventOverride
 import com.myhealth.domain.repository.CalendarRepository
 import com.myhealth.domain.util.Outcome
-import com.myhealth.domain.util.toLocalDate
+import com.myhealth.domain.util.epochDayDate
 import com.myhealth.resources.*
 import com.myhealth.sync.SyncScheduler
 import com.myhealth.ui.common.UiMessage
@@ -14,8 +15,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /**
  * Backs [EventEditScreen] (PLAN §4.2 Event edit, P3.6): create/edit a [com.myhealth.domain.model.CalendarEvent]
@@ -31,7 +32,7 @@ class EventEditViewModel(
     private val epochDay: Long,
     private val calendarRepo: CalendarRepository,
     private val syncScheduler: SyncScheduler,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(EventEditUiState(isLoading = id != -1L, isNew = id == -1L))
@@ -39,12 +40,12 @@ class EventEditViewModel(
 
     init {
         if (id == -1L) {
-            val seedDay = if (epochDay >= 0) epochDay.toLocalDate() else LocalDate.now(clock)
+            val seedDay = if (epochDay >= 0) epochDay.epochDayDate() else clock.today()
             _state.update {
                 it.copy(
                     isLoading = false,
                     draft = newEventDraft(seedDay),
-                    occurrenceDay = seedDay.toEpochDay(),
+                    occurrenceDay = seedDay.toEpochDays(),
                 )
             }
         } else {

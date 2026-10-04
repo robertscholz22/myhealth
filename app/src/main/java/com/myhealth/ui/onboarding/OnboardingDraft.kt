@@ -1,11 +1,15 @@
 package com.myhealth.ui.onboarding
 
+import com.myhealth.data.time.systemClock
+import com.myhealth.data.time.today
 import com.myhealth.domain.model.NeatLevel
 import com.myhealth.domain.model.Sex
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
-import java.time.LocalDate
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
 
 /**
  * POLISH-11: a skipped "sessions / week" step must not leave every sport capped at 0 (which starves
@@ -63,7 +67,7 @@ private const val MIN_ONBOARDING_AGE_YEARS = 10L
  * [today] defaults to the real "now" but is overridable so birth-date rules are deterministic
  * in tests (§1.3: engines/pure functions take the clock/date as a parameter).
  */
-fun validate(draft: OnboardingDraft, today: LocalDate = LocalDate.now()): Map<OnboardingField, UiMessage> {
+fun validate(draft: OnboardingDraft, today: LocalDate = systemClock().today()): Map<OnboardingField, UiMessage> {
     val errors = mutableMapOf<OnboardingField, UiMessage>()
 
     if (draft.displayName.isBlank()) {
@@ -71,11 +75,11 @@ fun validate(draft: OnboardingDraft, today: LocalDate = LocalDate.now()): Map<On
     }
 
     val birthDay = draft.birthDay
-    val earliestAllowedBirthDay = today.minusYears(MIN_ONBOARDING_AGE_YEARS)
+    val earliestAllowedBirthDay = today.minus(MIN_ONBOARDING_AGE_YEARS, DateTimeUnit.YEAR)
     when {
         birthDay == null -> errors[OnboardingField.BIRTH_DATE] = UiMessage.of(Res.string.onboarding_birth_date_required)
-        birthDay.isAfter(today) -> errors[OnboardingField.BIRTH_DATE] = UiMessage.of(Res.string.onboarding_birth_date_future)
-        birthDay.isAfter(earliestAllowedBirthDay) ->
+        birthDay > today -> errors[OnboardingField.BIRTH_DATE] = UiMessage.of(Res.string.onboarding_birth_date_future)
+        birthDay > earliestAllowedBirthDay ->
             errors[OnboardingField.BIRTH_DATE] =
                 UiMessage.of(Res.string.onboarding_birth_date_min_age, MIN_ONBOARDING_AGE_YEARS)
     }

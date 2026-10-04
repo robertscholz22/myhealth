@@ -5,9 +5,8 @@ import com.myhealth.domain.engine.bike.FtpSource
 import com.myhealth.domain.engine.goal.GoalProgress
 import com.myhealth.domain.model.RideBest
 import com.myhealth.domain.model.RideBestKind
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.myhealth.ui.common.usText
+import kotlinx.datetime.LocalDate
 
 /**
  * ViewModel state for [BikeScreen] (PLAN "UI.", P12.4): the FTP card, and the power/time PR
@@ -64,4 +63,4 @@ fun FtpSource.label(): String = when (this) {
 
 /** `d MMM`, e.g. "2 Sep" — the FTP card's and PR table's basis date. */
 fun formatShortDate(epochDay: Long): String =
-    LocalDate.ofEpochDay(epochDay).format(DateTimeFormatter.ofPattern("d MMM", Locale.US))
+    LocalDate.fromEpochDays(epochDay).usText("d MMM")

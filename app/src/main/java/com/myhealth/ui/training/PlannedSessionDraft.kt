@@ -7,8 +7,8 @@ import com.myhealth.domain.model.PlannedStatus
 import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /** Field identity for [validatePlannedSession] errors (mirrors `GoalDraft`/`EventDraft`, P3.4). */
 enum class PlannedSessionField { DURATION, DISTANCE, PACE, DAY }
@@ -24,7 +24,7 @@ enum class PlannedSessionField { DURATION, DISTANCE, PACE, DAY }
 data class PlannedSessionDraft(
     val id: Long = 0L,
     val planId: Long? = null,
-    val day: LocalDate = LocalDate.EPOCH,
+    val day: LocalDate = LocalDate.fromEpochDays(0),
     val startMinuteOfDay: Int? = null,
     val sportType: SportType = SportType.RUN_OUTDOOR,
     val sessionType: SessionType = SessionType.EASY_RUN,
@@ -144,12 +144,12 @@ val PLANNABLE_SPORT_TYPES: List<SportType> = listOf(
 )
 
 /** The domain session the editor saves. */
-fun PlannedSessionDraft.toPlannedSession(clock: Clock): PlannedSession {
+fun PlannedSessionDraft.toPlannedSession(clock: PlatformClock): PlannedSession {
     val now = clock.millis()
     return PlannedSession(
         id = id,
         planId = planId,
-        day = day.toEpochDay(),
+        day = day.toEpochDays(),
         startMinuteOfDay = startMinuteOfDay,
         sportType = sportType,
         sessionType = sessionType,
@@ -182,7 +182,7 @@ fun SessionType.isMobility(): Boolean = this == SessionType.MOBILITY
 fun plannedSessionDraftOf(session: PlannedSession): PlannedSessionDraft = PlannedSessionDraft(
     id = session.id,
     planId = session.planId,
-    day = LocalDate.ofEpochDay(session.day),
+    day = LocalDate.fromEpochDays(session.day),
     startMinuteOfDay = session.startMinuteOfDay,
     sportType = session.sportType,
     sessionType = session.sessionType,

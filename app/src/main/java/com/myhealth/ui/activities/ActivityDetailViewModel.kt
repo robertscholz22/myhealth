@@ -1,6 +1,6 @@
 package com.myhealth.ui.activities
 
-import kotlinx.datetime.toKotlinLocalDate
+import com.myhealth.data.time.today
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myhealth.domain.engine.activity.ActivityFields
@@ -32,8 +32,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /** Fallback resting/max HR (§3.2.1) when the profile has neither a manual value nor an estimate. */
 private const val FALLBACK_HR_REST = 60
@@ -70,7 +70,7 @@ class ActivityDetailViewModel(
     private val calendarRepo: CalendarRepository,
     private val rideBestRepo: RideBestRepository,
     private val syncScheduler: SyncScheduler,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
     private val showDeleteConfirm = MutableStateFlow(false)
@@ -96,21 +96,21 @@ class ActivityDetailViewModel(
      * 90-day window `FtpEstimator`/`BikeDefaults.FTP_WINDOW_DAYS` reads. */
     private val ftp: Flow<FtpEstimate?> = combine(
         rideBestRepo.observeByKind(RideBestKind.POWER_20MIN, FTP_BEST_CANDIDATES),
-        activityRepo.observeRange(today().toEpochDay() - BikeDefaults.FTP_WINDOW_DAYS, today().toEpochDay()),
+        activityRepo.observeRange(today().toEpochDays() - BikeDefaults.FTP_WINDOW_DAYS, today().toEpochDays()),
         profileRepo.observeProfile(),
     ) { twentyMinuteBests, rides, profile ->
         FtpEstimator.estimateFromSummaries(
             manualWatts = profile?.ftpWattsManual,
             powerBests = twentyMinuteBests,
             rides = rides,
-            todayDay = today().toEpochDay(),
+            todayDay = today().toEpochDays(),
         )
     }
 
-    private fun today(): LocalDate = LocalDate.now(clock)
+    private fun today(): LocalDate = clock.today()
 
     val state: StateFlow<ActivityDetailUiState> = combine(core, linking, ftp) { c, l, ftpEstimate ->
-        val model = hrZoneModelFor(c.profile, LocalDate.now(clock))
+        val model = hrZoneModelFor(c.profile, clock.today())
         val linkedSession = l.day?.planned?.firstOrNull { it.linkedActivityId == activityId }
         ActivityDetailUiState(
             isLoading = false,
@@ -205,7 +205,7 @@ class ActivityDetailViewModel(
  */
 private fun hrZoneModelFor(profile: Profile?, today: LocalDate): HrZoneModel {
     val hrRest = profile?.restingHrManual ?: FALLBACK_HR_REST
-    val hrMax = profile?.let { it.estimatedMaxHr(it.ageYears(today.toKotlinLocalDate())) } ?: FALLBACK_HR_MAX
+    val hrMax = profile?.let { it.estimatedMaxHr(it.ageYears(today)) } ?: FALLBACK_HR_MAX
     val bounds = HrBounds(hrMax = hrMax, hrRest = hrRest)
     return if (profile != null) {
         HrZoneModel.resolve(profile, bounds)

@@ -2,6 +2,7 @@ package com.myhealth.ui.training
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.domain.engine.load.HrZoneModel
 import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.SportType
@@ -25,8 +26,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /** ViewModel state for [PlannedSessionEditScreen]. */
 data class PlannedSessionEditUiState(
@@ -66,7 +67,7 @@ class PlannedSessionEditViewModel(
     private val planRepo: PlanRepository,
     private val profileRepo: ProfileRepository,
     private val strengthRepo: StrengthRepository,
-    private val clock: Clock,
+    private val clock: PlatformClock,
     private val healthRepo: HealthRepository? = null,
     private val activityRepo: ActivityRepository? = null,
 ) : ViewModel() {
@@ -80,11 +81,11 @@ class PlannedSessionEditViewModel(
         load()
         profileRepo.observeProfile()
             .map { profile ->
-                val today = LocalDate.now(clock)
+                val today = clock.today()
                 val health = healthRepo
                 val activities = activityRepo
                 if (health != null && activities != null) {
-                    resolveHrZoneModel(profile, today.toEpochDay(), health, activities)
+                    resolveHrZoneModel(profile, today.toEpochDays(), health, activities)
                 } else {
                     lightweightHrZoneModel(profile, today)
                 }
@@ -99,14 +100,14 @@ class PlannedSessionEditViewModel(
     private fun load() {
         viewModelScope.launch {
             if (id == NEW_ID) {
-                val day = if (epochDay >= 0L) epochDay else LocalDate.now(clock).toEpochDay()
+                val day = if (epochDay >= 0L) epochDay else clock.today().toEpochDays()
                 val planId = planRepo.observeActivePlan().first()?.id
                 _state.update {
                     it.copy(
                         isLoading = false,
                         draft = PlannedSessionDraft(
                             planId = planId,
-                            day = LocalDate.ofEpochDay(day),
+                            day = LocalDate.fromEpochDays(day),
                         ),
                     )
                 }

@@ -1,5 +1,6 @@
 package com.myhealth.ui.common.body
 
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -95,6 +96,6 @@ internal object BodyShapes {
         return 0.5f * ((2f * b) + (-a + c) * t + (2f * a - 5f * b + 4f * c - d) * t2 + (-a + 3f * b - 3f * c + d) * t3)
     }
 
-    private const val TWO_PI = (2.0 * Math.PI).toFloat()
-    private const val DEG_TO_RAD = (Math.PI / 180.0).toFloat()
+    private const val TWO_PI = (2.0 * PI).toFloat()
+    private const val DEG_TO_RAD = (PI / 180.0).toFloat()
 }

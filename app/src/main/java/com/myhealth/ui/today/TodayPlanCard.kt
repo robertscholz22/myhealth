@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.myhealth.resources.*
+import com.myhealth.ui.common.mathRound
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -143,7 +144,7 @@ private fun SuggestedRow(session: SuggestedSession, hrZoneModel: HrZoneModel?, o
                     stringResource(Res.string.today_suggested_label),
                     session.targetDurationMin?.let { "$it min" },
                     session.targetPaceSecPerKm?.let { formatPaceSecPerKm(it) },
-                    "${Math.round(session.estimatedTrimp)} AU",
+                    "${mathRound(session.estimatedTrimp)} AU",
                 ).joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

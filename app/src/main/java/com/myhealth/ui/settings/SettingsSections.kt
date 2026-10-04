@@ -22,6 +22,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.myhealth.data.time.systemClock
+import com.myhealth.data.time.today
 import com.myhealth.resources.*
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.unit.dp
@@ -37,7 +39,7 @@ import com.myhealth.ui.strength.label
 import com.myhealth.ui.zones.ZoneTable
 import com.myhealth.ui.zones.lightweightHrZoneModel
 import com.myhealth.ui.zones.schemeLabel
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /** The non-profile [AppSettings] keys (§4.2 Settings / P1.8). */
 @Composable
@@ -205,7 +207,7 @@ fun hrZoneBoundsStatus(slots: List<Int?>): HrZoneBoundsStatus {
 internal fun HeartRateZonesSection(profile: Profile, onProfileChange: (Profile) -> Unit) {
     val slots = parseHrZoneBoundsSlots(profile.hrZoneBoundsJson)
     val status = hrZoneBoundsStatus(slots)
-    val previewModel = lightweightHrZoneModel(profile, LocalDate.now())
+    val previewModel = lightweightHrZoneModel(profile, systemClock().today())
 
     SectionCard(title = stringResource(Res.string.settings_section_hr_zones)) {
         previewModel?.let {

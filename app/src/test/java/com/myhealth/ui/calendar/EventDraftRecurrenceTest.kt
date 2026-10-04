@@ -2,13 +2,13 @@ package com.myhealth.ui.calendar
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
-import java.time.DayOfWeek
-import java.time.LocalDate
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
 
 /** Unit tests for `EventDraft.recurrenceRule()` (PLAN P3.6): the 3 named cases. */
 class EventDraftRecurrenceTest {
 
-    private val base = EventDraft(title = "Training", date = LocalDate.of(2026, 9, 14))
+    private val base = EventDraft(title = "Training", date = LocalDate(2026, 9, 14))
 
     @Test
     fun weekly_two_days_produces_a_rule_string() {
@@ -29,14 +29,14 @@ class EventDraftRecurrenceTest {
             recurrenceMode = RecurrenceMode.WEEKLY,
             recurrenceWeekdays = setOf(DayOfWeek.MONDAY),
             recurrenceIntervalWeeks = 2,
-            recurrenceUntil = LocalDate.of(2026, 12, 31),
+            recurrenceUntil = LocalDate(2026, 12, 31),
         )
 
         val rule = draft.recurrenceRule()
 
         assertThat(rule).isNotNull()
         assertThat(rule!!.interval).isEqualTo(2)
-        assertThat(rule.untilDay).isEqualTo(LocalDate.of(2026, 12, 31).toEpochDay())
+        assertThat(rule.untilDay).isEqualTo(LocalDate(2026, 12, 31).toEpochDays())
         assertThat(rule.format()).isEqualTo("FREQ=WEEKLY;BYDAY=MO;INTERVAL=2;UNTIL=20261231")
     }
 

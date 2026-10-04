@@ -24,17 +24,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.myhealth.resources.*
+import com.myhealth.ui.common.formatDeviceDateTime
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.myhealth.domain.model.ImportKind
 import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.SectionCard
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import kotlinx.datetime.TimeZone
 
-private val TIMESTAMP_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm")
+private const val TIMESTAMP_FORMAT = "d MMM yyyy, HH:mm"
 
 /**
  * The `import_record` history (§4.2 "Import"). Every row carries an overflow menu whose only
@@ -159,4 +158,4 @@ private fun ImportKind.label(): String = when (this) {
 }
 
 private fun formatTimestamp(millis: Long): String =
-    TIMESTAMP_FORMAT.format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
+    formatDeviceDateTime(millis, TimeZone.currentSystemDefault(), TIMESTAMP_FORMAT)

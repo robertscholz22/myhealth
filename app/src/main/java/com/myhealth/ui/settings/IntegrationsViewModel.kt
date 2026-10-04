@@ -2,9 +2,11 @@ package com.myhealth.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.di.HcIntegration
 import com.myhealth.domain.repository.SyncKeys
 import com.myhealth.domain.repository.SyncStateRepository
+import com.myhealth.domain.util.minusDays
 import com.myhealth.sync.SyncScheduler
 import com.myhealth.sync.SyncWorkState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,8 +15,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /** The four Health Connect channels shown in the Integrations screen's sync list (§4.2). */
 private val HC_SYNC_KEYS = listOf(
@@ -36,12 +38,12 @@ class IntegrationsViewModel(
     private val hc: HcIntegration,
     private val syncStateRepo: SyncStateRepository,
     private val syncScheduler: SyncScheduler,
-    clock: Clock,
+    clock: PlatformClock,
 ) : ViewModel() {
 
     private val granted = MutableStateFlow<Set<String>>(emptySet())
     private val backfillStartDay =
-        MutableStateFlow(LocalDate.now(clock).minusDays(DEFAULT_BACKFILL_DAYS).toEpochDay())
+        MutableStateFlow(clock.today().minusDays(DEFAULT_BACKFILL_DAYS).toEpochDays())
 
     init {
         refreshGranted()

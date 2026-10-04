@@ -44,10 +44,9 @@ import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.decodePreferredSports
 import com.myhealth.ui.common.encodePreferredSports
 import com.myhealth.ui.common.resolve
+import com.myhealth.ui.common.usText
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import kotlinx.datetime.LocalDate
 
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier) {
@@ -143,8 +142,8 @@ private fun ProfileSection(profile: Profile, onProfileChange: (Profile) -> Unit)
         )
         DatePickerField(
             label = stringResource(Res.string.settings_profile_birth_date_label),
-            value = LocalDate.ofEpochDay(profile.birthDay),
-            onValueChange = { onProfileChange(profile.copy(birthDay = it.toEpochDay())) },
+            value = LocalDate.fromEpochDays(profile.birthDay),
+            onValueChange = { onProfileChange(profile.copy(birthDay = it.toEpochDays())) },
         )
         NumberField(
             label = stringResource(Res.string.settings_profile_height_label),
@@ -283,7 +282,7 @@ private fun ftpOverrideHint(ftp: FtpEstimate?): String? {
 }
 
 private fun formatFtpBasisDate(epochDay: Long): String =
-    LocalDate.ofEpochDay(epochDay).format(DateTimeFormatter.ofPattern("d MMM", Locale.US))
+    LocalDate.fromEpochDays(epochDay).usText("d MMM")
 
 @Preview(showBackground = true)
 @Composable
@@ -295,7 +294,7 @@ private fun SettingsContentPreview() {
                 profile = Profile(
                     displayName = "Robert",
                     sex = Sex.MALE,
-                    birthDay = LocalDate.of(1990, 1, 1).toEpochDay(),
+                    birthDay = LocalDate(1990, 1, 1).toEpochDays(),
                     heightCm = 180.0,
                     createdAtMillis = 0,
                     updatedAtMillis = 0,

@@ -26,6 +26,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import com.myhealth.domain.util.firstOfMonth
+import com.myhealth.domain.util.plusMonths
+import com.myhealth.domain.util.plusWeeks
 import com.myhealth.resources.*
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -33,8 +36,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myhealth.di.rememberVmWithSavedState
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.LocalDate
-import java.time.temporal.ChronoUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.daysUntil
+import kotlinx.datetime.monthsUntil
 
 /** Enough pages for ±50 years of months / ±11 years of weeks around the page the screen opens on. */
 private const val PAGE_COUNT = 1201
@@ -150,10 +154,10 @@ private fun MonthPager(
     onAnchorChange: (Long) -> Unit,
     onDayClick: (Long) -> Unit,
 ) {
-    val base = remember { state.anchorDate.withDayOfMonth(1) }
+    val base = remember { state.anchorDate.firstOfMonth() }
     val pagerState = rememberPagerState(initialPage = PAGE_CENTER) { PAGE_COUNT }
     val anchorPage = remember(state.anchorDay) {
-        PAGE_CENTER + ChronoUnit.MONTHS.between(base, state.anchorDate.withDayOfMonth(1)).toInt()
+        PAGE_CENTER + base.monthsUntil(state.anchorDate.firstOfMonth())
     }
 
     LaunchedEffect(anchorPage) {
@@ -163,7 +167,7 @@ private fun MonthPager(
     }
     LaunchedEffect(pagerState, base) {
         snapshotFlow { pagerState.settledPage }.collect { page ->
-            onAnchorChange(base.plusMonths((page - PAGE_CENTER).toLong()).toEpochDay())
+            onAnchorChange(base.plusMonths((page - PAGE_CENTER).toLong()).toEpochDays())
         }
     }
 
@@ -190,7 +194,7 @@ private fun WeekPager(
     val base = remember { weekDays(state.anchorDate).first() }
     val pagerState = rememberPagerState(initialPage = PAGE_CENTER) { PAGE_COUNT }
     val anchorPage = remember(state.anchorDay) {
-        PAGE_CENTER + ChronoUnit.WEEKS.between(base, weekDays(state.anchorDate).first()).toInt()
+        PAGE_CENTER + base.daysUntil(weekDays(state.anchorDate).first()) / 7
     }
 
     LaunchedEffect(anchorPage) {
@@ -200,7 +204,7 @@ private fun WeekPager(
     }
     LaunchedEffect(pagerState, base) {
         snapshotFlow { pagerState.settledPage }.collect { page ->
-            onAnchorChange(base.plusWeeks((page - PAGE_CENTER).toLong()).toEpochDay())
+            onAnchorChange(base.plusWeeks((page - PAGE_CENTER).toLong()).toEpochDays())
         }
     }
 
@@ -227,7 +231,7 @@ private fun WeekPager(
 }
 
 private fun previewState(mode: CalendarMode): CalendarUiState {
-    val today = LocalDate.of(2026, 9, 14).toEpochDay()
+    val today = LocalDate(2026, 9, 14).toEpochDays()
     return CalendarUiState(
         mode = mode,
         anchorDay = today,

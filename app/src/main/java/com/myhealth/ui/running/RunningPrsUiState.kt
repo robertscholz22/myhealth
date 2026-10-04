@@ -6,7 +6,7 @@ import com.myhealth.domain.model.RunningBest
 import com.myhealth.ui.common.charts.ChartSeries
 import com.myhealth.ui.common.fmtDecimal
 import com.myhealth.ui.common.fmtKm
-import java.util.Locale
+import com.myhealth.ui.common.zeroPad
 import kotlin.math.abs
 
 /** ViewModel state for [RunningPrsScreen] (PLAN §4.2 Running PRs, P5.7). */
@@ -30,16 +30,16 @@ fun formatRaceTime(totalSeconds: Int): String {
     val m = (seconds % 3600) / 60
     val s = seconds % 60
     return if (h > 0) {
-        "%d:%02d:%02d".format(Locale.US, h, m, s)
+        "$h:${m.zeroPad(2)}:${s.zeroPad(2)}"
     } else {
-        "%d:%02d".format(Locale.US, m, s)
+        "$m:${s.zeroPad(2)}"
     }
 }
 
 /** `m:ss /km` pace label. */
 fun formatPaceSecPerKm(secPerKm: Int): String {
     val clamped = secPerKm.coerceAtLeast(0)
-    return "%d:%02d /km".format(Locale.US, clamped / 60, clamped % 60)
+    return "${clamped / 60}:${(clamped % 60).zeroPad(2)} /km"
 }
 
 /** The label a PR-table row or dropdown shows for one of the eight canonical distances (§3.4);

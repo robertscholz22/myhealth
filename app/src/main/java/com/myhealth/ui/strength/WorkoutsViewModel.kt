@@ -20,8 +20,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /**
  * Backs [WorkoutsScreen] (PLAN §4.2 "Strength workouts", P14.7, More entry): the built-in +
@@ -32,7 +32,7 @@ class WorkoutsViewModel(
     private val strengthRepo: StrengthRepository,
     private val planRepo: PlanRepository,
     private val seed: suspend () -> Int,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
     private val action = MutableStateFlow(WorkoutsAction())
@@ -114,7 +114,7 @@ class WorkoutsViewModel(
             val session = PlannedSession(
                 id = 0L,
                 planId = planId,
-                day = day.toEpochDay(),
+                day = day.toEpochDays(),
                 startMinuteOfDay = null,
                 sportType = SportType.STRENGTH,
                 sessionType = sessionTypeFor(workout.kind),

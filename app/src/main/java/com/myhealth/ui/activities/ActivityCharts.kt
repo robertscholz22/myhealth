@@ -3,7 +3,7 @@ package com.myhealth.ui.activities
 import com.myhealth.domain.model.ActivityStreams
 import com.myhealth.ui.common.charts.ChartPoint
 import com.myhealth.ui.common.charts.downsample
-import java.util.Locale
+import com.myhealth.ui.common.zeroPad
 
 /** Seconds of elapsed time a pace sample is averaged over — raw 1 Hz pace is unreadable noise. */
 const val PACE_SPAN_SEC: Int = 10
@@ -102,8 +102,8 @@ fun minuteAxisLabels(streams: ActivityStreams?): List<String> {
 /** `m:ss` for a pace label, used by the inverted pace axis. */
 fun formatPaceAxis(secPerKm: Double): String {
     val total = kotlin.math.floor(secPerKm + 0.5).toInt().coerceAtLeast(0)
-    return "%d:%02d".format(Locale.US, total / 60, total % 60)
+    return "${total / 60}:${(total % 60).zeroPad(2)}"
 }
 
 private fun formatElapsed(offsetSec: Int): String =
-    "%d:%02d".format(Locale.US, offsetSec / 60, offsetSec % 60)
+    "${offsetSec / 60}:${(offsetSec % 60).zeroPad(2)}"

@@ -1,13 +1,12 @@
 package com.myhealth.ui.running
 
 import com.myhealth.domain.model.RunningBest
-import com.myhealth.domain.util.toLocalDate
+import com.myhealth.domain.util.epochDayDate
 import com.myhealth.ui.common.charts.ChartPoint
 import com.myhealth.ui.common.charts.ChartSeries
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.myhealth.ui.common.usText
 
-private val DAY_LABEL: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM yyyy", Locale.US)
+private const val DAY_LABEL = "MMM yyyy"
 
 /** A single effort is a dot, not a progression — a distance needs this many to earn a line. */
 const val MIN_EFFORTS_FOR_PROGRESSION: Int = 2
@@ -38,5 +37,5 @@ fun prAxisLabels(series: List<ChartSeries>): List<String> {
     val from = days.min().toLong()
     val to = days.max().toLong()
     val middle = from + (to - from) / 2
-    return listOf(from, middle, to).distinct().map { it.toLocalDate().format(DAY_LABEL) }
+    return listOf(from, middle, to).distinct().map { it.epochDayDate().usText(DAY_LABEL) }
 }

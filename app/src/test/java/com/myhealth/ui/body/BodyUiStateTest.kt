@@ -4,7 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.BodyMeasurement
 import org.junit.Test
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /** Unit tests for the pure goal-delta and sorting/filtering helpers behind [BodyScreen] (PLAN P1.11). */
 class BodyUiStateTest {
@@ -59,8 +59,8 @@ class BodyUiStateTest {
 
     @Test
     fun withinLastDays_keeps_only_measurements_in_the_window() {
-        val today = LocalDate.of(2026, 9, 12)
-        val todayEpochDay = today.toEpochDay()
+        val today = LocalDate(2026, 9, 12)
+        val todayEpochDay = today.toEpochDays()
         val inWindow = measurement(id = 1, measuredAtMillis = 0, day = todayEpochDay - 89)
         val onBoundary = measurement(id = 2, measuredAtMillis = 0, day = todayEpochDay - 90)
         val today_ = measurement(id = 3, measuredAtMillis = 0, day = todayEpochDay)
@@ -72,8 +72,8 @@ class BodyUiStateTest {
 
     @Test
     fun withinLastDays_excludes_measurements_before_the_window() {
-        val today = LocalDate.of(2026, 9, 12)
-        val todayEpochDay = today.toEpochDay()
+        val today = LocalDate(2026, 9, 12)
+        val todayEpochDay = today.toEpochDays()
         val tooOld = measurement(id = 1, measuredAtMillis = 0, day = todayEpochDay - 91)
 
         val result = listOf(tooOld).withinLastDays(90, today)

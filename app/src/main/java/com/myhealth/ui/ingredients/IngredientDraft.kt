@@ -9,7 +9,7 @@ import com.myhealth.ui.camera.ScanDraft
 import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.common.stringResource
 import com.myhealth.ui.common.fmtDecimal
-import java.time.Clock
+import com.myhealth.data.time.PlatformClock
 
 /** Field identity for [validate] errors (mirrors `EventField`'s pattern, §1.4/P3.6). */
 enum class IngredientField { NAME, BASIS, PIECE_GRAMS, KCAL, PROTEIN, CARBS, FAT, SUGAR, SAT_FAT, FIBER, SALT }
@@ -123,7 +123,7 @@ fun validate(draft: IngredientDraft): Map<IngredientField, UiMessage> {
  * one. `createdAtMillis`/`updatedAtMillis` are re-derived by `IngredientRepository.upsert` for a
  * new row (`id == 0L`) — `updatedAtMillis` is always stamped there.
  */
-fun IngredientDraft.toIngredient(clock: Clock): Ingredient = Ingredient(
+fun IngredientDraft.toIngredient(clock: PlatformClock): Ingredient = Ingredient(
     id = id,
     name = name.trim(),
     brand = brand.trim().ifBlank { null },

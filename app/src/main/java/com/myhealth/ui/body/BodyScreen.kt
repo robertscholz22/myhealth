@@ -52,8 +52,7 @@ import com.myhealth.ui.common.charts.dropGaps
 import com.myhealth.ui.common.fmtDecimal
 import com.myhealth.ui.common.fmtKg
 import com.myhealth.ui.theme.MyHealthTheme
-import com.myhealth.domain.util.toLocalDate
-import java.time.format.DateTimeFormatter
+import com.myhealth.domain.util.epochDayDate
 
 @Composable
 fun BodyScreen(modifier: Modifier = Modifier) {
@@ -248,7 +247,7 @@ private fun MeasurementRow(measurement: BodyMeasurement, onDelete: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Column {
-            Text(measurement.day.toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE))
+            Text(measurement.day.epochDayDate().toString())
             Text(
                 text = measurementValueLabel(measurement.weightKg, measurement.bodyFatPercent),
                 style = MaterialTheme.typography.bodyMedium,

@@ -4,6 +4,7 @@ import com.myhealth.domain.model.BodyFace
 import com.myhealth.domain.model.BodyPose
 import com.myhealth.domain.model.BodySegmentId
 import com.myhealth.domain.model.MuscleGroup
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -175,4 +176,4 @@ internal fun rootFrame(pose: BodyPose): BodyFrame {
     )
 }
 
-private const val DEG_TO_RAD = (Math.PI / 180.0).toFloat()
+private const val DEG_TO_RAD = (PI / 180.0).toFloat()

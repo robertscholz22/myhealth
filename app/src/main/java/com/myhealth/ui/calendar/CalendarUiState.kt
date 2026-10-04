@@ -1,8 +1,8 @@
 package com.myhealth.ui.calendar
 
 import com.myhealth.domain.model.CalendarDay
-import com.myhealth.domain.util.toLocalDate
-import java.time.LocalDate
+import com.myhealth.domain.util.epochDayDate
+import kotlinx.datetime.LocalDate
 
 /** Month grid or week strip + agenda (PLAN §4.2 Calendar). */
 enum class CalendarMode { MONTH, WEEK }
@@ -27,9 +27,9 @@ data class CalendarUiState(
     val cycleMarkers: Map<Long, CycleDayMarker> = emptyMap(),
     val isLoading: Boolean = true,
 ) {
-    val anchorDate: LocalDate get() = anchorDay.toLocalDate()
+    val anchorDate: LocalDate get() = anchorDay.epochDayDate()
 
-    val selectedDate: LocalDate get() = selectedDay.toLocalDate()
+    val selectedDate: LocalDate get() = selectedDay.epochDayDate()
 
     /** Top-bar title: "September 2026" in month mode, "W38 · 14 Sep – 20 Sep" in week mode. */
     val title: String

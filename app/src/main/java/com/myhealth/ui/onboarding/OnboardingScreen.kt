@@ -44,7 +44,7 @@ import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.common.resolve
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 @Composable
 fun OnboardingScreen(onDone: () -> Unit, modifier: Modifier = Modifier) {
@@ -316,7 +316,7 @@ private fun OnboardingContentBodyPreview() {
         OnboardingContent(
             state = OnboardingUiState(
                 step = OnboardingStep.BODY,
-                draft = OnboardingDraft(displayName = "Robert", birthDay = LocalDate.of(1990, 1, 1)),
+                draft = OnboardingDraft(displayName = "Robert", birthDay = LocalDate(1990, 1, 1)),
             ),
             onDraftChange = {},
             onBack = {},
@@ -334,7 +334,7 @@ private fun OnboardingContentPreferencesPreview() {
                 step = OnboardingStep.PREFERENCES,
                 draft = OnboardingDraft(
                     displayName = "Robert",
-                    birthDay = LocalDate.of(1990, 1, 1),
+                    birthDay = LocalDate(1990, 1, 1),
                     heightCm = 180.0,
                     weightKg = 78.0,
                 ),

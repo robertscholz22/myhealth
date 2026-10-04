@@ -21,6 +21,9 @@ expect val PlatformClock.timeZone: TimeZone
 fun PlatformClock.todayEpochDay(): Long =
     Instant.fromEpochMilliseconds(millis()).toLocalDateTime(timeZone).date.toEpochDays()
 
+/** Today's date in the clock's zone (`LocalDate.now(clock)`). */
+fun PlatformClock.today(): kotlinx.datetime.LocalDate = kotlinx.datetime.LocalDate.fromEpochDays(todayEpochDay())
+
 /** Minute of day (0…1439) of [atMillis] in [zone]. */
 fun minuteOfDay(atMillis: Long, zone: TimeZone): Int {
     val time = Instant.fromEpochMilliseconds(atMillis).toLocalDateTime(zone).time

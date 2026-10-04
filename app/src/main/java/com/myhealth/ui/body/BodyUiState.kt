@@ -3,11 +3,12 @@ package com.myhealth.ui.body
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.model.DailyHealthSummary
 import com.myhealth.domain.model.SleepRecord
-import com.myhealth.domain.util.toLocalDate
+import com.myhealth.domain.util.epochDayDate
+import com.myhealth.domain.util.minusDays
 import com.myhealth.resources.*
 import com.myhealth.ui.common.fmtKg
 import com.myhealth.ui.common.fmtPercent
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.StringResource
 
 /** The three history windows the Body charts offer (PLAN P8.3). */
@@ -58,8 +59,8 @@ fun List<BodyMeasurement>.sortedByRecencyDescending(): List<BodyMeasurement> =
 fun List<BodyMeasurement>.withinLastDays(days: Long, today: LocalDate): List<BodyMeasurement> {
     val earliest = today.minusDays(days - 1)
     return filter { measurement ->
-        val day = measurement.day.toLocalDate()
-        !day.isBefore(earliest) && !day.isAfter(today)
+        val day = measurement.day.epochDayDate()
+        day >= earliest && day <= today
     }
 }
 

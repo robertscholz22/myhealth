@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import com.myhealth.domain.model.EventOccurrence
 import com.myhealth.domain.model.EventType
 import com.myhealth.ui.common.SectionCard
-import java.util.Locale
 
 /**
  * "Linked event" card + its "Link to event…" picker sheet (PLAN §4.2 Activity detail, P3.7),
@@ -34,7 +33,7 @@ import java.util.Locale
 /** Title-cased `EventType` label — a small local copy of `ui/calendar`'s `labelOf`/`displayName`
  * (internal to that package, so not visible from `ui/activities`). */
 private fun EventType.label(): String =
-    name.split("_").joinToString(" ") { it.lowercase(Locale.US) }.replaceFirstChar(Char::uppercase)
+    name.split("_").joinToString(" ") { it.lowercase() }.replaceFirstChar(Char::uppercase)
 
 @Composable
 internal fun LinkedEventCard(linkedEvent: EventOccurrence?, onOpenPicker: () -> Unit, onUnlink: () -> Unit) {

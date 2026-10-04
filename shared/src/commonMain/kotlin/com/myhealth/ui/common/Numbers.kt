@@ -1,5 +1,7 @@
 package com.myhealth.ui.common
 
+import kotlin.math.roundToLong
+
 /**
  * The one number-formatting convention for the UI (POLISH-12). Before this file, some screens
  * formatted decimals with `"%.1f".format(...)` / `String.format(...)` using the *default* locale
@@ -29,6 +31,12 @@ expect fun fmtDecimal(value: Double, digits: Int): String
  * `"1,234"` under `Locale.US` and `"1.234"` under `Locale.GERMANY`.
  */
 expect fun fmtInt(value: Number): String
+
+/**
+ * `Math.round(value)`: half-up to a `Long`, `NaN` → 0 (Kotlin's `roundToLong` would throw), the
+ * infinities clamp to `Long.MIN_VALUE`/`MAX_VALUE`.
+ */
+fun mathRound(value: Double): Long = if (value.isNaN()) 0L else value.roundToLong()
 
 /** [value] in kilograms, e.g. `"77.0 kg"`. */
 fun fmtKg(value: Double, digits: Int = 1): String = "${fmtDecimal(value, digits)} kg"

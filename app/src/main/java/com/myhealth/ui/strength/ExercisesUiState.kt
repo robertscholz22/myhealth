@@ -68,7 +68,7 @@ fun MuscleGroup.label(): String = com.myhealth.ui.training.trainingLabelOf(name)
  * chip and the workout editor's kind dropdown both read this.
  */
 fun StrengthWorkoutKind.label(): String = if (isMobility) {
-    "Mobility · ${name.removePrefix("MOBILITY_").lowercase(java.util.Locale.US)}"
+    "Mobility · ${name.removePrefix("MOBILITY_").lowercase()}"
 } else {
     com.myhealth.ui.training.trainingLabelOf(name)
 }

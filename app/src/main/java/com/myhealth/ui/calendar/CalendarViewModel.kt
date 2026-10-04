@@ -3,11 +3,12 @@ package com.myhealth.ui.calendar
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.domain.engine.cycle.CycleEngine
 import com.myhealth.domain.model.CalendarDay
 import com.myhealth.domain.repository.CalendarRepository
 import com.myhealth.domain.repository.CycleRepository
-import com.myhealth.domain.util.toLocalDate
+import com.myhealth.domain.util.epochDayDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,8 +18,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 private const val KEY_ANCHOR = "calendar.anchorDay"
 private const val KEY_MODE = "calendar.mode"
@@ -37,10 +38,10 @@ class CalendarViewModel(
     calendarRepo: CalendarRepository,
     cycleRepo: CycleRepository,
     private val savedState: SavedStateHandle,
-    clock: Clock,
+    clock: PlatformClock,
 ) : ViewModel() {
 
-    private val today: Long = LocalDate.now(clock).toEpochDay()
+    private val today: Long = clock.today().toEpochDays()
 
     private val anchorDay: StateFlow<Long> = savedState.getStateFlow(KEY_ANCHOR, today)
     private val modeName: StateFlow<String> = savedState.getStateFlow(KEY_MODE, CalendarMode.MONTH.name)
@@ -105,8 +106,8 @@ class CalendarViewModel(
 
     fun selectDay(day: Long) {
         savedState[KEY_SELECTED] = day
-        val anchor = anchorDay.value.toLocalDate()
-        val selected = day.toLocalDate()
+        val anchor = anchorDay.value.epochDayDate()
+        val selected = day.epochDayDate()
         if (calendarModeOf(modeName.value) == CalendarMode.WEEK || selected.month != anchor.month) {
             savedState[KEY_ANCHOR] = day
         }

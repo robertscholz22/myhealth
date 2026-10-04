@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Clock
+import com.myhealth.data.time.PlatformClock
 
 /** ViewModel state for [WorkoutEditScreen] (PLAN §4.2 "Workout edit", P14.7). */
 data class WorkoutEditUiState(
@@ -48,7 +48,7 @@ class WorkoutEditViewModel(
     /** `AppGraph.currentBodyWeightKg` (P16.2) — what [strengthRepo]'s `prescriptionFor` estimates
      * an unlogged exercise's load from. */
     private val bodyWeightKg: suspend () -> Double,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(WorkoutEditUiState(isLoading = id != NEW_ID, isNew = id == NEW_ID))

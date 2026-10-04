@@ -5,13 +5,13 @@ import com.myhealth.domain.engine.suggest.SuggestFixtures
 import com.myhealth.domain.model.GoalStatus
 import com.myhealth.domain.model.GoalType
 import org.junit.Test
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /** The Goals screen's pure projection helpers (PLAN §4.2 "Goals", P6.1). */
 class GoalsUiStateTest {
 
-    private val today = LocalDate.of(2026, 9, 14)
-    private val todayDay = today.toEpochDay()
+    private val today = LocalDate(2026, 9, 14)
+    private val todayDay = today.toEpochDays()
 
     private fun rowsOf(vararg goals: com.myhealth.domain.model.Goal) =
         goalRows(goals.toList(), emptyList(), emptyList(), emptyList(), today)

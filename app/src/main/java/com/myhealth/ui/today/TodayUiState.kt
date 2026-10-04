@@ -16,10 +16,11 @@ import com.myhealth.domain.model.SuggestedSession
 import com.myhealth.ui.body.weightDeltaToGoalKg
 import com.myhealth.ui.common.fmtDecimal
 import com.myhealth.ui.common.fmtKg
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import com.myhealth.ui.common.usText
+import kotlin.time.Instant
+import kotlinx.datetime.TimeZone
 import kotlin.math.abs
+import kotlinx.datetime.toLocalDateTime
 
 /** ViewModel state for [TodayScreen] (PLAN §4.2 Today (Home), P2.10/P3.7). */
 data class TodayUiState(
@@ -76,15 +77,15 @@ data class TodayUiState(
 fun linkProposalKey(proposal: LinkProposal): String =
     "${proposal.eventOccurrence.eventId}|${proposal.eventOccurrence.occurrenceDay}|${proposal.activity.id}"
 
-private val LAST_SYNCED_TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+private const val LAST_SYNCED_TIME_FORMAT = "HH:mm"
 
 /**
  * "Last synced 14:05" / "Not yet synced" for the sync-status banner. Pure — unit-tested in
  * `TodayUiStateTest`.
  */
-fun lastSyncedLabel(lastSuccessAtMillis: Long?, zone: ZoneId): String {
+fun lastSyncedLabel(lastSuccessAtMillis: Long?, zone: TimeZone): String {
     if (lastSuccessAtMillis == null) return "Not yet synced"
-    val time = Instant.ofEpochMilli(lastSuccessAtMillis).atZone(zone).format(LAST_SYNCED_TIME_FORMAT)
+    val time = Instant.fromEpochMilliseconds(lastSuccessAtMillis).toLocalDateTime(zone).usText(LAST_SYNCED_TIME_FORMAT)
     return "Last synced $time"
 }
 

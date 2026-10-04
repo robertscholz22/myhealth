@@ -2,6 +2,7 @@ package com.myhealth.ui.meals
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.domain.model.MealSlot
 import com.myhealth.domain.model.MealTemplate
 import com.myhealth.domain.repository.IngredientRepository
@@ -17,8 +18,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /**
  * Backs [MealTemplatesScreen] (PLAN §4.2 Meal templates, P4.4).
@@ -30,7 +31,7 @@ import java.time.LocalDate
 class MealTemplatesViewModel(
     private val mealRepo: MealRepository,
     private val ingredientRepo: IngredientRepository,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
     private val dialog = MutableStateFlow<LogNowDialog?>(null)
@@ -93,7 +94,7 @@ class MealTemplatesViewModel(
         message.value = null
     }
 
-    private fun today(): Long = LocalDate.now(clock).toEpochDay()
+    private fun today(): Long = clock.today().toEpochDays()
 
     private data class LogNowDialog(val template: MealTemplate, val day: Long, val slot: MealSlot)
 }

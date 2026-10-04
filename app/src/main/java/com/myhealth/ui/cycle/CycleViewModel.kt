@@ -2,6 +2,7 @@ package com.myhealth.ui.cycle
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.domain.model.CycleEntry
 import com.myhealth.domain.repository.CycleRepository
 import com.myhealth.domain.util.Outcome
@@ -14,8 +15,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /**
  * Backs [CycleScreen] (PLAN §5 P11.3): the status card, "Log period start" / "Period ended" and
@@ -25,10 +26,10 @@ import java.time.LocalDate
  */
 class CycleViewModel(
     private val cycleRepo: CycleRepository,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
-    private val today: Long = LocalDate.now(clock).toEpochDay()
+    private val today: Long = clock.today().toEpochDays()
 
     /** Dialog visibility, the pending delete and the one-shot snackbar message — kept in one flow
      * so the four-flow `combine` below stays inside `kotlinx.coroutines.flow`'s typed overloads. */

@@ -56,10 +56,9 @@ import com.myhealth.ui.common.body.BodyFigure
 import com.myhealth.ui.common.body.BodyFigureLegend
 import com.myhealth.ui.common.body.BodyFigureLegendKind
 import com.myhealth.ui.common.body.highlightFor
+import com.myhealth.ui.common.usText
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import kotlinx.datetime.LocalDate
 
 /** One exercise, large figure + equipment/pattern/flags/cue + "Add to workout…" (PLAN §4.2
  * "Exercise detail", P14.7). */
@@ -233,7 +232,7 @@ private fun ProgressionCard(prescription: ExercisePrescription, card: Progressio
 }
 
 private fun formatUpdatedDay(epochDay: Long): String =
-    LocalDate.ofEpochDay(epochDay).format(DateTimeFormatter.ofPattern("d MMM", Locale.US))
+    LocalDate.fromEpochDays(epochDay).usText("d MMM")
 
 @Composable
 private fun WorkoutPickerDialog(

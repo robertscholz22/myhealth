@@ -2,6 +2,7 @@ package com.myhealth.ui.goals
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.domain.engine.bike.FtpEstimator
 import com.myhealth.domain.engine.goal.GoalProgress
 import com.myhealth.domain.model.GoalStatus
@@ -24,8 +25,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /**
  * The windows the progress engine needs: a year of weights, and 90 days of sessions — four weeks
@@ -53,12 +54,12 @@ class GoalsViewModel(
     private val activityRepo: ActivityRepository,
     private val rideBestRepo: RideBestRepository,
     private val profileRepo: ProfileRepository,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
     private val message = MutableStateFlow<UiMessage?>(null)
 
-    private fun today(): LocalDate = LocalDate.now(clock)
+    private fun today(): LocalDate = clock.today()
 
     /**
      * The cycling goals' inputs (P12.2): the ride PR table, the FTP candidates, the override, and
@@ -89,17 +90,17 @@ class GoalsViewModel(
         // P19.1: the PR table (for the all-time note) plus every effort of the recent-form window.
         combine(
             runningBestRepo.observeBestPerDistance(),
-            runningBestRepo.observeSince(today().toEpochDay() - GoalProgress.RECENT_FORM_DAYS),
+            runningBestRepo.observeSince(today().toEpochDays() - GoalProgress.RECENT_FORM_DAYS),
         ) { prs, recent -> (prs + recent).distinctBy { it.id } },
-        bodyRepo.observeRange(today().toEpochDay() - WEIGHT_WINDOW_DAYS, today().toEpochDay()),
-        activityRepo.observeRange(today().toEpochDay() - ACTIVITY_WINDOW_DAYS, today().toEpochDay()),
+        bodyRepo.observeRange(today().toEpochDays() - WEIGHT_WINDOW_DAYS, today().toEpochDays()),
+        activityRepo.observeRange(today().toEpochDays() - ACTIVITY_WINDOW_DAYS, today().toEpochDays()),
         combine(bikeInputs, message) { bike, msg -> bike to msg },
     ) { goals, bests, weights, activities, (bike, msg) ->
         val ftp = FtpEstimator.estimateFromSummaries(
             manualWatts = bike.manualFtpWatts,
             powerBests = bike.twentyMinuteBests,
             rides = activities,
-            todayDay = today().toEpochDay(),
+            todayDay = today().toEpochDays(),
         )
         val rows = goalRows(goals, bests, weights, activities, today(), bike.prPerKind, ftp)
         val active = rows.activeOnly().sortedForDisplay()

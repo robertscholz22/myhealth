@@ -48,7 +48,7 @@ import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.resolve
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /** Per-row callbacks, grouped so [GoalsContent] keeps a short signature. */
 data class GoalListActions(
@@ -230,7 +230,7 @@ private fun GoalsContentPreview() {
         id = 1L,
         type = GoalType.RACE_TIME,
         title = "Sub-20 5k",
-        targetDay = LocalDate.of(2026, 11, 15).toEpochDay(),
+        targetDay = LocalDate(2026, 11, 15).toEpochDays(),
         targetDistanceMeters = 5000.0,
         targetTimeSec = 1200,
         targetWeightKg = null,

@@ -35,12 +35,11 @@ import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.SportIcon
 import com.myhealth.ui.common.displayName
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.LocalDate
-import java.util.Locale
+import kotlinx.datetime.LocalDate
 
 /** Title-cased enum label, e.g. `SOCCER_MATCH` -> "Soccer match". */
 internal fun labelOf(name: String): String =
-    name.split("_").joinToString(" ") { it.lowercase(Locale.US) }.replaceFirstChar(Char::uppercase)
+    name.split("_").joinToString(" ") { it.lowercase() }.replaceFirstChar(Char::uppercase)
 
 internal fun EventType.displayName(): String = labelOf(name)
 
@@ -71,7 +70,7 @@ fun AgendaList(
 
     LazyColumn(modifier = modifier.fillMaxWidth(), contentPadding = PaddingValues(bottom = 88.dp)) {
         item(key = "agenda-header") {
-            AgendaHeader(date = date, onOpenDay = { onOpenDay(date.toEpochDay()) })
+            AgendaHeader(date = date, onOpenDay = { onOpenDay(date.toEpochDays()) })
         }
         if (isEmpty) {
             item(key = "agenda-empty") {
@@ -181,11 +180,11 @@ private fun AgendaRow(lead: String, title: String, subtitle: String) {
 @Preview(showBackground = true, widthDp = 380)
 @Composable
 private fun AgendaListPreview() {
-    val date = LocalDate.of(2026, 9, 14)
+    val date = LocalDate(2026, 9, 14)
     MyHealthTheme(dynamicColor = false) {
         AgendaList(
             date = date,
-            day = previewCalendarDay(date.toEpochDay()),
+            day = previewCalendarDay(date.toEpochDays()),
             onOpenDay = {},
             onOpenActivity = {},
         )
@@ -196,6 +195,6 @@ private fun AgendaListPreview() {
 @Composable
 private fun AgendaListEmptyPreview() {
     MyHealthTheme(dynamicColor = false) {
-        AgendaList(date = LocalDate.of(2026, 9, 15), day = null, onOpenDay = {}, onOpenActivity = {})
+        AgendaList(date = LocalDate(2026, 9, 15), day = null, onOpenDay = {}, onOpenActivity = {})
     }
 }

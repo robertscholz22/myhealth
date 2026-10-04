@@ -49,7 +49,7 @@ import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.common.displayName
 import com.myhealth.ui.common.resolve
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /**
  * Create/edit screen for a [com.myhealth.domain.model.CalendarEvent] (PLAN §4.2 Event edit,
@@ -311,7 +311,7 @@ private fun DeleteEventDialog(
 private fun EventEditBodyNewPreview() {
     MyHealthTheme(dynamicColor = false) {
         EventEditBody(
-            state = EventEditUiState(isLoading = false, isNew = true, draft = newEventDraft(LocalDate.of(2026, 9, 14))),
+            state = EventEditUiState(isLoading = false, isNew = true, draft = newEventDraft(LocalDate(2026, 9, 14))),
             onDraftChange = {},
             onSave = {},
         )
@@ -325,7 +325,7 @@ private fun EventEditBodyEditPreview() {
         id = 5,
         type = EventType.RACE,
         title = "City half marathon",
-        date = LocalDate.of(2026, 10, 4),
+        date = LocalDate(2026, 10, 4),
         hasTime = true,
         startMinuteOfDay = 9 * 60,
         durationMin = 120,

@@ -2,6 +2,7 @@ package com.myhealth.ui.goals
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.domain.model.EventType
 import com.myhealth.domain.model.GoalStatus
 import com.myhealth.domain.repository.CalendarRepository
@@ -14,8 +15,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /** How far ahead the editor looks for a `RACE` event to link a race goal to. */
 private const val RACE_LOOKAHEAD_DAYS = 400L
@@ -47,7 +48,7 @@ class GoalEditViewModel(
     private val id: Long,
     private val goalRepo: GoalRepository,
     private val calendarRepo: CalendarRepository,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(GoalEditUiState(isLoading = id != -1L, isNew = id == -1L))
@@ -75,7 +76,7 @@ class GoalEditViewModel(
 
     private fun loadRaces() {
         viewModelScope.launch {
-            val today = LocalDate.now(clock).toEpochDay()
+            val today = clock.today().toEpochDays()
             runCatching {
                 calendarRepo.observeOccurrences(today, today + RACE_LOOKAHEAD_DAYS)
             }.getOrNull()?.collect { occurrences ->
@@ -99,7 +100,7 @@ class GoalEditViewModel(
     fun linkRace(option: RaceOption?) = update { draft ->
         draft.copy(
             linkedEventId = option?.eventId,
-            targetDay = option?.let { LocalDate.ofEpochDay(it.day) } ?: draft.targetDay,
+            targetDay = option?.let { LocalDate.fromEpochDays(it.day) } ?: draft.targetDay,
         )
     }
 

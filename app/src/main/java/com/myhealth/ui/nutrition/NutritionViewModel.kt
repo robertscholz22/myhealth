@@ -3,6 +3,8 @@ package com.myhealth.ui.nutrition
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.minuteOfDay
+import com.myhealth.data.time.timeZone
 import com.myhealth.domain.model.MealLog
 import com.myhealth.domain.model.MealLogItem
 import com.myhealth.domain.model.NutritionTarget
@@ -25,8 +27,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalTime
+import com.myhealth.data.time.PlatformClock
 
 private const val KEY_DAY = "nutrition.day"
 
@@ -48,7 +49,7 @@ class NutritionViewModel(
     private val mealRepo: MealRepository,
     private val nutritionRepo: NutritionRepository,
     private val ingredientRepo: IngredientRepository,
-    private val clock: Clock,
+    private val clock: PlatformClock,
     private val savedState: SavedStateHandle,
 ) : ViewModel() {
 
@@ -195,7 +196,7 @@ class NutritionViewModel(
     fun addWater(ml: Int) {
         val day = dayFlow.value
         viewModelScope.launch {
-            val minuteOfDay = LocalTime.now(clock).toSecondOfDay() / 60
+            val minuteOfDay = minuteOfDay(clock.millis(), clock.timeZone)
             if (nutritionRepo.addWater(day, ml, minuteOfDay) is Outcome.Err) {
                 message.value = UiMessage.of(Res.string.water_error_log_drink)
             }

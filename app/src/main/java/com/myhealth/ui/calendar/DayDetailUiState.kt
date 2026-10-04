@@ -23,15 +23,16 @@ import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.SleepRecord
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
-import com.myhealth.domain.util.toLocalDate
+import com.myhealth.domain.util.epochDayDate
 import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.common.displayName
 import com.myhealth.ui.common.fmtDecimal
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.util.Locale
+import com.myhealth.ui.common.zeroPad
+import kotlin.time.Instant
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /** ViewModel state for [DayDetailScreen] (PLAN §4.2 Day detail, P3.5). */
 data class DayDetailUiState(
@@ -51,7 +52,7 @@ data class DayDetailUiState(
     /** This day's cycle status, or `null` while tracking is off or nothing is logged yet. */
     val cycleStatus: CycleStatus? = null,
 ) {
-    val date: LocalDate get() = day.toLocalDate()
+    val date: LocalDate get() = day.epochDayDate()
 
     val title: String get() = fullDateTitle(date)
 
@@ -106,13 +107,13 @@ private fun progressRow(label: String, current: Double, target: Double, unit: St
 fun linkedActivityLabel(
     activityId: Long,
     activities: List<ActivitySummary>,
-    zone: ZoneId = ZoneId.systemDefault(),
+    zone: TimeZone = TimeZone.currentSystemDefault(),
 ): UiMessage {
     val activity = activities.firstOrNull { it.id == activityId }
         ?: return UiMessage.of(Res.string.daydetail_linked_activity_fallback, activityId)
     val name = activity.title?.trim()?.ifEmpty { null } ?: activity.sportType.displayName()
-    val time = Instant.ofEpochMilli(activity.startAtMillis).atZone(zone).toLocalTime()
-    val clock = "%02d:%02d".format(Locale.US, time.hour, time.minute)
+    val time = Instant.fromEpochMilliseconds(activity.startAtMillis).toLocalDateTime(zone).time
+    val clock = "${time.hour.zeroPad(2)}:${time.minute.zeroPad(2)}"
     return UiMessage.of(Res.string.daydetail_linked_activity_label, name, clock, shortDuration(activity.durationSec))
 }
 
@@ -123,7 +124,7 @@ fun shortDuration(seconds: Int): String {
 }
 
 /** "7h 42m" from a sleep duration in minutes. */
-fun formatSleepDuration(totalMin: Int): String = "${totalMin / 60}h %02dm".format(Locale.US, totalMin % 60)
+fun formatSleepDuration(totalMin: Int): String = "${totalMin / 60}h ${(totalMin % 60).zeroPad(2)}m"
 
 /**
  * A fully populated day used by the `@Preview`s of the calendar screens (P3.4/P3.5 acceptance).

@@ -7,10 +7,10 @@ import com.myhealth.domain.model.MealSlot
 import com.myhealth.domain.model.NutritionTarget
 import com.myhealth.domain.model.QuantityUnit
 import com.myhealth.domain.model.WaterLog
-import com.myhealth.domain.util.toLocalDate
+import com.myhealth.domain.util.epochDayDate
 import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.common.fmtDecimal
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /**
  * Message shown in place of the target header when the day has no snapshot. With a profile in
@@ -58,7 +58,7 @@ data class NutritionUiState(
     val waterDialogOpen: Boolean = false,
     val message: UiMessage? = null,
 ) {
-    val date: LocalDate get() = day.toLocalDate()
+    val date: LocalDate get() = day.epochDayDate()
 
     val hasAnyMeal: Boolean get() = sections.any { !it.isEmpty }
 }

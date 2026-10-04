@@ -20,7 +20,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import com.myhealth.data.time.systemClock
+import com.myhealth.data.time.today
 import com.myhealth.resources.*
+import com.myhealth.ui.common.formatDeviceDateTime
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -33,12 +36,10 @@ import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.resolve
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 
-private val BACKUP_TIMESTAMP: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm")
+private const val BACKUP_TIMESTAMP = "d MMM yyyy, HH:mm"
 
 /**
  * Backup & restore (PLAN §4.2 "Backup", P8.4): export the whole database into a JSON document the
@@ -59,7 +60,7 @@ fun BackupScreen(modifier: Modifier = Modifier) {
 
     BackupContent(
         state = state,
-        onExport = { exportLauncher.launch(defaultBackupFileName(LocalDate.now())) },
+        onExport = { exportLauncher.launch(defaultBackupFileName(systemClock().today())) },
         onImport = { importLauncher.launch(arrayOf(BACKUP_MIME, "*/*")) },
         onMode = vm::setImportMode,
         onDismissError = vm::dismissError,
@@ -187,9 +188,9 @@ internal fun resultHeadline(result: BackupResult): String {
 
 /** Where the file came from: schema version, app version and the moment it was exported. */
 @Composable
-internal fun backupOriginLine(summary: BackupSummary, zone: ZoneId = ZoneId.systemDefault()): String {
+internal fun backupOriginLine(summary: BackupSummary, zone: TimeZone = TimeZone.currentSystemDefault()): String {
     val stamp = if (summary.exportedAtMillis > 0L) {
-        BACKUP_TIMESTAMP.format(Instant.ofEpochMilli(summary.exportedAtMillis).atZone(zone))
+        formatDeviceDateTime(summary.exportedAtMillis, zone, BACKUP_TIMESTAMP)
     } else {
         stringResource(Res.string.backup_unknown_date)
     }

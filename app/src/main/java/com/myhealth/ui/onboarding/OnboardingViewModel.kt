@@ -2,6 +2,7 @@ package com.myhealth.ui.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.model.Profile
@@ -21,8 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /**
  * Drives the 3-step onboarding form (§4.2). Saves a [Profile] (id 1) and an initial
@@ -34,7 +35,7 @@ class OnboardingViewModel(
     private val bodyRepo: BodyRepository,
     private val settingsRepo: SettingsRepository,
     private val syncScheduler: SyncScheduler,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(OnboardingUiState())
@@ -43,7 +44,7 @@ class OnboardingViewModel(
     private val _events = Channel<OnboardingEvent>(Channel.BUFFERED)
     val events = _events.receiveAsFlow()
 
-    private fun today(): LocalDate = LocalDate.now(clock)
+    private fun today(): LocalDate = clock.today()
 
     fun updateDraft(transform: (OnboardingDraft) -> OnboardingDraft) {
         _state.update {
@@ -90,7 +91,7 @@ class OnboardingViewModel(
             val profile = Profile(
                 displayName = draft.displayName.trim(),
                 sex = draft.sex,
-                birthDay = requireNotNull(draft.birthDay).toEpochDay(),
+                birthDay = requireNotNull(draft.birthDay).toEpochDays(),
                 heightCm = requireNotNull(draft.heightCm),
                 neatLevel = draft.neatLevel,
                 goalWeightKg = draft.goalWeightKg,
@@ -114,7 +115,7 @@ class OnboardingViewModel(
 
             val measurement = BodyMeasurement(
                 measuredAtMillis = now,
-                day = today().toEpochDay(),
+                day = today().toEpochDays(),
                 weightKg = draft.weightKg,
                 bodyFatPercent = null,
                 muscleMassKg = null,

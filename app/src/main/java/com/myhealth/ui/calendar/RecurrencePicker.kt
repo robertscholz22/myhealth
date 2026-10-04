@@ -17,7 +17,7 @@ import com.myhealth.ui.common.NumberField
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.common.resolve
-import java.time.DayOfWeek
+import kotlinx.datetime.DayOfWeek
 
 /** Monday-first, matching the ISO week used everywhere else in the app (§1.6). */
 private val WEEKDAY_ORDER = listOf(

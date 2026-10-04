@@ -29,6 +29,8 @@ class ArchitectureTest {
         val offenders = kotlinFilesUnder("ui").flatMap { file ->
             file.readLines()
                 .filter { it.trimStart().startsWith("import com.myhealth.data.") }
+                // P20.3: the injected clock (`PlatformClock`, `today()`) is a platform type, not data access.
+                .filterNot { it.trimStart().startsWith("import com.myhealth.data.time.") }
                 .map { "${file.name}: ${it.trim()}" }
         }
 

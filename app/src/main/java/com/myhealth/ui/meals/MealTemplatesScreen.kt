@@ -50,7 +50,7 @@ import com.myhealth.ui.common.DropdownField
 import com.myhealth.ui.calendar.displayName
 import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /** Meal templates list with per-template totals and "Log now" (PLAN §4.2, P4.4). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -210,8 +210,8 @@ private fun LogNowDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 DatePickerField(
                     label = stringResource(Res.string.mealtpl_date_label),
-                    value = LocalDate.ofEpochDay(day),
-                    onValueChange = { onSetDay(it.toEpochDay()) },
+                    value = LocalDate.fromEpochDays(day),
+                    onValueChange = { onSetDay(it.toEpochDays()) },
                 )
                 DropdownField(
                     label = stringResource(Res.string.mealtpl_slot_label),

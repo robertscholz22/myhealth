@@ -3,9 +3,8 @@ package com.myhealth.ui.strength
 import com.myhealth.domain.engine.strength.ProgressionDefaults
 import com.myhealth.domain.model.ExercisePrescription
 import com.myhealth.domain.model.StrengthSetLog
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.myhealth.ui.common.usText
+import kotlinx.datetime.LocalDate
 
 /**
  * [ExerciseDetailScreen]'s Progression card (PLAN §P16 "Where it shows", P16.2): today's
@@ -50,6 +49,6 @@ private fun sessionSummary(sets: List<StrengthSetLog>): String {
 
 /** "12 Sep" from an epoch day (mirrors `SettingsScreen.formatFtpBasisDate`'s pattern/locale). */
 private fun formatSessionDay(epochDay: Long): String =
-    LocalDate.ofEpochDay(epochDay).format(DAY_FORMAT)
+    LocalDate.fromEpochDays(epochDay).usText(DAY_FORMAT)
 
-private val DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.US)
+private const val DAY_FORMAT = "d MMM"

@@ -10,7 +10,7 @@ import com.myhealth.domain.model.MealTemplate
 import com.myhealth.domain.model.MealTemplateItem
 import com.myhealth.domain.model.QuantityUnit
 import com.myhealth.ui.nutrition.defaultUnitFor
-import java.time.Clock
+import com.myhealth.data.time.PlatformClock
 
 /** Field identity for [validateTemplate] errors (mirrors `IngredientField`, P4.3). */
 enum class TemplateField { NAME, ITEMS }
@@ -63,7 +63,7 @@ fun MealTemplateDraft.totals(): MacroTotals {
 }
 
 /** The domain template the editor saves; `sortOrder` is the row order (P4.4). */
-fun MealTemplateDraft.toMealTemplate(clock: Clock): MealTemplate {
+fun MealTemplateDraft.toMealTemplate(clock: PlatformClock): MealTemplate {
     val now = clock.millis()
     return MealTemplate(
         id = id,

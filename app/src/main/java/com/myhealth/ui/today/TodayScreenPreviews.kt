@@ -54,7 +54,7 @@ import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.StatTile
 import com.myhealth.ui.common.displayName
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.ZoneId
+import kotlinx.datetime.TimeZone
 
 /**
  * `@Preview`s for [TodayScreen], split out of `TodayScreen.kt` so that file stays inside the

@@ -2,6 +2,7 @@ package com.myhealth.ui.training
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.domain.model.SuggestedSession
 import com.myhealth.domain.model.SuggestionBatch
 import com.myhealth.domain.model.SuggestionStatus
@@ -16,6 +17,8 @@ import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.util.Outcome
 import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
+import com.myhealth.ui.common.formatResourceString
+import com.myhealth.ui.common.mathRound
 import com.myhealth.ui.zones.lightweightHrZoneModel
 import com.myhealth.ui.zones.resolveHrZoneModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -31,8 +34,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /** Transient state the review screen owns: per-card toggles plus the in-flight accept/regenerate. */
 private data class ReviewAction(
@@ -55,7 +58,7 @@ class SuggestionReviewViewModel(
     private val suggestionRepo: SuggestionRepository,
     private val settingsRepo: SettingsRepository,
     private val profileRepo: ProfileRepository,
-    private val clock: Clock,
+    private val clock: PlatformClock,
     private val planRepo: PlanRepository? = null,
     private val healthRepo: HealthRepository? = null,
     private val activityRepo: ActivityRepository? = null,
@@ -96,11 +99,11 @@ class SuggestionReviewViewModel(
 
     /** NOTE-20/21: the chip's zone model is resolved exactly like the Zones screen's. */
     private val zoneModel: Flow<HrZoneModel?> = profileRepo.observeProfile().map { profile ->
-        val today = LocalDate.now(clock)
+        val today = clock.today()
         val health = healthRepo
         val activities = activityRepo
         if (health != null && activities != null) {
-            resolveHrZoneModel(profile, today.toEpochDay(), health, activities)
+            resolveHrZoneModel(profile, today.toEpochDays(), health, activities)
         } else {
             lightweightHrZoneModel(profile, today)
         }
@@ -199,8 +202,8 @@ internal fun SuggestionReviewUiState.headerLine(
     fixedCoversFormat: String = "",
 ): String = buildList {
     phase?.let { add(it.label()) }
-    if (weeklyTarget > 0.0) add("$targetLabel ${Math.round(weeklyTarget)} AU")
-    add("${Math.round(totalSuggestedLoad)} AU $suggestedLabel")
+    if (weeklyTarget > 0.0) add("$targetLabel ${mathRound(weeklyTarget)} AU")
+    add("${mathRound(totalSuggestedLoad)} AU $suggestedLabel")
     if (restDayCount > 0) {
         add("$restDayCount ${if (restDayCount == 1) restDaySingular else restDayPlural}")
     }
@@ -209,6 +212,6 @@ internal fun SuggestionReviewUiState.headerLine(
     }
     // NOTE-19: when the fixed sessions alone reach the target, say why the week is fillers only.
     if (fixedCoversFormat.isNotEmpty() && weeklyTarget > 0.0 && fixedLoad >= weeklyTarget) {
-        add(String.format(fixedCoversFormat, Math.round(fixedLoad), Math.round(weeklyTarget)))
+        add(formatResourceString(fixedCoversFormat, arrayOf(mathRound(fixedLoad), mathRound(weeklyTarget))))
     }
 }.joinToString(" · ")

@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.myhealth.data.time.today
 import com.myhealth.resources.*
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -44,7 +45,7 @@ import com.myhealth.ui.common.DropdownField
 import com.myhealth.ui.common.NumberField
 import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /**
  * The nutrition diary (PLAN §4.2 Nutrition diary, P4.5). `NutritionRoute` opens it on today
@@ -61,7 +62,7 @@ fun NutritionScreen(
 ) {
     val vm = rememberVmWithSavedState { graph, handle ->
         NutritionViewModel(
-            initialDay = epochDay ?: LocalDate.now(graph.clock).toEpochDay(),
+            initialDay = epochDay ?: graph.clock.today().toEpochDays(),
             mealRepo = graph.mealRepo,
             nutritionRepo = graph.nutritionRepo,
             ingredientRepo = graph.ingredientRepo,
@@ -221,7 +222,7 @@ private fun DayStrip(day: Long, onPrevious: () -> Unit, onNext: () -> Unit) {
             Icon(Icons.Filled.ChevronLeft, contentDescription = stringResource(Res.string.nutrition_previous_day_cd))
         }
         Text(
-            text = fullDateTitle(LocalDate.ofEpochDay(day)),
+            text = fullDateTitle(LocalDate.fromEpochDays(day)),
             style = MaterialTheme.typography.titleMedium,
         )
         IconButton(onClick = onNext) {

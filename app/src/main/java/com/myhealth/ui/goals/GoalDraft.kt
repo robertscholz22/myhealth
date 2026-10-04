@@ -7,8 +7,9 @@ import com.myhealth.domain.model.GoalStatus
 import com.myhealth.domain.model.GoalType
 import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import com.myhealth.ui.common.mathRound
+import kotlinx.datetime.LocalDate
 
 /** Field identity for [validateGoal] errors (mirrors `EventDraft`'s pattern, P3.4). */
 enum class GoalField { TITLE, DISTANCE, TIME, DATE, WEIGHT, VALUE }
@@ -108,7 +109,7 @@ fun validateGoal(draft: GoalDraft): Map<GoalField, UiMessage> {
 }
 
 /** The domain goal the editor saves; only the fields its [GoalDraft.type] uses are carried over. */
-fun GoalDraft.toGoal(clock: Clock): Goal {
+fun GoalDraft.toGoal(clock: PlatformClock): Goal {
     val now = clock.millis()
     val isRunRace = type == GoalType.RACE_TIME
     val isBikeEvent = type == GoalType.BIKE_EVENT
@@ -116,7 +117,7 @@ fun GoalDraft.toGoal(clock: Clock): Goal {
         id = id,
         type = type,
         title = title.trim(),
-        targetDay = targetDay?.toEpochDay(),
+        targetDay = targetDay?.toEpochDays(),
         targetDistanceMeters = targetDistanceMeters.takeIf { isRunRace || isBikeEvent },
         targetTimeSec = targetTimeSec.takeIf { isRunRace || isBikeEvent },
         targetWeightKg = targetWeightKg.takeIf { type == GoalType.BODY_WEIGHT },
@@ -137,7 +138,7 @@ fun goalDraftOf(goal: Goal): GoalDraft = GoalDraft(
     id = goal.id,
     type = goal.type,
     title = goal.title,
-    targetDay = goal.targetDay?.let { LocalDate.ofEpochDay(it) },
+    targetDay = goal.targetDay?.let { LocalDate.fromEpochDays(it) },
     targetDistanceMeters = goal.targetDistanceMeters,
     targetMinutes = goal.targetTimeSec?.let { it / 60 },
     targetSeconds = goal.targetTimeSec?.let { it % 60 },
@@ -178,7 +179,7 @@ fun goalHeadline(goal: Goal): String {
     // P19: a race happens *on* its date; a deadline goal is reached *by* it.
     val raceType = goal.type == GoalType.RACE_TIME || goal.type == GoalType.BIKE_EVENT
     val preposition = if (raceType && goal.isRace) "on" else "by"
-    val by = goal.targetDay?.let { " $preposition ${LocalDate.ofEpochDay(it)}" } ?: ""
+    val by = goal.targetDay?.let { " $preposition ${LocalDate.fromEpochDays(it)}" } ?: ""
     return when (goal.type) {
         GoalType.RACE_TIME -> {
             val distance = goal.targetDistanceMeters?.let { GoalProgress.distanceLabel(it) } ?: "race"
@@ -200,4 +201,4 @@ fun goalHeadline(goal: Goal): String {
 }
 
 /** Watts and session counts are whole numbers; `300.0 W` reads wrong. */
-private fun wholeNumber(value: Double?): String = Math.round(value ?: 0.0).toString()
+private fun wholeNumber(value: Double?): String = mathRound(value ?: 0.0).toString()

@@ -1,6 +1,5 @@
 package com.myhealth.ui.goals
 
-import kotlinx.datetime.toKotlinLocalDate
 import com.myhealth.domain.engine.bike.FtpEstimate
 import com.myhealth.domain.engine.goal.GoalProgress
 import com.myhealth.domain.model.ActivitySummary
@@ -11,7 +10,7 @@ import com.myhealth.domain.model.GoalType
 import com.myhealth.domain.model.RideBest
 import com.myhealth.domain.model.RunningBest
 import com.myhealth.ui.common.UiMessage
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /** One row of the Goals list: the goal plus its computed progress (PLAN §4.2 "Goals", P6.1). */
 data class GoalRow(
@@ -55,7 +54,7 @@ fun goalRows(
 ): List<GoalRow> = goals.map { goal ->
     GoalRow(
         goal = goal,
-        progress = GoalProgress.compute(goal, bests, weights, today.toKotlinLocalDate(), activities, rideBests, ftp),
+        progress = GoalProgress.compute(goal, bests, weights, today, activities, rideBests, ftp),
     )
 }
 

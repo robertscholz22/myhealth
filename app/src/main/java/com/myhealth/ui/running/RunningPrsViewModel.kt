@@ -2,6 +2,7 @@ package com.myhealth.ui.running
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.domain.engine.running.CanonicalDistances
 import com.myhealth.domain.engine.running.RiegelPredictor
 import com.myhealth.domain.engine.running.VdotCalculator
@@ -14,8 +15,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /** How many efforts per distance feed the progression chart. */
 private const val EFFORTS_PER_DISTANCE = 100
@@ -28,12 +29,12 @@ private const val EFFORTS_PER_DISTANCE = 100
  */
 class RunningPrsViewModel(
     private val runningBestRepo: RunningBestRepository,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
     private val showAddDialog = MutableStateFlow(false)
 
-    private fun today(): Long = LocalDate.now(clock).toEpochDay()
+    private fun today(): Long = clock.today().toEpochDays()
 
     /** Every kept effort, per canonical distance — the PR **table** only carries the single best. */
     private val efforts: Flow<List<RunningBest>> = combine(

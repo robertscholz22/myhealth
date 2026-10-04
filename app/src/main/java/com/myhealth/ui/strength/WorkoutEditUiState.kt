@@ -10,7 +10,7 @@ import com.myhealth.domain.model.StrengthWorkoutKind
 import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.common.body.highlightFor
-import java.time.Clock
+import com.myhealth.data.time.PlatformClock
 import kotlin.math.ceil
 
 /**
@@ -137,7 +137,7 @@ fun WorkoutEditDraft.moveExercise(from: Int, to: Int): WorkoutEditDraft {
 }
 
 /** The domain workout the editor saves. */
-fun WorkoutEditDraft.toStrengthWorkout(clock: Clock): StrengthWorkout {
+fun WorkoutEditDraft.toStrengthWorkout(clock: PlatformClock): StrengthWorkout {
     val now = clock.millis()
     return StrengthWorkout(
         id = id,

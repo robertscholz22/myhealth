@@ -14,8 +14,7 @@ import kotlin.time.Instant
 
 /**
  * `kotlinx-datetime` helpers for the shared code (PLAN §1.6, P20.1). Local dates are stored as
- * epoch day (`Long`), instants as epoch millis (`Long`). The Android-only UI keeps its `java.time`
- * twins in the app module until P20.3.
+ * epoch day (`Long`), instants as epoch millis (`Long`).
  */
 
 /** The date of this epoch day. */
@@ -31,8 +30,40 @@ fun LocalDate.minusDays(days: Long): LocalDate = minus(days, DateTimeUnit.DAY)
 
 fun LocalDate.plusWeeks(weeks: Long): LocalDate = plus(weeks, DateTimeUnit.WEEK)
 
+fun LocalDate.minusWeeks(weeks: Long): LocalDate = minus(weeks, DateTimeUnit.WEEK)
+
+/** `plusMonths`: the day is clamped to the end of a shorter month, as in `java.time`. */
+fun LocalDate.plusMonths(months: Long): LocalDate = plus(months, DateTimeUnit.MONTH)
+
+fun LocalDate.minusMonths(months: Long): LocalDate = minus(months, DateTimeUnit.MONTH)
+
+/** The first day of this date's month (`withDayOfMonth(1)`). */
+fun LocalDate.firstOfMonth(): LocalDate = LocalDate(year, month, 1)
+
+/** Midnight UTC of this date in epoch millis — what Material's date picker works in. */
+fun LocalDate.utcMidnightMillis(): Long = toEpochDays() * MILLIS_PER_DAY
+
+/** The UTC date of epoch millis (the date picker's selection). */
+fun utcDateOfMillis(millis: Long): LocalDate = LocalDate.fromEpochDays(floorDiv(millis, MILLIS_PER_DAY))
+
+private const val MILLIS_PER_DAY = 86_400_000L
+
+private fun floorDiv(a: Long, b: Long): Long = a / b - if (a % b != 0L && (a xor b) < 0) 1 else 0
+
 /** The Monday of the ISO week containing this date. */
 fun LocalDate.isoWeekStart(): LocalDate = minusDays((dayOfWeek.isoDayNumber - 1).toLong())
+
+/** ISO-8601 week-based year and week number, week starts Monday (`WeekFields.ISO`). */
+data class IsoWeek(val weekBasedYear: Int, val week: Int)
+
+fun isoWeekOf(date: LocalDate): IsoWeek {
+    // The week belongs to the year of its Thursday; week 1 is the week with the year's first Thursday.
+    val thursday = date.isoWeekStart().plusDays(3)
+    val firstThursday = LocalDate(thursday.year, 1, 1).let { jan1 ->
+        jan1.plusDays(((4 - jan1.dayOfWeek.isoDayNumber + 7) % 7).toLong())
+    }
+    return IsoWeek(thursday.year, ((thursday.toEpochDays() - firstThursday.toEpochDays()) / 7 + 1).toInt())
+}
 
 /** Whole years from [from] to [to] (`java.time.Period.between(from, to).years`). */
 fun yearsBetween(from: LocalDate, to: LocalDate): Int {

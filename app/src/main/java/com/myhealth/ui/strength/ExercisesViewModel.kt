@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Clock
+import com.myhealth.data.time.PlatformClock
 
 /**
  * Backs [ExercisesScreen] and [ExerciseDetailScreen] (PLAN §4.2 "Exercises"/"Exercise detail",
@@ -39,7 +39,7 @@ class ExercisesViewModel(
     private val profileRepo: ProfileRepository,
     private val seed: suspend () -> Int,
     private val bodyWeightKg: suspend () -> Double,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
     private val filters = MutableStateFlow(ExercisesUiState())

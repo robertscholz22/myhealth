@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.myhealth.resources.*
+import com.myhealth.ui.common.mathRound
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -154,7 +155,7 @@ private fun CompletedActivityRow(activity: ActivitySummary, onOpenActivity: (Lon
                 activity.title?.takeIf { it.isNotBlank() } ?: activity.sportType.displayName(),
                 formatDuration(activity.durationSec),
                 formatDistanceKm(activity.distanceMeters),
-                activity.trimp?.let { "${Math.round(it)} AU" },
+                activity.trimp?.let { "${mathRound(it)} AU" },
             ).joinToString(" · "),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

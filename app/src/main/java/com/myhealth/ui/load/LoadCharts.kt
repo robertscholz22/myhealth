@@ -1,13 +1,12 @@
 package com.myhealth.ui.load
 
 import com.myhealth.domain.model.DailyLoad
-import com.myhealth.domain.util.toLocalDate
+import com.myhealth.domain.util.epochDayDate
 import com.myhealth.ui.common.charts.ChartPoint
 import com.myhealth.ui.common.charts.dailySeries
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.myhealth.ui.common.usText
 
-private val DAY_LABEL: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.US)
+private const val DAY_LABEL = "d MMM"
 
 /** ACWR zone boundaries (§3.2.3) reused as the shaded band edges of the ACWR chart (P8.3). */
 const val ACWR_OPTIMAL_MIN: Double = 0.8
@@ -49,5 +48,5 @@ fun trimpBars(series: List<DailyLoad>): List<Double> {
 fun loadAxisLabels(series: List<DailyLoad>): List<String> {
     val (from, to) = loadDayBounds(series) ?: return emptyList()
     val middle = from + (to - from) / 2
-    return listOf(from, middle, to).distinct().map { it.toLocalDate().format(DAY_LABEL) }
+    return listOf(from, middle, to).distinct().map { it.epochDayDate().usText(DAY_LABEL) }
 }

@@ -2,12 +2,13 @@ package com.myhealth.ui.activities
 
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.SportGroup
-import com.myhealth.domain.util.toLocalDate
+import com.myhealth.domain.util.epochDayDate
 import com.myhealth.ui.common.fmtKm
-import java.time.YearMonth
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.myhealth.ui.common.usText
+import com.myhealth.ui.common.zeroPad
 import kotlin.math.roundToInt
+import kotlinx.datetime.YearMonth
+import kotlinx.datetime.yearMonth
 
 /** One month header + the activities that fall in it, in the order they arrived (§4.2 Activities). */
 data class MonthGroup(val label: String, val items: List<ActivitySummary>)
@@ -25,7 +26,7 @@ data class ActivitiesUiState(
     val isEmpty: Boolean get() = !isLoading && groups.all { it.items.isEmpty() }
 }
 
-private val MONTH_LABEL_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US)
+private const val MONTH_LABEL_FORMAT = "MMMM yyyy"
 
 /**
  * Groups activities into calendar-month buckets, preserving the incoming order within and across
@@ -35,10 +36,10 @@ private val MONTH_LABEL_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern(
 fun List<ActivitySummary>.groupByMonth(): List<MonthGroup> {
     val byMonth = LinkedHashMap<YearMonth, MutableList<ActivitySummary>>()
     for (item in this) {
-        val month = YearMonth.from(item.day.toLocalDate())
+        val month = item.day.epochDayDate().yearMonth
         byMonth.getOrPut(month) { mutableListOf() }.add(item)
     }
-    return byMonth.map { (month, items) -> MonthGroup(month.format(MONTH_LABEL_FORMAT), items) }
+    return byMonth.map { (month, items) -> MonthGroup(month.firstDay.usText(MONTH_LABEL_FORMAT), items) }
 }
 
 /**
@@ -50,7 +51,7 @@ fun formatPaceMinPerKm(avgSpeedMps: Double?): String? {
     val secPerKm = (1000.0 / avgSpeedMps).roundToInt()
     val min = secPerKm / 60
     val sec = secPerKm % 60
-    return "%d:%02d /km".format(min, sec)
+    return "$min:${sec.zeroPad(2)} /km"
 }
 
 /** Distance in km, 2 decimals (§4.2 Activities row spec); `null` when the activity has no distance. */
@@ -61,5 +62,5 @@ fun formatDistanceKm(distanceMeters: Double?): String? =
 fun formatDuration(seconds: Int): String {
     val h = seconds / 3600
     val m = (seconds % 3600) / 60
-    return if (h > 0) "${h}h %02dm".format(m) else "$m min"
+    return if (h > 0) "${h}h ${m.zeroPad(2)}m" else "$m min"
 }

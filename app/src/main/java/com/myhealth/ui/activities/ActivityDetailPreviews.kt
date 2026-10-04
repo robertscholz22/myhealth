@@ -52,10 +52,8 @@ import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.SourceBadgeRow
 import com.myhealth.ui.common.displayName
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import kotlin.time.Instant
+import kotlinx.datetime.TimeZone
 
 /**
  * `@Preview`s for [ActivityDetailScreen], split out so that file stays inside the ~400-line budget

@@ -37,7 +37,7 @@ import com.myhealth.domain.model.LinkMethod
 import com.myhealth.domain.model.PlannedStatus
 import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /** Callbacks [DayDetailScreen] hands up to the NavHost (§4.1: day detail is a navigation hub).
  * [onEditEvent] also carries the occurrence day, so "delete this occurrence only" in the editor
@@ -207,7 +207,7 @@ private val PREVIEW_NAV = DayDetailNavActions(
 @Preview(showBackground = true, widthDp = 380, heightDp = 900, name = "Populated day")
 @Composable
 private fun DayDetailContentPreview() {
-    val day = LocalDate.of(2026, 9, 14).toEpochDay()
+    val day = LocalDate(2026, 9, 14).toEpochDays()
     MyHealthTheme(dynamicColor = false) {
         DayDetailContent(
             state = DayDetailUiState(day = day, isLoading = false, data = previewCalendarDay(day)),
@@ -225,7 +225,7 @@ private fun DayDetailContentPreview() {
 @Preview(showBackground = true, widthDp = 380, heightDp = 900, name = "Empty day")
 @Composable
 private fun DayDetailContentEmptyPreview() {
-    val day = LocalDate.of(2026, 9, 15).toEpochDay()
+    val day = LocalDate(2026, 9, 15).toEpochDays()
     MyHealthTheme(dynamicColor = false) {
         DayDetailContent(
             state = DayDetailUiState(day = day, isLoading = false, data = CalendarDay.empty(day)),

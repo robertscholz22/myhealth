@@ -28,9 +28,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.myhealth.resources.*
+import com.myhealth.ui.common.mathRound
 import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.datetime.LocalDate
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.Intensity
@@ -301,7 +303,7 @@ private fun TargetsCard(
         }
         draft.estimatedTrimp?.let { trimp ->
             Text(
-                text = stringResource(Res.string.session_estimated_load, Math.round(trimp)),
+                text = stringResource(Res.string.session_estimated_load, mathRound(trimp)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -320,7 +322,7 @@ private fun PlannedSessionEditContentPreview() {
                 isLoading = false,
                 isNew = true,
                 draft = PlannedSessionDraft(
-                    day = java.time.LocalDate.of(2026, 9, 15),
+                    day = LocalDate(2026, 9, 15),
                     sessionType = SessionType.TEMPO_RUN,
                     intensity = Intensity.HIGH,
                     durationMin = 50,

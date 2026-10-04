@@ -11,11 +11,13 @@ import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.model.TrainingPhase
+import com.myhealth.domain.util.minusDays
+import com.myhealth.domain.util.plusDays
 import com.myhealth.ui.common.UiMessage
-import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.myhealth.ui.common.usText
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.isoDayNumber
 
 /** One day row of the week board (PLAN §4.2 "Training plan"). */
 data class TrainingDayRow(
@@ -26,7 +28,7 @@ data class TrainingDayRow(
     val planned: List<PlannedSession>,
     val activities: List<ActivitySummary>,
 ) {
-    val date: LocalDate get() = LocalDate.ofEpochDay(day)
+    val date: LocalDate get() = LocalDate.fromEpochDays(day)
 
     val isEmpty: Boolean get() = events.isEmpty() && planned.isEmpty() && activities.isEmpty()
 }
@@ -87,8 +89,8 @@ private val TRAINING_EVENT_TYPES = setOf(
 
 /** ISO week start: the Monday on or before [day] (§1.6 — week start is Monday, fixed). */
 fun mondayOf(day: Long): Long {
-    val date = LocalDate.ofEpochDay(day)
-    return date.minusDays((date.dayOfWeek.value - DayOfWeek.MONDAY.value).toLong()).toEpochDay()
+    val date = LocalDate.fromEpochDays(day)
+    return date.minusDays((date.dayOfWeek.isoDayNumber - DayOfWeek.MONDAY.isoDayNumber).toLong()).toEpochDays()
 }
 
 /**
@@ -118,24 +120,23 @@ fun weekLoads(weekStartDay: Long, days: Map<Long, CalendarDay>) =
 
 const val DAYS_PER_WEEK: Long = 7L
 
-private val DAY_HEADER_FORMAT: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("EEE d MMM", Locale.US)
+private const val DAY_HEADER_FORMAT = "EEE d MMM"
 
-private val WEEK_RANGE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.US)
+private const val WEEK_RANGE_FORMAT = "d MMM"
 
 /** `"Mon 14 Sep"` — the day row's header. */
-fun dayHeaderLabel(day: Long): String = LocalDate.ofEpochDay(day).format(DAY_HEADER_FORMAT)
+fun dayHeaderLabel(day: Long): String = LocalDate.fromEpochDays(day).usText(DAY_HEADER_FORMAT)
 
 /** `"14 Sep – 20 Sep"` — the week pager's title. */
 fun weekRangeLabel(weekStartDay: Long): String {
-    val start = LocalDate.ofEpochDay(weekStartDay)
+    val start = LocalDate.fromEpochDays(weekStartDay)
     val end = start.plusDays(DAYS_PER_WEEK - 1)
-    return "${start.format(WEEK_RANGE_FORMAT)} – ${end.format(WEEK_RANGE_FORMAT)}"
+    return "${start.usText(WEEK_RANGE_FORMAT)} – ${end.usText(WEEK_RANGE_FORMAT)}"
 }
 
 /** Title-cased enum label, e.g. `RACE_WEEK` -> "Race week". */
 fun trainingLabelOf(name: String): String =
-    name.split("_").joinToString(" ") { it.lowercase(Locale.US) }.replaceFirstChar(Char::uppercase)
+    name.split("_").joinToString(" ") { it.lowercase() }.replaceFirstChar(Char::uppercase)
 
 fun TrainingPhase.label(): String = trainingLabelOf(name)
 

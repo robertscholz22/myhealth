@@ -1,19 +1,17 @@
 package com.myhealth.ui.calendar
 
 import com.myhealth.resources.*
-import kotlinx.datetime.toJavaDayOfWeek
-import kotlinx.datetime.toKotlinDayOfWeek
 import com.myhealth.domain.engine.calendar.RecurrenceFreq
 import com.myhealth.domain.engine.calendar.RecurrenceRule
 import com.myhealth.domain.model.CalendarEvent
 import com.myhealth.domain.model.EventType
 import com.myhealth.domain.model.LinkMethod
 import com.myhealth.domain.model.SportType
-import com.myhealth.domain.util.toLocalDate
+import com.myhealth.domain.util.epochDayDate
 import com.myhealth.ui.common.UiMessage
-import java.time.Clock
-import java.time.DayOfWeek
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
 
 /** `None` / `Weekly` recurrence toggle (§4.2 Event edit, P3.6) — "every n weeks" is the same
  * [RecurrenceMode.WEEKLY] mode with [EventDraft.recurrenceIntervalWeeks] above 1. */
@@ -86,7 +84,7 @@ fun validate(draft: EventDraft): Map<EventField, UiMessage> {
 
     val until = draft.recurrenceUntil
     val start = draft.date
-    if (until != null && start != null && until.isBefore(start)) {
+    if (until != null && start != null && until < start) {
         errors[EventField.RECURRENCE_UNTIL] = UiMessage.of(Res.string.event_error_recurrence_until_before_start)
     }
 
@@ -114,22 +112,22 @@ fun EventDraft.recurrenceRule(): RecurrenceRule? {
     if (recurrenceMode == RecurrenceMode.NONE || recurrenceWeekdays.isEmpty()) return null
     return RecurrenceRule(
         freq = RecurrenceFreq.WEEKLY,
-        byDay = recurrenceWeekdays.map { it.toKotlinDayOfWeek() }.toSet(),
+        byDay = recurrenceWeekdays.toSet(),
         interval = recurrenceIntervalWeeks.coerceAtLeast(1),
-        untilDay = recurrenceUntil?.toEpochDay(),
+        untilDay = recurrenceUntil?.toEpochDays(),
     )
 }
 
 /** Builds the [CalendarEvent] to upsert. `createdAtMillis`/`updatedAtMillis`/`recurrenceUntilDay`
  * are re-derived by `CalendarRepository.upsertEvent` when left at their new-event defaults. */
-fun EventDraft.toCalendarEvent(clock: Clock): CalendarEvent {
+fun EventDraft.toCalendarEvent(clock: PlatformClock): CalendarEvent {
     val rule = recurrenceRule()
     val usesSport = type.usesSportType()
     return CalendarEvent(
         id = id,
         type = type,
         title = title.trim(),
-        startDay = requireNotNull(date) { "date must be validated before save" }.toEpochDay(),
+        startDay = requireNotNull(date) { "date must be validated before save" }.toEpochDays(),
         startMinuteOfDay = if (hasTime) startMinuteOfDay else null,
         durationMin = durationMin,
         location = location.trim().ifBlank { null },
@@ -155,7 +153,7 @@ fun eventDraftFrom(event: CalendarEvent): EventDraft {
         id = event.id,
         type = event.type,
         title = event.title,
-        date = event.startDay.toLocalDate(),
+        date = event.startDay.epochDayDate(),
         hasTime = event.startMinuteOfDay != null,
         startMinuteOfDay = event.startMinuteOfDay,
         durationMin = event.durationMin,
@@ -165,9 +163,9 @@ fun eventDraftFrom(event: CalendarEvent): EventDraft {
         isKeyEvent = event.isKeyEvent,
         notes = event.notes.orEmpty(),
         recurrenceMode = if (isWeekly) RecurrenceMode.WEEKLY else RecurrenceMode.NONE,
-        recurrenceWeekdays = if (isWeekly) rule.byDay.map { it.toJavaDayOfWeek() }.toSet() else emptySet(),
+        recurrenceWeekdays = if (isWeekly) rule.byDay.toSet() else emptySet(),
         recurrenceIntervalWeeks = if (isWeekly) rule.interval else 1,
-        recurrenceUntil = (rule?.untilDay ?: event.recurrenceUntilDay)?.toLocalDate(),
+        recurrenceUntil = (rule?.untilDay ?: event.recurrenceUntilDay)?.epochDayDate(),
         linkedActivityId = event.linkedActivityId,
         linkMethod = event.linkMethod,
         createdAtMillis = event.createdAtMillis,

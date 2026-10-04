@@ -2,6 +2,7 @@ package com.myhealth.ui.bike
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.domain.engine.bike.BikeDefaults
 import com.myhealth.domain.engine.bike.FtpEstimator
 import com.myhealth.domain.model.RideBest
@@ -13,8 +14,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /** How many `POWER_20MIN` rows the FTP estimate considers (mirrors `GoalsViewModel`, P12.2). */
 private const val FTP_BEST_CANDIDATES = 50
@@ -27,10 +28,10 @@ class BikeViewModel(
     private val rideBestRepo: RideBestRepository,
     private val profileRepo: ProfileRepository,
     private val activityRepo: ActivityRepository,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
-    private fun today(): LocalDate = LocalDate.now(clock)
+    private fun today(): LocalDate = clock.today()
 
     private data class FtpInputs(
         val twentyMinuteBests: List<RideBest>,
@@ -48,13 +49,13 @@ class BikeViewModel(
     val state: StateFlow<BikeUiState> = combine(
         rideBestRepo.observeBestPerKind(),
         ftpInputs,
-        activityRepo.observeRange(today().toEpochDay() - BikeDefaults.FTP_WINDOW_DAYS, today().toEpochDay()),
+        activityRepo.observeRange(today().toEpochDays() - BikeDefaults.FTP_WINDOW_DAYS, today().toEpochDays()),
     ) { bests, inputs, rides ->
         val ftp = FtpEstimator.estimateFromSummaries(
             manualWatts = inputs.manualWatts,
             powerBests = inputs.twentyMinuteBests,
             rides = rides,
-            todayDay = today().toEpochDay(),
+            todayDay = today().toEpochDays(),
         )
         BikeUiState(
             isLoading = false,

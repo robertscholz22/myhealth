@@ -2,6 +2,7 @@ package com.myhealth.ui.training
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.myhealth.data.time.today
 import com.myhealth.domain.engine.strength.ExerciseCatalog
 import com.myhealth.domain.engine.suggest.GoalRules
 import com.myhealth.domain.engine.suggest.Periodization
@@ -41,8 +42,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Clock
-import java.time.LocalDate
+import com.myhealth.data.time.PlatformClock
+import kotlinx.datetime.LocalDate
 
 /** Everything outside the displayed week that the header needs. */
 private data class TrainingContext(
@@ -89,13 +90,13 @@ class TrainingViewModel(
     /** `AppGraph.currentBodyWeightKg` (P16.2) — what `strengthRepo.prescriptionFor` estimates an
      * unlogged exercise's load from, for [prepareSetLog]. */
     private val bodyWeightKg: suspend () -> Double,
-    private val clock: Clock,
+    private val clock: PlatformClock,
 ) : ViewModel() {
 
     private val weekOffset = MutableStateFlow(0)
     private val action = MutableStateFlow(TrainingAction())
 
-    private fun todayDay(): Long = LocalDate.now(clock).toEpochDay()
+    private fun todayDay(): Long = clock.today().toEpochDays()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val week: Flow<Pair<TrainingWeek, List<com.myhealth.domain.model.DailyLoad>>> =

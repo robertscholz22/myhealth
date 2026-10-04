@@ -29,7 +29,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.myhealth.ui.theme.MyHealthTheme
-import java.util.Locale
 
 /** Default time offered when the field has no value yet: 09:00. */
 private const val DEFAULT_HOUR = 9
@@ -91,7 +90,7 @@ fun TimePickerField(
 
 private fun formatMinuteOfDayLocal(minuteOfDay: Int): String {
     val clamped = minuteOfDay.coerceIn(0, 24 * MINUTES_PER_HOUR - 1)
-    return "%02d:%02d".format(Locale.US, clamped / MINUTES_PER_HOUR, clamped % MINUTES_PER_HOUR)
+    return "${(clamped / MINUTES_PER_HOUR).zeroPad(2)}:${(clamped % MINUTES_PER_HOUR).zeroPad(2)}"
 }
 
 @Preview(showBackground = true)

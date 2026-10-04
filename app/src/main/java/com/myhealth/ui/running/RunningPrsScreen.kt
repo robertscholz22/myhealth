@@ -34,7 +34,7 @@ import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.running.CanonicalDistances
 import com.myhealth.domain.engine.running.RacePrediction
 import com.myhealth.domain.model.RunningBest
-import com.myhealth.domain.util.toLocalDate
+import com.myhealth.domain.util.epochDayDate
 import com.myhealth.ui.common.DatePickerField
 import com.myhealth.ui.common.DropdownField
 import com.myhealth.ui.common.EmptyState
@@ -43,8 +43,7 @@ import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.charts.LineChartCard
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import kotlinx.datetime.LocalDate
 
 @Composable
 fun RunningPrsScreen(onOpenActivity: (Long) -> Unit, modifier: Modifier = Modifier) {
@@ -134,7 +133,7 @@ private fun PrTableCard(bests: List<RunningBest>, onOpenActivity: (Long) -> Unit
                 Column {
                     Text(distanceLabel(best.distanceMeters), style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        text = best.day.toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE),
+                        text = best.day.epochDayDate().toString(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -212,7 +211,7 @@ private fun AddManualPrDialog(onDismiss: () -> Unit, onSave: (Double, Int, Long)
         },
         confirmButton = {
             Button(
-                onClick = { date?.let { onSave(distance, timeSec, it.toEpochDay()) } },
+                onClick = { date?.let { onSave(distance, timeSec, it.toEpochDays()) } },
                 enabled = canSave,
             ) { Text(stringResource(Res.string.action_save)) }
         },

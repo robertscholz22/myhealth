@@ -24,7 +24,6 @@ import com.myhealth.ui.calendar.MacroProgressRow
 import com.myhealth.ui.calendar.targetProgressRows
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.theme.MyHealthTheme
-import java.util.Locale
 
 /**
  * The diary's target-vs-intake header (PLAN §4.2 Nutrition diary, P4.5/P4.12): an energy bar with
@@ -129,7 +128,7 @@ private fun MacroBarRow(row: MacroProgressRow) {
 }
 
 private fun dayTypeLabel(dayType: DayType): String =
-    dayType.name.split("_").joinToString(" ") { it.lowercase(Locale.US) }
+    dayType.name.split("_").joinToString(" ") { it.lowercase() }
         .replaceFirstChar(Char::uppercase)
 
 @Preview(showBackground = true, widthDp = 380)

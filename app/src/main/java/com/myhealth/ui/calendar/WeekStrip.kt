@@ -21,10 +21,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.myhealth.domain.model.CalendarDay
 import com.myhealth.ui.common.CARD_CORNER_RADIUS
+import com.myhealth.ui.common.usText
 import com.myhealth.ui.theme.MyHealthTheme
-import java.time.LocalDate
-import java.time.format.TextStyle
-import java.util.Locale
+import kotlinx.datetime.LocalDate
 
 /**
  * The selectable 7-day strip of week mode (§4.3 `WeekStrip`, P3.4): Monday first, the selected
@@ -45,7 +44,7 @@ fun WeekStrip(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         weekDays(weekAnchor).forEach { date ->
-            val epochDay = date.toEpochDay()
+            val epochDay = date.toEpochDays()
             WeekStripDay(
                 date = date,
                 day = days[epochDay],
@@ -80,7 +79,7 @@ private fun WeekStripDay(
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Text(
-            text = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.US).take(2),
+            text = date.usText("EEE").take(2),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -93,7 +92,7 @@ private fun WeekStripDay(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = date.dayOfMonth.toString(),
+                text = date.day.toString(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (isToday) {
                     MaterialTheme.colorScheme.onPrimary
@@ -117,8 +116,8 @@ private fun WeekStripDay(
 @Preview(showBackground = true, widthDp = 380)
 @Composable
 private fun WeekStripPreview() {
-    val date = LocalDate.of(2026, 9, 16)
-    val epochDay = date.toEpochDay()
+    val date = LocalDate(2026, 9, 16)
+    val epochDay = date.toEpochDays()
     MyHealthTheme(dynamicColor = false) {
         WeekStrip(
             weekAnchor = date,

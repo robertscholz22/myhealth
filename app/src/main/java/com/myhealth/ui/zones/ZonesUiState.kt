@@ -1,6 +1,5 @@
 package com.myhealth.ui.zones
 
-import kotlinx.datetime.toKotlinLocalDate
 import com.myhealth.domain.engine.load.HrBounds
 import com.myhealth.domain.engine.load.HrZone
 import com.myhealth.domain.engine.load.HrZoneModel
@@ -19,7 +18,7 @@ import com.myhealth.ui.training.formatPaceSecPerKm
 import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.repository.HealthRepository
 import kotlinx.coroutines.flow.first
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /**
  * ViewModel state for [ZonesScreen] (PLAN §4.2 "Zones & paces", P14.6): the five HR zones, the
@@ -146,7 +145,7 @@ fun lightweightHrZoneModel(
     /** NOTE-20: the last days' resting-HR readings, so a chip's bpm range matches the Zones screen. */
     restingHrLast7Days: List<Int> = emptyList(),
 ): HrZoneModel? =
-    profile?.let { HrZoneModel.resolve(it, HrBounds.compute(it, today.toKotlinLocalDate(), restingHrLast7Days = restingHrLast7Days)) }
+    profile?.let { HrZoneModel.resolve(it, HrBounds.compute(it, today, restingHrLast7Days = restingHrLast7Days)) }
 
 /**
  * NOTE-21: the zone model every chip and the Zones screen agree on — the profile's manual values,
@@ -172,7 +171,7 @@ suspend fun resolveHrZoneModel(
         .maxOrNull()
     val bounds = HrBounds.compute(
         profile = profile,
-        on = LocalDate.ofEpochDay(todayDay).toKotlinLocalDate(),
+        on = LocalDate.fromEpochDays(todayDay),
         restingHrLast7Days = restingHr,
         observedMaxHrLast365d = observedMax,
     )

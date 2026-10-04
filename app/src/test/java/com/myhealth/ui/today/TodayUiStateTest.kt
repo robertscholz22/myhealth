@@ -5,7 +5,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import java.time.LocalDateTime
-import java.time.ZoneOffset
+import kotlinx.datetime.TimeZone
 import java.util.Locale
 
 /** Pure helpers of `TodayUiState.kt` (PLAN P2.10): the sync-status label and the body-chip label.
@@ -28,8 +28,8 @@ class TodayUiStateTest {
 
     @Test
     fun today01_lastSyncedLabel_formatsTimeOrReportsNeverSynced() {
-        val zone = ZoneOffset.UTC
-        val millis = LocalDateTime.of(2026, 9, 12, 14, 5).toInstant(ZoneOffset.UTC).toEpochMilli()
+        val zone = TimeZone.UTC
+        val millis = LocalDateTime.of(2026, 9, 12, 14, 5).toInstant(java.time.ZoneOffset.UTC).toEpochMilli()
 
         assertThat(lastSyncedLabel(millis, zone)).isEqualTo("Last synced 14:05")
         assertThat(lastSyncedLabel(null, zone)).isEqualTo("Not yet synced")
