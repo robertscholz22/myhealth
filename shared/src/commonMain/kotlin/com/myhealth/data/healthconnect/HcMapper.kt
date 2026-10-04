@@ -8,12 +8,11 @@ import com.myhealth.domain.model.DailyHealthSummary
 import com.myhealth.domain.model.SleepRecord
 import com.myhealth.domain.model.SleepStage
 import com.myhealth.domain.model.SleepStageInterval
+import com.myhealth.domain.util.epochMillisToDay
+import kotlin.math.floor
+import kotlinx.datetime.TimeZone
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import kotlin.math.floor
 
 /**
  * Health Connect DTOs → domain models (PLAN P2.3). Works purely on the plain data classes of
@@ -29,15 +28,15 @@ interface HcMapper {
     fun toSourceRecord(exercise: HcExercise, receivedAtMillis: Long): ActivitySourceRecord
 
     /** The normalized, not-yet-merged candidate session for [exercise]. */
-    fun toSession(exercise: HcExercise, zone: ZoneId, nowMillis: Long): ActivitySession
+    fun toSession(exercise: HcExercise, zone: TimeZone, nowMillis: Long): ActivitySession
 
     fun toDailySummary(summary: HcDailySummary, updatedAtMillis: Long): DailyHealthSummary
 
     /** Sessions sharing a `night` are merged into one record (§2.2.3). */
-    fun toSleepRecords(sleeps: List<HcSleep>, zone: ZoneId): List<SleepRecord>
+    fun toSleepRecords(sleeps: List<HcSleep>, zone: TimeZone): List<SleepRecord>
 
     /** Weight and body-fat records taken at the same instant become one measurement. */
-    fun toBodyMeasurements(bodies: List<HcBody>, zone: ZoneId): List<BodyMeasurement>
+    fun toBodyMeasurements(bodies: List<HcBody>, zone: TimeZone): List<BodyMeasurement>
 }
 
 /** The normalized snapshot stored in `activity_source_record.payloadJson` (§2.2.2). */
@@ -124,7 +123,7 @@ class HealthConnectMapper(
 
     override fun toSession(
         exercise: HcExercise,
-        zone: ZoneId,
+        zone: TimeZone,
         nowMillis: Long,
     ): ActivitySession {
         val derived = exercise.derive()
@@ -192,14 +191,14 @@ class HealthConnectMapper(
         updatedAtMillis = updatedAtMillis,
     )
 
-    override fun toSleepRecords(sleeps: List<HcSleep>, zone: ZoneId): List<SleepRecord> = sleeps
+    override fun toSleepRecords(sleeps: List<HcSleep>, zone: TimeZone): List<SleepRecord> = sleeps
         .groupBy { it.endMillis.toLocalDay(zone) }
         .map { (night, group) -> mergeNight(night, group) }
         .sortedBy { it.night }
 
     override fun toBodyMeasurements(
         bodies: List<HcBody>,
-        zone: ZoneId,
+        zone: TimeZone,
     ): List<BodyMeasurement> = bodies
         .groupBy { it.timeMillis }
         .map { (atMillis, group) -> mergeBody(atMillis, group, zone) }
@@ -250,7 +249,7 @@ class HealthConnectMapper(
     private fun mergeBody(
         atMillis: Long,
         group: List<HcBody>,
-        zone: ZoneId,
+        zone: TimeZone,
     ): BodyMeasurement {
         val weight = group.firstOrNull { it.weightKg != null }
         val fat = group.firstOrNull { it.bodyFatPercent != null }
@@ -283,5 +282,4 @@ internal fun Double.roundHalfUp(): Int = floor(this + 0.5).toInt()
 
 private fun Long.toMinutes(): Int = (this / 60_000L).toInt()
 
-internal fun Long.toLocalDay(zone: ZoneId): Long =
-    LocalDate.ofInstant(Instant.ofEpochMilli(this), zone).toEpochDay()
+internal fun Long.toLocalDay(zone: TimeZone): Long = epochMillisToDay(zone)

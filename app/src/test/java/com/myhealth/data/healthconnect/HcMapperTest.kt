@@ -7,6 +7,7 @@ import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.SleepStage
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
+import kotlinx.datetime.TimeZone
 import org.junit.Test
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -20,6 +21,7 @@ import java.time.ZoneId
 class HcMapperTest {
 
     private val zone: ZoneId = ZoneId.of("Europe/Berlin")
+    private val tz: TimeZone = TimeZone.of("Europe/Berlin")
     private val mapper = HealthConnectMapper()
 
     private fun at(iso: String): Long =
@@ -59,7 +61,7 @@ class HcMapperTest {
 
     @Test
     fun hc01_running_session_maps_to_run_outdoor_with_duration_and_day() {
-        val session = mapper.toSession(exercise(), zone, nowMillis = 1_000L)
+        val session = mapper.toSession(exercise(), tz, nowMillis = 1_000L)
 
         assertThat(session.sportType).isEqualTo(SportType.RUN_OUTDOOR)
         assertThat(session.sportGroup).isEqualTo(SportGroup.RUN)
@@ -72,7 +74,7 @@ class HcMapperTest {
 
     @Test
     fun hc02_unknown_exercise_type_falls_back_to_other() {
-        val session = mapper.toSession(exercise(type = 9_999), zone, nowMillis = 0L)
+        val session = mapper.toSession(exercise(type = 9_999), tz, nowMillis = 0L)
 
         assertThat(session.sportType).isEqualTo(SportType.OTHER)
         assertThat(session.sportGroup).isEqualTo(SportGroup.OTHER)
@@ -81,10 +83,10 @@ class HcMapperTest {
     @Test
     fun hc03_soccer_title_spiel_upgrades_to_soccer_match() {
         val type = ExerciseSessionRecord.EXERCISE_TYPE_SOCCER
-        val training = mapper.toSession(exercise(type = type, title = "Fußball"), zone, 0L)
-        val match = mapper.toSession(exercise(type = type, title = "Spiel gegen SV"), zone, 0L)
-        val english = mapper.toSession(exercise(type = type, title = "Cup MATCH"), zone, 0L)
-        val none = mapper.toSession(exercise(type = type, title = null), zone, 0L)
+        val training = mapper.toSession(exercise(type = type, title = "Fußball"), tz, 0L)
+        val match = mapper.toSession(exercise(type = type, title = "Spiel gegen SV"), tz, 0L)
+        val english = mapper.toSession(exercise(type = type, title = "Cup MATCH"), tz, 0L)
+        val none = mapper.toSession(exercise(type = type, title = null), tz, 0L)
 
         assertThat(training.sportType).isEqualTo(SportType.SOCCER_TRAINING)
         assertThat(match.sportType).isEqualTo(SportType.SOCCER_MATCH)
@@ -122,7 +124,7 @@ class HcMapperTest {
     fun hc05_session_crossing_midnight_uses_the_local_day_of_its_start() {
         val session = mapper.toSession(
             exercise(start = "2026-03-01T23:30:00", end = "2026-03-02T00:45:00"),
-            zone,
+            tz,
             nowMillis = 0L,
         )
 
@@ -132,7 +134,7 @@ class HcMapperTest {
 
     @Test
     fun hc06_empty_heart_rate_samples_leave_hr_null_and_no_streams() {
-        val session = mapper.toSession(exercise(), zone, nowMillis = 0L)
+        val session = mapper.toSession(exercise(), tz, nowMillis = 0L)
 
         assertThat(session.avgHr).isNull()
         assertThat(session.maxHr).isNull()
@@ -154,7 +156,7 @@ class HcMapperTest {
                     HcHeartRateSample(start + 2_000, 140),
                 ),
             ),
-            zone,
+            tz,
             nowMillis = 0L,
         )
 
@@ -178,7 +180,7 @@ class HcMapperTest {
                 speedSamples = listOf(HcSample(start, 2.0), HcSample(start + 2_000, 4.0)),
                 cadenceSamples = listOf(HcSample(start + 1_000, 170.0)),
             ),
-            zone,
+            tz,
             nowMillis = 0L,
         )
 
@@ -198,7 +200,7 @@ class HcMapperTest {
                 end = "2026-03-01T11:00:00",
                 distanceMeters = 10_800.0,
             ),
-            zone,
+            tz,
             nowMillis = 0L,
         )
 
@@ -210,10 +212,10 @@ class HcMapperTest {
     fun hc10_kcal_precedence_keeps_active_and_total_in_their_own_channels() {
         val both = mapper.toSession(
             exercise(totalEnergyKcal = 780.0, activeEnergyKcal = 640.0),
-            zone,
+            tz,
             nowMillis = 0L,
         )
-        val totalOnly = mapper.toSession(exercise(totalEnergyKcal = 780.0), zone, nowMillis = 0L)
+        val totalOnly = mapper.toSession(exercise(totalEnergyKcal = 780.0), tz, nowMillis = 0L)
 
         assertThat(both.totalEnergyKcal).isEqualTo(780.0)
         assertThat(both.activeEnergyKcal).isEqualTo(640.0)
@@ -242,7 +244,7 @@ class HcMapperTest {
     @Test
     fun hc12_dedupe_bucket_is_the_sport_group_and_a_five_minute_slot() {
         val start = at("2026-03-01T10:00:00")
-        val session = mapper.toSession(exercise(), zone, nowMillis = 0L)
+        val session = mapper.toSession(exercise(), tz, nowMillis = 0L)
 
         assertThat(session.dedupeBucket).isEqualTo("RUN|${start / 300_000}")
         assertThat(session.userEditedFields).isEmpty()
@@ -312,7 +314,7 @@ class HcMapperTest {
             ),
         )
 
-        val record = mapper.toSleepRecords(listOf(sleep), zone).single()
+        val record = mapper.toSleepRecords(listOf(sleep), tz).single()
 
         assertThat(record.night).isEqualTo(java.time.LocalDate.of(2026, 3, 2).toEpochDay())
         assertThat(record.lightMin).isEqualTo(60)
@@ -360,7 +362,7 @@ class HcMapperTest {
             ),
         )
 
-        val records = mapper.toSleepRecords(listOf(second, first), zone)
+        val records = mapper.toSleepRecords(listOf(second, first), tz)
 
         assertThat(records).hasSize(1)
         val merged = records.single()
@@ -393,7 +395,7 @@ class HcMapperTest {
             ),
         )
 
-        val record = mapper.toSleepRecords(listOf(sleep), zone).single()
+        val record = mapper.toSleepRecords(listOf(sleep), tz).single()
 
         assertThat(record.stages?.first()?.stage).isEqualTo(SleepStage.UNKNOWN)
         assertThat(record.totalSleepMin).isEqualTo(60)
@@ -409,7 +411,7 @@ class HcMapperTest {
             endMillis = at("2026-03-02T06:00:00"),
         )
 
-        val record = mapper.toSleepRecords(listOf(sleep), zone).single()
+        val record = mapper.toSleepRecords(listOf(sleep), tz).single()
 
         assertThat(record.totalSleepMin).isEqualTo(7 * 60)
         assertThat(record.stages).isNull()
@@ -428,7 +430,7 @@ class HcMapperTest {
             HcBody("w-2", "com.garmin", at("2026-03-02T07:15:00"), weightKg = 78.0),
         )
 
-        val measurements = mapper.toBodyMeasurements(bodies, zone)
+        val measurements = mapper.toBodyMeasurements(bodies, tz)
 
         assertThat(measurements).hasSize(2)
         val merged = measurements.first()
@@ -446,12 +448,12 @@ class HcMapperTest {
     fun hc19_rowing_and_rowing_machine_map_to_rowing() {
         val onWater = mapper.toSession(
             exercise(type = ExerciseSessionRecord.EXERCISE_TYPE_ROWING),
-            zone,
+            tz,
             nowMillis = 1_000L,
         )
         val ergo = mapper.toSession(
             exercise(type = ExerciseSessionRecord.EXERCISE_TYPE_ROWING_MACHINE),
-            zone,
+            tz,
             nowMillis = 1_000L,
         )
 

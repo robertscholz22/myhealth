@@ -12,6 +12,7 @@ import com.myhealth.data.db.buildMyHealthDatabase
 import com.myhealth.data.fit.GarminCsvParser
 import com.myhealth.data.healthconnect.HcBackfill
 import com.myhealth.data.healthconnect.HcMapper
+import com.myhealth.data.healthconnect.HcPermissions
 import com.myhealth.data.healthconnect.HcReader
 import com.myhealth.data.healthconnect.HcSyncService
 import com.myhealth.data.healthconnect.HealthConnectMapper
@@ -73,6 +74,7 @@ import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.repository.SyncStateRepository
 import com.myhealth.sync.SyncScheduler
+import com.myhealth.sync.WorkManagerSyncScheduler
 import com.myhealth.ui.camera.DraftStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -364,7 +366,6 @@ class AppGraph(private val app: Application) {
                 bodyRepo = bodyRepo,
                 syncStateRepo = syncStateRepo,
                 clock = clock,
-                zone = zoneId,
             )
         }
     }
@@ -374,7 +375,7 @@ class AppGraph(private val app: Application) {
             HcBackfill(
                 sync = sync,
                 syncStateRepo = syncStateRepo,
-                grantedPermissions = { healthConnect.granted() },
+                historyGranted = { HcPermissions.HISTORY in healthConnect.granted() },
                 clock = clock,
             )
         }
@@ -404,7 +405,7 @@ class AppGraph(private val app: Application) {
 
     /** WorkManager entry point (P2.7); on-demand initialized from [com.myhealth.MyHealthApp]'s
      * `Configuration.Provider` since the default `androidx.startup` initializer is disabled. */
-    val syncScheduler: SyncScheduler by lazy { SyncScheduler(WorkManager.getInstance(app), clock) }
+    val syncScheduler: SyncScheduler by lazy { WorkManagerSyncScheduler(WorkManager.getInstance(app), clock) }
 
     // One lazy val per remaining repository / engine / worker helper is added from P3 onwards.
 }

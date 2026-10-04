@@ -8,6 +8,7 @@ import com.myhealth.domain.util.AppError
 import com.myhealth.domain.util.Outcome
 import com.myhealth.testutil.Fixtures
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.TimeZone
 import org.junit.Test
 import java.time.LocalDate
 import java.time.ZoneId
@@ -36,7 +37,7 @@ class HcSyncServiceTest {
         bodyRepo = bodyRepo,
         syncStateRepo = syncState,
         clock = clock,
-        zone = zone,
+        zone = TimeZone.UTC,
     )
 
     // ---- first run ------------------------------------------------------------------------------
@@ -236,7 +237,7 @@ class HcSyncServiceTest {
     private fun backfill(granted: Set<String> = setOf(HcPermissions.HISTORY)) = HcBackfill(
         sync = sync,
         syncStateRepo = syncState,
-        grantedPermissions = { granted },
+        historyGranted = { HcPermissions.HISTORY in granted },
         clock = clock,
         windowDelayMillis = 250L,
     )

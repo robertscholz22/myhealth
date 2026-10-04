@@ -10,22 +10,6 @@ import com.myhealth.MyHealthApp
 import com.myhealth.domain.model.ImportKind
 import com.myhealth.domain.model.ImportProgress
 
-/** What the Import screen (P7.6) shows for the single import work slot. */
-data class ImportWorkState(
-    val stage: Stage = Stage.IDLE,
-    val parsed: Int = 0,
-    val inserted: Int = 0,
-    val duplicate: Int = 0,
-    val failed: Int = 0,
-    val currentItem: String? = null,
-    /** Failure reason, or the name of the earlier import a duplicate file matched. */
-    val message: String? = null,
-) {
-    enum class Stage { IDLE, RUNNING, DONE, ALREADY_IMPORTED, FAILED }
-
-    val isRunning: Boolean get() = stage == Stage.RUNNING
-}
-
 /**
  * Runs one FIT/CSV/ZIP import off the UI (PLAN P7.5/P7.6): a 100 MB Garmin export takes minutes,
  * so it must survive a rotation or the screen being left — hence a `CoroutineWorker` rather than a

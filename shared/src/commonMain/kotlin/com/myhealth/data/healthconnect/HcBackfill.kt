@@ -1,12 +1,12 @@
 package com.myhealth.data.healthconnect
 
+import com.myhealth.data.time.PlatformClock
+import com.myhealth.data.time.todayEpochDay
 import com.myhealth.domain.repository.SyncKeys
 import com.myhealth.domain.repository.SyncStateRepository
 import com.myhealth.domain.util.AppError
 import com.myhealth.domain.util.Outcome
 import kotlinx.coroutines.delay
-import java.time.Clock
-import java.time.LocalDate
 
 /** What one [HcBackfill.run] call managed to pull in. */
 data class BackfillResult(
@@ -36,19 +36,20 @@ data class BackfillResult(
 class HcBackfill(
     private val sync: HcSyncService,
     private val syncStateRepo: SyncStateRepository,
-    private val grantedPermissions: suspend () -> Set<String>,
-    private val clock: Clock,
+    /** Whether reading data older than 30 days is allowed (`READ_HEALTH_DATA_HISTORY` on Android). */
+    private val historyGranted: suspend () -> Boolean,
+    private val clock: PlatformClock,
     private val windowDelayMillis: Long = WINDOW_DELAY_MILLIS,
 ) {
 
     suspend fun run(fromDay: Long): Outcome<BackfillResult> {
-        if (HcPermissions.HISTORY !in grantedPermissions()) {
+        if (!historyGranted()) {
             val message = "READ_HEALTH_DATA_HISTORY not granted"
             syncStateRepo.recordError(SyncKeys.HC_EXERCISE, clock.millis(), message)
             return Outcome.Err(AppError.HealthConnectPermissionDenied)
         }
 
-        val today = LocalDate.now(clock).toEpochDay()
+        val today = clock.todayEpochDay()
         val watermark = syncStateRepo.get(SyncKeys.HC_EXERCISE)?.backfillCompleteDay
         var toDay = if (watermark != null) minOf(today, watermark - 1) else today
         var result = BackfillResult(completeDay = watermark)

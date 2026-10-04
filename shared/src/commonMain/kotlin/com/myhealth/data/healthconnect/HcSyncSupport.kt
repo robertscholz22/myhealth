@@ -25,7 +25,7 @@ internal fun <T, R> Outcome<T>.map(transform: (T) -> R): Outcome<R> = when (this
     is Outcome.Err -> this
 }
 
-internal fun AppError.describe(): String = when (this) {
+fun AppError.describe(): String = when (this) {
     is AppError.Storage -> "storage: ${cause.message ?: cause::class.simpleName}"
     is AppError.Network -> "network: ${code ?: ""} ${cause?.message ?: ""}".trim()
     AppError.HealthConnectUnavailable -> "Health Connect unavailable"

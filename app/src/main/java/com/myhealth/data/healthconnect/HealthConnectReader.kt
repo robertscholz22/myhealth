@@ -2,11 +2,11 @@ package com.myhealth.data.healthconnect
 
 import android.os.RemoteException
 import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.changes.DeletionChange
+import androidx.health.connect.client.changes.UpsertionChange
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BodyFatRecord
 import androidx.health.connect.client.records.CyclingPedalingCadenceRecord
-import androidx.health.connect.client.changes.DeletionChange
-import androidx.health.connect.client.changes.UpsertionChange
 import androidx.health.connect.client.records.DistanceRecord
 import androidx.health.connect.client.records.ElevationGainedRecord
 import androidx.health.connect.client.records.ExerciseSessionRecord
@@ -30,51 +30,16 @@ import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import com.myhealth.domain.util.AppError
 import com.myhealth.domain.util.Outcome
+import kotlin.reflect.KClass
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toJavaZoneId
 import java.io.IOException
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
-import kotlin.reflect.KClass
-
-/**
- * Everything the app reads out of Health Connect (PLAN P2.2), expressed in the plain DTOs of
- * `HcDto.kt`. An interface so the sync pipeline (P2.6) can be driven by a fake in tests — the
- * real implementation needs a device with a Health Connect provider.
- *
- * Every method returns an [Outcome] instead of throwing, and every read is bounded by an
- * explicit `TimeRangeFilter`.
- */
-interface HcReader {
-
-    /** Exercise sessions overlapping `[from, to)`, each with its own per-session series. */
-    suspend fun readExerciseSessions(from: Instant, to: Instant): Outcome<List<HcExercise>>
-
-    /** One [HcDailySummary] per local day in `[fromDay, toDay]` that has any data at all. */
-    suspend fun readDailySummaries(
-        fromDay: LocalDate,
-        toDay: LocalDate,
-        zone: ZoneId,
-    ): Outcome<List<HcDailySummary>>
-
-    /** Sleep sessions overlapping `[from, to)`, one per Health Connect record (not yet merged). */
-    suspend fun readSleep(from: Instant, to: Instant): Outcome<List<HcSleep>>
-
-    /** Weight and body-fat records in `[from, to)`, one [HcBody] per record. */
-    suspend fun readBody(from: Instant, to: Instant): Outcome<List<HcBody>>
-
-    /**
-     * A fresh changes token covering exactly the record types of [kinds] (amendment A6). Changes
-     * are reported from the moment the token is issued, never retroactively.
-     */
-    suspend fun getChangesToken(kinds: Set<HcRecordKind>): Outcome<String>
-
-    /** One page of changes for [token]; loop while [HcChanges.hasMore] is true. */
-    suspend fun getChanges(token: String): Outcome<HcChanges>
-}
 
 /** The Health Connect record types each [HcRecordKind] subscribes to (P2.2/P2.6). */
 internal fun recordTypesOf(kinds: Set<HcRecordKind>): Set<KClass<out Record>> =
@@ -154,30 +119,36 @@ class HealthConnectReader(
 ) : HcReader {
 
     override suspend fun readExerciseSessions(
-        from: Instant,
-        to: Instant,
+        fromMillis: Long,
+        toMillis: Long,
     ): Outcome<List<HcExercise>> = hcCatching {
         withContext(io) {
-            client.readAllRecords(ExerciseSessionRecord::class, from, to).map { readDetail(it) }
+            client.readAllRecords(ExerciseSessionRecord::class, fromMillis.instant(), toMillis.instant())
+                .map { readDetail(it) }
         }
     }
 
     override suspend fun readDailySummaries(
-        fromDay: LocalDate,
-        toDay: LocalDate,
-        zone: ZoneId,
+        fromDay: Long,
+        toDay: Long,
+        zone: TimeZone,
     ): Outcome<List<HcDailySummary>> = hcCatching {
-        withContext(io) { client.readDailySummaryRange(fromDay, toDay, zone) }
+        withContext(io) {
+            client.readDailySummaryRange(LocalDate.ofEpochDay(fromDay), LocalDate.ofEpochDay(toDay), zone.toJavaZoneId())
+        }
     }
 
-    override suspend fun readSleep(from: Instant, to: Instant): Outcome<List<HcSleep>> =
+    override suspend fun readSleep(fromMillis: Long, toMillis: Long): Outcome<List<HcSleep>> =
         hcCatching {
             withContext(io) {
-                client.readAllRecords(SleepSessionRecord::class, from, to).map { it.toDto() }
+                client.readAllRecords(SleepSessionRecord::class, fromMillis.instant(), toMillis.instant())
+                    .map { it.toDto() }
             }
         }
 
-    override suspend fun readBody(from: Instant, to: Instant): Outcome<List<HcBody>> = hcCatching {
+    override suspend fun readBody(fromMillis: Long, toMillis: Long): Outcome<List<HcBody>> = hcCatching {
+        val from = fromMillis.instant()
+        val to = toMillis.instant()
         withContext(io) {
             val weights = client.readAllRecords(WeightRecord::class, from, to).map { it.toDto() }
             val fats = client.readAllRecords(BodyFatRecord::class, from, to).map { it.toDto() }
@@ -370,3 +341,5 @@ private inline fun optionalSamples(read: () -> List<HcSample>): List<HcSample> =
 /** Sum of [select] over the list, or `null` when the list is empty (no data is not zero). */
 private inline fun <T> List<T>.sumOrNull(select: (T) -> Double): Double? =
     if (isEmpty()) null else sumOf(select)
+
+private fun Long.instant(): Instant = Instant.ofEpochMilli(this)

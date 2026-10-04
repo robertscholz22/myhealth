@@ -3,6 +3,7 @@ package com.myhealth.data.healthconnect
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.domain.model.SportType
+import kotlinx.datetime.TimeZone
 import org.junit.Test
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -15,6 +16,7 @@ import java.time.ZoneId
 class HcMapperPowerTest {
 
     private val zone: ZoneId = ZoneId.of("Europe/Berlin")
+    private val tz: TimeZone = TimeZone.of("Europe/Berlin")
     private val mapper = HealthConnectMapper()
 
     private fun at(iso: String): Long =
@@ -71,7 +73,7 @@ class HcMapperPowerTest {
             pedalCadenceSamples = samples("2026-02-05T16:00:00", count = 12, everySec = 5) { 90.0 },
         )
 
-        val session = mapper.toSession(ride, zone, nowMillis = 1_000L)
+        val session = mapper.toSession(ride, tz, nowMillis = 1_000L)
         val streams = checkNotNull(session.streams)
 
         assertThat(streams.sampleCount).isEqualTo(60)
@@ -111,7 +113,7 @@ class HcMapperPowerTest {
             },
         )
 
-        val session = mapper.toSession(ride, zone, nowMillis = 1_000L)
+        val session = mapper.toSession(ride, tz, nowMillis = 1_000L)
         val streams = checkNotNull(session.streams)
 
         assertThat(session.sportType).isEqualTo(SportType.CYCLING_INDOOR)

@@ -6,56 +6,8 @@ import androidx.work.Data
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.myhealth.MyHealthApp
-import com.myhealth.data.healthconnect.BackfillResult
-import com.myhealth.data.healthconnect.SyncSummary
-import com.myhealth.data.healthconnect.describe
-import com.myhealth.domain.util.AppError
 import com.myhealth.domain.util.Outcome
 import java.time.LocalDate
-
-/**
- * The outcome of one worker run, decoupled from [androidx.work.ListenableWorker.Result] so
- * [mapOutcome] is unit-testable without WorkManager (PLAN P2.7).
- */
-sealed interface WorkerVerdict {
-    data object Success : WorkerVerdict
-    data object Retry : WorkerVerdict
-    data class Failure(val reason: String) : WorkerVerdict
-}
-
-/**
- * `HealthConnectUnavailable` is treated as transient (the provider may still be starting up, or
- * temporarily unbound) and retried with WorkManager's exponential backoff; every other error is a
- * terminal failure carrying its description as the output data reason.
- */
-internal fun mapOutcome(outcome: Outcome<*>): WorkerVerdict = when (outcome) {
-    is Outcome.Ok -> WorkerVerdict.Success
-    is Outcome.Err -> if (outcome.error == AppError.HealthConnectUnavailable) {
-        WorkerVerdict.Retry
-    } else {
-        WorkerVerdict.Failure(outcome.error.describe())
-    }
-}
-
-/**
- * The day [com.myhealth.sync.SyncScheduler.requestLoadRecompute] has to start from: the earliest
- * day this run touched an exercise record on, so an initial sync or a backfill re-derives TRIMP
- * for the whole ingested history and not only for the last 28 days (verification BUG-5).
- * [LoadRecomputeWorker] widens the window by the 28-day EWMA prefix itself.
- */
-internal fun loadRecomputeDay(
-    outcome: Outcome<*>,
-    backfillFromDay: Long?,
-    today: Long,
-): Long {
-    val reported = when (val value = (outcome as? Outcome.Ok)?.value) {
-        is SyncSummary -> value.minAffectedDay
-        is BackfillResult -> value.minAffectedDay
-        else -> null
-    }
-    val fallback = backfillFromDay ?: today
-    return minOf(reported ?: fallback, fallback)
-}
 
 /**
  * `CoroutineWorker` driving Health Connect sync (PLAN P2.7). The graph is pulled from

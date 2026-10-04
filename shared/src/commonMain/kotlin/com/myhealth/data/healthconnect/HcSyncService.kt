@@ -1,5 +1,8 @@
 package com.myhealth.data.healthconnect
 
+import com.myhealth.data.time.PlatformClock
+import com.myhealth.data.time.timeZone
+import com.myhealth.data.time.todayEpochDay
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.repository.ActivityIngestItem
 import com.myhealth.domain.repository.ActivityRepository
@@ -9,10 +12,10 @@ import com.myhealth.domain.repository.SyncKeys
 import com.myhealth.domain.repository.SyncStateRepository
 import com.myhealth.domain.util.AppError
 import com.myhealth.domain.util.Outcome
-import java.time.Clock
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
+import com.myhealth.domain.util.epochDayDate
+import com.myhealth.domain.util.epochMillisToDay
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 
 /** One sync channel: a `sync_state` key, its own changes token and its record types (P2.6). */
 enum class HcSyncChannel(val key: String, val kind: HcRecordKind) {
@@ -82,8 +85,8 @@ class HcSyncService(
     private val healthRepo: HealthRepository,
     private val bodyRepo: BodyRepository,
     private val syncStateRepo: SyncStateRepository,
-    private val clock: Clock,
-    private val zone: ZoneId = clock.zone,
+    private val clock: PlatformClock,
+    private val zone: TimeZone = clock.timeZone,
 ) {
 
     suspend fun syncIncremental(): Outcome<SyncSummary> {
@@ -183,7 +186,7 @@ class HcSyncService(
 
     /** The bounded 30-day read used on the first run and on expiry recovery. */
     private suspend fun fullRead(channel: HcSyncChannel): Outcome<SyncSummary> {
-        val today = LocalDate.now(clock).toEpochDay()
+        val today = clock.todayEpochDay()
         val fromDay = today - (WINDOW_DAYS - 1)
         val summary = when (channel) {
             HcSyncChannel.EXERCISE -> readExercise(fromDay, today)
@@ -202,7 +205,7 @@ class HcSyncService(
      * synced rides would never arrive. Bounded to [days] so it stays a single foreground run.
      */
     suspend fun rereadExerciseDetail(days: Long): Outcome<SyncSummary> {
-        val today = LocalDate.now(clock).toEpochDay()
+        val today = clock.todayEpochDay()
         val outcome = readExercise(today - days.coerceAtLeast(0L), today)
         when (outcome) {
             is Outcome.Ok -> syncStateRepo.recordSuccess(SyncKeys.HC_EXERCISE, clock.millis())
@@ -232,8 +235,8 @@ class HcSyncService(
 
     internal suspend fun readDaily(fromDay: Long, toDay: Long): Outcome<SyncSummary> {
         val read = reader.readDailySummaries(
-            LocalDate.ofEpochDay(fromDay),
-            LocalDate.ofEpochDay(toDay),
+            fromDay,
+            toDay,
             zone,
         )
         if (read is Outcome.Err) return read
@@ -309,7 +312,7 @@ class HcSyncService(
         upserts: List<HcRecordDto>,
         deleted: List<String>,
     ): Outcome<SyncSummary> {
-        val today = LocalDate.now(clock).toEpochDay()
+        val today = clock.todayEpochDay()
         val oldest = today - (WINDOW_DAYS - 1)
         if (upserts.isEmpty() && deleted.isEmpty()) return Outcome.Ok(SyncSummary())
         val changedDays = upserts.filterIsInstance<HcRecordDto.DailyPoint>()
@@ -366,14 +369,13 @@ class HcSyncService(
 
     // ---- helpers ---------------------------------------------------------------------------------
 
-    private fun startOf(day: Long): Instant =
-        LocalDate.ofEpochDay(day).atStartOfDay(zone).toInstant()
+    /** Epoch millis of the start of local [day]. */
+    private fun startOf(day: Long): Long = day.epochDayDate().atStartOfDayIn(zone).toEpochMilliseconds()
 
-    private fun endOf(day: Long): Instant =
-        LocalDate.ofEpochDay(day).plusDays(1).atStartOfDay(zone).toInstant()
+    /** Epoch millis of the start of the local day after [day]. */
+    private fun endOf(day: Long): Long = startOf(day + 1)
 
-    private fun dayOf(millis: Long): Long =
-        LocalDate.ofInstant(Instant.ofEpochMilli(millis), zone).toEpochDay()
+    private fun dayOf(millis: Long): Long = millis.epochMillisToDay(zone)
 
     companion object {
         /** Health Connect only guarantees 30 days without `READ_HEALTH_DATA_HISTORY` (R5). */

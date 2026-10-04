@@ -16,15 +16,8 @@ import java.time.Duration
 import java.time.LocalTime
 import java.util.concurrent.TimeUnit
 
-/** What the Integrations screen (P2.8) shows for one of [SyncScheduler]'s unique work names. */
-sealed interface SyncWorkState {
-    data object Idle : SyncWorkState
-    data object Running : SyncWorkState
-    data class Failed(val reason: String?) : SyncWorkState
-}
-
 /**
- * Schedules and observes [HealthSyncWorker] runs (PLAN P2.7). Three unique work names so the
+ * [SyncScheduler] on WorkManager: schedules and observes [HealthSyncWorker] runs (PLAN P2.7). Three unique work names so the
  * periodic sync, an on-demand "Sync now" and a backfill never collide with each other:
  * - [PERIODIC_NAME]: recurring incremental sync, re-enqueued with [ExistingPeriodicWorkPolicy.UPDATE]
  *   whenever the user changes the sync interval.
@@ -39,12 +32,12 @@ sealed interface SyncWorkState {
  *   burst of writes (a profile save that also logs a weight, a plan edit per session) collapses
  *   into a single recompute.
  */
-class SyncScheduler(
+class WorkManagerSyncScheduler(
     private val workManager: WorkManager,
     private val clock: Clock = Clock.systemDefaultZone(),
-) {
+) : SyncScheduler {
 
-    fun schedulePeriodic(intervalHours: Int) {
+    override fun schedulePeriodic(intervalHours: Int) {
         val request = PeriodicWorkRequestBuilder<HealthSyncWorker>(
             intervalHours.toLong().coerceAtLeast(1L),
             TimeUnit.HOURS,
@@ -55,7 +48,7 @@ class SyncScheduler(
         workManager.enqueueUniquePeriodicWork(PERIODIC_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
     }
 
-    fun syncNow() {
+    override fun syncNow() {
         val request = OneTimeWorkRequestBuilder<HealthSyncWorker>()
             .setConstraints(batteryNotLowConstraints())
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, BACKOFF_MINUTES, TimeUnit.MINUTES)
@@ -63,7 +56,7 @@ class SyncScheduler(
         workManager.enqueueUniqueWork(NOW_NAME, ExistingWorkPolicy.KEEP, request)
     }
 
-    fun backfill(fromDay: Long) {
+    override fun backfill(fromDay: Long) {
         val request = OneTimeWorkRequestBuilder<HealthSyncWorker>()
             .setInputData(workDataOf(HealthSyncWorker.KEY_BACKFILL_FROM_DAY to fromDay))
             .setConstraints(batteryNotLowConstraints())
@@ -77,7 +70,7 @@ class SyncScheduler(
      * when a per-session permission such as `READ_POWER` is granted after the sessions were
      * already synced. [ExistingWorkPolicy.REPLACE] — a second grant supersedes a queued run.
      */
-    fun rereadExerciseDetail(days: Long) {
+    override fun rereadExerciseDetail(days: Long) {
         val request = OneTimeWorkRequestBuilder<HealthSyncWorker>()
             .setInputData(workDataOf(HealthSyncWorker.KEY_REREAD_DAYS to days))
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, BACKOFF_MINUTES, TimeUnit.MINUTES)
@@ -89,7 +82,7 @@ class SyncScheduler(
      * Nutrition targets are recomputed once a day (PLAN P4.12): `[today - 1, today + 7]`, first run
      * at the next 03:00 local so a new day's targets exist before the user wakes up.
      */
-    fun scheduleDailyTargetRecompute() {
+    override fun scheduleDailyTargetRecompute() {
         val request = PeriodicWorkRequestBuilder<TargetRecomputeWorker>(
             TARGET_RECOMPUTE_INTERVAL_HOURS,
             TimeUnit.HOURS,
@@ -111,7 +104,7 @@ class SyncScheduler(
      * [TARGET_RECOMPUTE_DEBOUNCE_SECONDS] initial delay is the debounce: each new request pushes
      * the run out again, so only the last one in a burst actually executes.
      */
-    fun requestTargetRecompute() {
+    override fun requestTargetRecompute() {
         val request = OneTimeWorkRequestBuilder<TargetRecomputeWorker>()
             .setInitialDelay(TARGET_RECOMPUTE_DEBOUNCE_SECONDS, TimeUnit.SECONDS)
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, BACKOFF_MINUTES, TimeUnit.MINUTES)
@@ -120,13 +113,13 @@ class SyncScheduler(
     }
 
     /** State of the last/current target recompute request. */
-    fun observeTargetRecomputeState(): Flow<SyncWorkState> = observeUniqueWork(TARGETS_NOW_NAME)
+    override fun observeTargetRecomputeState(): Flow<SyncWorkState> = observeUniqueWork(TARGETS_NOW_NAME)
 
     /**
      * `daily_load` is also rebuilt once a day (PLAN P5.5), independently of the targets schedule:
      * `[today - 28, today]` at the next [LOAD_RECOMPUTE_HOUR]:00 local.
      */
-    fun scheduleDailyLoadRecompute() {
+    override fun scheduleDailyLoadRecompute() {
         val request = PeriodicWorkRequestBuilder<LoadRecomputeWorker>(
             LOAD_RECOMPUTE_INTERVAL_HOURS,
             TimeUnit.HOURS,
@@ -154,7 +147,7 @@ class SyncScheduler(
      * @param fromDay the earliest day known to be affected; the worker rebuilds
      *   `[fromDay − 28, today]` (the EWMA prefix `LoadSeriesEngine` needs).
      */
-    fun requestLoadRecompute(fromDay: Long) {
+    override fun requestLoadRecompute(fromDay: Long) {
         val request = OneTimeWorkRequestBuilder<LoadRecomputeWorker>()
             .setInputData(workDataOf(LoadRecomputeWorker.KEY_FROM_DAY to fromDay))
             .setInitialDelay(LOAD_RECOMPUTE_DEBOUNCE_SECONDS, TimeUnit.SECONDS)
@@ -164,14 +157,14 @@ class SyncScheduler(
     }
 
     /** State of the last/current load recompute request. */
-    fun observeLoadRecomputeState(): Flow<SyncWorkState> = observeUniqueWork(LOAD_NOW_NAME)
+    override fun observeLoadRecomputeState(): Flow<SyncWorkState> = observeUniqueWork(LOAD_NOW_NAME)
 
     /**
      * Starts one FIT/CSV/ZIP import (P7.5). [ExistingWorkPolicy.REPLACE] so picking a second file
      * while one is running supersedes it rather than queueing behind it, and no battery constraint:
      * the user is standing in front of the screen waiting for this one.
      */
-    fun startImport(uri: String, kind: String, force: Boolean = false) {
+    override fun startImport(uri: String, kind: String, force: Boolean) {
         val request = OneTimeWorkRequestBuilder<ImportWorker>()
             .setInputData(
                 workDataOf(
@@ -185,11 +178,11 @@ class SyncScheduler(
     }
 
     /** Counts and outcome of the last/current import, for the Import screen (P7.6). */
-    fun observeImportState(): Flow<ImportWorkState> =
+    override fun observeImportState(): Flow<ImportWorkState> =
         workManager.getWorkInfosForUniqueWorkFlow(IMPORT_NAME).map { ImportWorker.stateOf(it) }
 
     /** Clears a finished import so its summary stops being shown (e.g. after "Import another"). */
-    fun clearImportState() {
+    override fun clearImportState() {
         workManager.cancelUniqueWork(IMPORT_NAME)
     }
 
@@ -200,10 +193,10 @@ class SyncScheduler(
     internal fun minutesUntilNext(hour: Int): Long = minutesUntilNext(clock, hour)
 
     /** State of the last/current "Sync now" run. */
-    fun observeState(): Flow<SyncWorkState> = observeUniqueWork(NOW_NAME)
+    override fun observeState(): Flow<SyncWorkState> = observeUniqueWork(NOW_NAME)
 
     /** State of the last/current backfill run. */
-    fun observeBackfillState(): Flow<SyncWorkState> = observeUniqueWork(BACKFILL_NAME)
+    override fun observeBackfillState(): Flow<SyncWorkState> = observeUniqueWork(BACKFILL_NAME)
 
     private fun observeUniqueWork(uniqueName: String): Flow<SyncWorkState> =
         workManager.getWorkInfosForUniqueWorkFlow(uniqueName).map { it.toWorkState() }
@@ -227,9 +220,6 @@ class SyncScheduler(
         const val NOW_NAME: String = "hc_sync_now"
         const val BACKFILL_NAME: String = "hc_backfill"
         const val REREAD_NAME: String = "hc_reread_detail"
-
-        /** How far back a newly granted per-session permission re-reads sessions (P12). */
-        const val REREAD_DETAIL_DAYS: Long = 90L
         const val TARGETS_DAILY_NAME: String = "targets_daily"
         const val TARGETS_NOW_NAME: String = "targets_now"
         const val IMPORT_NAME: String = "file_import"

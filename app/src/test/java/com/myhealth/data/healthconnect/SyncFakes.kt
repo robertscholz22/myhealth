@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.datetime.TimeZone
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -55,10 +56,11 @@ class FakeHcReader : HcReader {
     var zone: ZoneId = ZoneId.of("UTC")
 
     override suspend fun readExerciseSessions(
-        from: Instant,
-        to: Instant,
+        fromMillis: Long,
+        toMillis: Long,
     ): Outcome<List<HcExercise>> {
-        exerciseWindows += from to to
+        val from = Instant.ofEpochMilli(fromMillis)
+        exerciseWindows += from to Instant.ofEpochMilli(toMillis)
         if (failExerciseFromDay != null && dayOf(from) == failExerciseFromDay) {
             return Outcome.Err(AppError.HealthConnectUnavailable)
         }
@@ -66,21 +68,21 @@ class FakeHcReader : HcReader {
     }
 
     override suspend fun readDailySummaries(
-        fromDay: LocalDate,
-        toDay: LocalDate,
-        zone: ZoneId,
+        fromDay: Long,
+        toDay: Long,
+        zone: TimeZone,
     ): Outcome<List<HcDailySummary>> {
-        dailyWindows += fromDay to toDay
+        dailyWindows += LocalDate.ofEpochDay(fromDay) to LocalDate.ofEpochDay(toDay)
         return Outcome.Ok(daily)
     }
 
-    override suspend fun readSleep(from: Instant, to: Instant): Outcome<List<HcSleep>> {
-        sleepWindows += from to to
+    override suspend fun readSleep(fromMillis: Long, toMillis: Long): Outcome<List<HcSleep>> {
+        sleepWindows += Instant.ofEpochMilli(fromMillis) to Instant.ofEpochMilli(toMillis)
         return Outcome.Ok(sleeps)
     }
 
-    override suspend fun readBody(from: Instant, to: Instant): Outcome<List<HcBody>> {
-        bodyWindows += from to to
+    override suspend fun readBody(fromMillis: Long, toMillis: Long): Outcome<List<HcBody>> {
+        bodyWindows += Instant.ofEpochMilli(fromMillis) to Instant.ofEpochMilli(toMillis)
         return Outcome.Ok(bodies)
     }
 
