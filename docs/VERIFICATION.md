@@ -637,3 +637,25 @@ Emulator `myhealth_api35`, date 4 Oct 2026; onboarding, then the owner's `myheal
 
 - NOTE-29: the down-week paths (all four reasons, the `DOWN_WEEK` line on every budgeted session, taper protection) are covered by `dw01`…`dw09` on the engine; the owner's real history triggers none of them this week, so the emulator shows only the "no down week" path.
 - NOTE-30: the Load screen's "Not enough training history yet for a reliable ACWR" stays: the rule asks for activity on ≥ 21 of the last 28 days, and the owner trains 3–4 days a week. Pre-existing, unchanged.
+
+
+## Session 23 — 2026-10-04 (emulator, 0.9.2 **release** build: P20.2 data layer in the shared module)
+Emulator `myhealth_api35`, date 4 Oct 2026. Release build (R8) because P20.2 replaced libraries (OkHttp → Ktor, Garmin FIT SDK → own decoder, `ZipInputStream` → own reader). Started from the published **v0.9.1** APK: onboarding, the owner's `myhealth-backup-2026-10-04-pre091.json` (3164 rows) imported with **Replace**, then upgraded in place.
+
+| Step | Result | Evidence |
+|---|---|---|
+| `bash tools/verify.sh` | PASS | 1091 unit tests (2 corpus tests skipped without the env vars; run locally: 22 314 FIT files / 0 differences, both ZIP exports identical), lint clean, release 14.0 MB |
+| `bash tools/connected.sh emulator-5554` | PASS | 26/26 (+ `bug19_oversized_import_errors_are_repaired_without_reading_them`); phone attached, untouched |
+| v0.9.1: Today, Goals, Load → upgrade to 0.9.2 → same screens | PASS | 2510 kcal; "Recent best 21:54 (5 Sep) — behind."; "Predicted 1:40:44 …"; ATL 32 / CTL 36 / ACWR 0.88 — identical |
+| Export on 0.9.1 and on 0.9.2 → JSON diff | PASS | only `appVersion`, `exportedAtMillis` and the start-up recompute's `dailyLoad.computedAtMillis` differ |
+| 0.9.2: import the 0.9.1 export (Replace) → export → diff | PASS | same three fields only |
+| FIT import `ride_power.fit`, `run_5k.fit`; re-pick the ride | PASS | ride: power-only, avg 246 W / NP 255 W, power stream (`p202_fit_ride.png`); run: 5.00 km, 2 laps, TRIMP from HR samples, zones (`p202_fit_run.png`); second pick → "Already imported" |
+| CSV import `garmin_de.csv` | PASS | 3 parsed / 3 saved; "Feierabendrunde, flach" 11 May 17:30, 30.25 km; "Morgenlauf" 10 May 09:00, 10.52 km |
+| Garmin export ZIP (owner's, 155 MB, 22 548 entries) | **FOUND** | BUG-19: Import screen crashed with `SQLiteBlobTooBigException` — reproduced identically with the published v0.9.1 (749 parsed, 21 567 "no session" errors, 3.5 MB `errorsJson`) |
+| BUG-19 fix: v0.9.1 import crash → app stuck → upgrade to fixed 0.9.2 | PASS | Import screen opens again, the row shows "1 errors" (repaired); "Import anyway" on 0.9.2: 749 parsed · 0 saved · 749 duplicates · 0 errors in 36 s — the okio SHA-256 and the new decoder's activity ids match what 0.9.1 stored |
+| Open Food Facts lookup (Ktor, R8) | PASS | 3017620422003 → Nutella, 539 kcal / 6.3 P / 57.5 C / 30.9 F per 100 g (`p202_off_lookup.png`), saved; unknown code → "Product not found in Open Food Facts." + Retry |
+| Settings persist (DataStore) | PASS | sync interval 6 → 12 h and "Track menstrual cycle" on survive a force-stop (Cycle entry appears in More) |
+| Health Connect: grant via the sheet, seeder data, Sync now | PASS | all four streams synced 19:49; seeded "Rennrad" 3 Oct: 40.20 km, HR samples, speed stream, zones (`p202_hc_ride.png`); resting HR and 14 nights of sleep on Body & Health (`p202_body_hc.png`) |
+
+- NOTE-31: `ride_power.fit` (5 Feb 2026 16:25 UTC = 17:25 Berlin) lands next to the owner's CSV Zwift ride (16:25 local) instead of merging with it: the fixture's instant was taken from the owner's ride as UTC. Fixture artefact; matcher and mapper unchanged, decoder output identical to the SDK.
+
