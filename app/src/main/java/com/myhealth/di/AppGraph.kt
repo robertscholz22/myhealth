@@ -252,7 +252,6 @@ class AppGraph(private val app: Application) {
             activityRepo = activityRepo,
             clock = clock,
             onPlanChanged = { suggestionRepo.markProposedStale() },
-            zone = zoneId,
         )
     }
 

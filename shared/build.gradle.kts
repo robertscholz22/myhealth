@@ -29,6 +29,11 @@ kotlin {
             api(libs.kotlinx.serialization.json)
             implementation(libs.okio)
             api(libs.room.runtime)
+            api(libs.datastore.prefs.core)
+            implementation(libs.kotlinx.serialization.json.okio)
+        }
+        androidMain.dependencies {
+            implementation(libs.datastore.prefs)
         }
         iosMain.dependencies {
             implementation(libs.sqlite.bundled)

@@ -51,7 +51,7 @@ class RoomCalendarRepositoryTest {
         activityRepo = activityRepo,
         clock = clock,
         onPlanChanged = { planChangedCount++ },
-        zone = Fixtures.ZONE,
+        zone = Fixtures.TZ,
         ioDispatcher = Dispatchers.Unconfined,
         computeDispatcher = Dispatchers.Unconfined,
     )

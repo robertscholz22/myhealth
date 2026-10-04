@@ -8,11 +8,11 @@ import com.myhealth.domain.util.AppError
 import com.myhealth.domain.util.Outcome
 import com.myhealth.testutil.Fixtures
 import kotlinx.coroutines.test.runTest
+import okio.Buffer
+import okio.ForwardingSink
+import okio.Sink
+import okio.Source
 import org.junit.Test
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.InputStream
-import java.io.OutputStream
 
 /** Export and both import modes of PLAN P8.4, against an in-memory database. */
 class BackupServiceTest {
@@ -253,12 +253,12 @@ private class FakeBackupContent : BackupContentSource {
 
     fun text(): String = String(bytes)
 
-    override suspend fun openInput(uri: String): InputStream = ByteArrayInputStream(bytes)
+    override suspend fun openInput(uri: String): Source = Buffer().write(bytes)
 
-    override suspend fun openOutput(uri: String): OutputStream = object : ByteArrayOutputStream() {
+    override suspend fun openOutput(uri: String): Sink = object : ForwardingSink(Buffer()) {
         override fun close() {
-            bytes = toByteArray()
             super.close()
+            bytes = (delegate as Buffer).readByteArray()
         }
     }
 }
