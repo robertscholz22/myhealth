@@ -4,9 +4,9 @@ import com.google.common.truth.Truth.assertThat
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
+import kotlinx.datetime.TimeZone
 import org.junit.Test
 import java.time.LocalDate
-import java.time.ZoneId
 
 /**
  * The named cases of PLAN P7.2 over the JSON fixtures in
@@ -14,7 +14,7 @@ import java.time.ZoneId
  */
 class FitToDomainMapperTest {
 
-    private val zone = ZoneId.of("Europe/Berlin")
+    private val zone = TimeZone.of("Europe/Berlin")
     private val mapper = FitToDomainMapper()
     private val now = 1_800_000_000_000L
 

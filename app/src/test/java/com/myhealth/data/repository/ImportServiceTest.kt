@@ -7,14 +7,15 @@ import com.myhealth.data.fit.zipOf
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ActivitySourceRecord
 import com.myhealth.domain.model.ImportKind
+import com.myhealth.domain.model.ImportProgress
 import com.myhealth.domain.repository.ActivityIngestItem
 import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.repository.ImportKinds
-import com.myhealth.domain.model.ImportProgress
 import com.myhealth.domain.util.Outcome
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.TimeZone
 import org.junit.Test
 import java.time.Clock
 import java.time.Instant
@@ -45,7 +46,7 @@ class ImportServiceTest {
         content = content,
         activityRepo = repo,
         importRepo = importRepo,
-        csvParser = GarminCsvParser(zone),
+        csvParser = GarminCsvParser(TimeZone.of("Europe/Berlin")),
         clock = clock,
         onImported = { day -> recomputeDays += day },
         ioDispatcher = Dispatchers.Unconfined,
@@ -193,7 +194,7 @@ class ImportServiceTest {
             content = content,
             activityRepo = activityRepo,
             importRepo = undoableRepo,
-            csvParser = GarminCsvParser(zone),
+            csvParser = GarminCsvParser(TimeZone.of("Europe/Berlin")),
             clock = clock,
             onImported = { day -> recomputeDays += day },
             ioDispatcher = Dispatchers.Unconfined,
@@ -259,13 +260,13 @@ class ImportServiceTest {
     fun an_unreadable_document_fails_the_whole_import() = runTest {
         val content = object : ImportContentSource {
             override suspend fun displayName(uri: String) = "gone.fit"
-            override suspend fun openStream(uri: String) = throw java.io.IOException("no such file")
+            override suspend fun openSource(uri: String): okio.Source = throw java.io.IOException("no such file")
         }
         val service = ImportService(
             content = content,
             activityRepo = activityRepo,
             importRepo = importRepo,
-            csvParser = GarminCsvParser(zone),
+            csvParser = GarminCsvParser(TimeZone.of("Europe/Berlin")),
             clock = clock,
             ioDispatcher = Dispatchers.Unconfined,
         )

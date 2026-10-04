@@ -102,14 +102,7 @@
 -keep class androidx.camera.** { *; }
 -dontwarn androidx.camera.**
 
-# ---- Garmin FIT SDK (P7.1) -----------------------------------------------------------------------
-# The SDK builds its message profiles from generated tables and reads them reflectively; R8 must
-# not rename or strip any of it.
-
--keep class com.garmin.fit.** { *; }
--dontwarn com.garmin.fit.**
-
-# ---- OkHttp (Open Food Facts client, P4.10) -------------------------------------------------------
+# ---- OkHttp (Ktor engine of the Open Food Facts client, P4.10/P20.2) ------------------------------
 
 -dontwarn okhttp3.**
 -dontwarn okio.**

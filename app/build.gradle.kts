@@ -110,8 +110,8 @@ dependencies {
 
     // P4.10 — Open Food Facts client.
 
-    // P7.1 — Garmin FIT SDK (com.garmin:fit) for .fit file decoding.
-    implementation(libs.garmin.fit)
+    // P7.1 — Garmin FIT SDK: since P20.2 only the oracle for the shared FIT decoder.
+    testImplementation(libs.garmin.fit)
 
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)

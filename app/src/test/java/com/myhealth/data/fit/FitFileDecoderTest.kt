@@ -4,13 +4,12 @@ import com.google.common.truth.Truth.assertThat
 import com.myhealth.domain.model.SportType
 import com.myhealth.domain.util.AppError
 import com.myhealth.domain.util.Outcome
+import kotlinx.datetime.TimeZone
 import org.junit.Test
-import java.io.ByteArrayInputStream
-import java.time.ZoneId
 
 /**
- * Exercises the real Garmin SDK decoder against the binary fixture built by [RunFixtureEncoder]
- * (PLAN P7.1/P7.2). The SDK is plain Java, so `Decode` runs on the JVM without an emulator.
+ * Exercises the shared FIT decoder (P20.2; the Garmin SDK until then) against the binary fixture
+ * built by [RunFixtureEncoder] (PLAN P7.1/P7.2).
  */
 class FitFileDecoderTest {
 
@@ -18,7 +17,7 @@ class FitFileDecoderTest {
 
     private fun decodeFixture(): FitFileData {
         val bytes = RunFixtureEncoder.ensure().readBytes()
-        return when (val outcome = decoder.decode(ByteArrayInputStream(bytes))) {
+        return when (val outcome = decoder.decode(bytes)) {
             is Outcome.Ok -> outcome.value
             is Outcome.Err -> error("Decoding run_5k.fit failed: ${outcome.error}")
         }
@@ -64,7 +63,7 @@ class FitFileDecoderTest {
     fun the_decoded_fixture_maps_to_one_5k_running_activity() {
         val items = FitToDomainMapper().toIngestItems(
             decodeFixture(),
-            ZoneId.of("Europe/Berlin"),
+            TimeZone.of("Europe/Berlin"),
             nowMillis = 1_800_000_000_000L,
         )
 
@@ -87,7 +86,7 @@ class FitFileDecoderTest {
     @Test
     fun bike05_fit_power_stream_and_session_fields() {
         val bytes = RidePowerFixtureEncoder.ensure().readBytes()
-        val data = when (val outcome = decoder.decode(ByteArrayInputStream(bytes))) {
+        val data = when (val outcome = decoder.decode(bytes)) {
             is Outcome.Ok -> outcome.value
             is Outcome.Err -> error("Decoding ride_power.fit failed: ${outcome.error}")
         }
@@ -103,7 +102,7 @@ class FitFileDecoderTest {
 
         val session = FitToDomainMapper().toIngestItems(
             data,
-            ZoneId.of("Europe/Berlin"),
+            TimeZone.of("Europe/Berlin"),
             nowMillis = 1_800_000_000_000L,
         ).single().session
 
@@ -127,7 +126,7 @@ class FitFileDecoderTest {
 
     @Test
     fun a_stream_that_is_not_a_fit_file_becomes_a_parse_error() {
-        val outcome = decoder.decode(ByteArrayInputStream(ByteArray(64) { 0x7 }))
+        val outcome = decoder.decode(ByteArray(64) { 0x7 })
 
         assertThat(outcome).isInstanceOf(Outcome.Err::class.java)
         assertThat((outcome as Outcome.Err).error).isInstanceOf(AppError.Parse::class.java)

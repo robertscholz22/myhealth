@@ -1,8 +1,6 @@
 package com.myhealth.data.fit
 
-import java.io.FilterInputStream
-import java.io.InputStream
-import java.util.zip.ZipInputStream
+import okio.BufferedSource
 
 /** What a yielded archive entry is: the two file kinds the import pipeline understands. */
 enum class ArchiveEntryKind { FIT, CSV }
@@ -38,7 +36,8 @@ data class ArchiveWalkResult(
  *
  * The archive's own layout is deliberately not assumed: the upload folder under `DI_CONNECT/`
  * is named differently in every export vintage, so the walker just recurses — any entry ending in
- * `.zip` is opened as a nested [ZipInputStream] in place, without buffering it.
+ * `.zip` is opened as a nested [ZipStreamReader] in place, without buffering it (P20.2: the
+ * common reader replaces `java.util.zip.ZipInputStream`).
  *
  * Guards, because this reads a file the user picked:
  * - nesting depth ≤ [maxDepth]; a deeper archive is recorded and skipped, not opened,
@@ -55,7 +54,7 @@ class GarminArchiveWalker(
     private val maxTotalBytes: Long = DEFAULT_MAX_TOTAL_BYTES,
 ) {
 
-    suspend fun walk(input: InputStream, onEntry: suspend (ArchiveEntry) -> Unit): ArchiveWalkResult {
+    suspend fun walk(input: BufferedSource, onEntry: suspend (ArchiveEntry) -> Unit): ArchiveWalkResult {
         val state = State()
         state.visit(input, depth = 1, prefix = "", onEntry = onEntry)
         return state.toResult()
@@ -79,30 +78,26 @@ class GarminArchiveWalker(
         )
 
         suspend fun visit(
-            input: InputStream,
+            input: BufferedSource,
             depth: Int,
             prefix: String,
             onEntry: suspend (ArchiveEntry) -> Unit,
         ) {
-            val zip = ZipInputStream(input)
+            val zip = ZipStreamReader(input)
             while (!truncated) {
-                val entry = zip.nextEntry ?: break
+                val entry = zip.nextEntry() ?: break
                 val path = prefix + entry.name
-                if (entry.isDirectory) {
-                    zip.closeEntry()
-                    continue
-                }
+                if (entry.isDirectory) continue
                 if (!isSafePath(entry.name)) {
                     rejected += path
-                    zip.closeEntry()
                     continue
                 }
                 when (kindOf(entry.name)) {
-                    ArchiveEntryKind.FIT -> readEntry(zip, path)?.let {
+                    ArchiveEntryKind.FIT -> readEntry(entry.data, path)?.let {
                         fitCount++
                         onEntry(ArchiveEntry(path, ArchiveEntryKind.FIT, it))
                     }
-                    ArchiveEntryKind.CSV -> readEntry(zip, path)?.let {
+                    ArchiveEntryKind.CSV -> readEntry(entry.data, path)?.let {
                         csvCount++
                         onEntry(ArchiveEntry(path, ArchiveEntryKind.CSV, it))
                     }
@@ -111,41 +106,34 @@ class GarminArchiveWalker(
                             depthSkipped += path
                         } else {
                             // Recurse on the entry stream itself: the nested archive is never
-                            // buffered, and the inner reader must not close the outer one.
-                            visit(NonClosing(zip), depth + 1, "$path!/", onEntry)
+                            // buffered; the next nextEntry() skips whatever the inner walk left.
+                            visit(entry.data, depth + 1, "$path!/", onEntry)
                         }
                     }
                 }
-                zip.closeEntry()
             }
         }
 
         /** Reads one entry under the remaining byte budget; `null` once the budget is spent. */
-        fun readEntry(zip: ZipInputStream, path: String): ByteArray? {
-            val buffer = ByteArray(COPY_BUFFER_BYTES)
-            val out = java.io.ByteArrayOutputStream()
+        fun readEntry(data: BufferedSource, path: String): ByteArray? {
+            val out = okio.Buffer()
             while (true) {
-                val read = zip.read(buffer)
+                val read = data.read(out, COPY_BUFFER_BYTES)
                 if (read <= 0) break
                 totalBytes += read
                 if (totalBytes > maxTotalBytes) {
                     truncated = true
                     return null
                 }
-                out.write(buffer, 0, read)
             }
-            return out.toByteArray().also { require(path.isNotEmpty()) }
+            return out.readByteArray().also { require(path.isNotEmpty()) }
         }
-    }
-
-    private class NonClosing(stream: InputStream) : FilterInputStream(stream) {
-        override fun close() = Unit
     }
 
     companion object {
         const val DEFAULT_MAX_DEPTH: Int = 3
         const val DEFAULT_MAX_TOTAL_BYTES: Long = 500L * 1024 * 1024
-        private const val COPY_BUFFER_BYTES = 32 * 1024
+        private const val COPY_BUFFER_BYTES = 32L * 1024
 
         fun kindOf(name: String): ArchiveEntryKind? = when {
             name.endsWith(".fit", ignoreCase = true) -> ArchiveEntryKind.FIT

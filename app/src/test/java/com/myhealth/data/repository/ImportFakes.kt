@@ -1,5 +1,6 @@
 package com.myhealth.data.repository
 
+import com.myhealth.data.db.dao.ImportDao
 import com.myhealth.data.db.entity.ImportRecordEntity
 import com.myhealth.domain.model.ActivitySession
 import com.myhealth.domain.model.ActivitySource
@@ -11,15 +12,14 @@ import com.myhealth.domain.model.SportType
 import com.myhealth.domain.repository.ActivityIngestItem
 import com.myhealth.domain.repository.ActivityRepository
 import com.myhealth.domain.repository.ImportRepository
-import com.myhealth.data.db.dao.ImportDao
 import com.myhealth.domain.repository.IngestResult
 import com.myhealth.domain.util.AppError
 import com.myhealth.domain.util.Outcome
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
-import java.io.ByteArrayInputStream
-import java.io.InputStream
+import okio.Buffer
+import okio.Source
 
 /** Hands [ImportService] a fixed byte array instead of a `content://` document. */
 class FakeImportContentSource(
@@ -31,9 +31,9 @@ class FakeImportContentSource(
 
     override suspend fun displayName(uri: String): String = fileName
 
-    override suspend fun openStream(uri: String): InputStream {
+    override suspend fun openSource(uri: String): Source {
         opened++
-        return ByteArrayInputStream(bytes)
+        return Buffer().write(bytes)
     }
 }
 

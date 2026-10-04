@@ -3,11 +3,11 @@ package com.myhealth.data.fit
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.SportType
+import kotlinx.datetime.TimeZone
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.File
 import java.security.MessageDigest
-import java.time.ZoneId
 
 /**
  * The named cases of PLAN P7.3 over the three fixtures in
@@ -16,7 +16,7 @@ import java.time.ZoneId
  */
 class GarminCsvParserTest {
 
-    private val zone = ZoneId.of("Europe/Berlin")
+    private val zone = TimeZone.of("Europe/Berlin")
     private val parser = GarminCsvParser(zone)
 
     private fun parse(name: String) = parser.parse(loadCsvFixture(name))

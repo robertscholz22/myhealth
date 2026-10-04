@@ -18,7 +18,10 @@ import com.myhealth.domain.util.Outcome
 import java.io.InputStream
 
 /**
- * The only place in the app that touches the Garmin FIT SDK (PLAN P7.1).
+ * The Garmin-FIT-SDK decoder the app used until P20.2, kept as the oracle for the shared
+ * [FitFileDecoder] (`FitDecoderOracleTest`). Unchanged apart from the name.
+ *
+ * Original KDoc: the only place in the app that touches the Garmin FIT SDK (PLAN P7.1).
  *
  * `Decode` pushes every message into a [MesgBroadcaster], which fans them out to the typed
  * listeners registered below; each listener copies the handful of fields the app needs into the
@@ -29,7 +32,7 @@ import java.io.InputStream
  * [AppError.Parse] rather than propagating — one bad file inside a Garmin export ZIP must not
  * abort the whole import (P7.5).
  */
-class FitFileDecoder {
+class SdkFitFileDecoder {
 
     fun decode(input: InputStream): Outcome<FitFileData> = try {
         Outcome.Ok(decodeOrThrow(input))

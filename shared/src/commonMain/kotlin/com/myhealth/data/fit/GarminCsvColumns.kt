@@ -1,11 +1,14 @@
 package com.myhealth.data.fit
 
 import com.myhealth.domain.model.SportType
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
 
 /**
  * The vocabulary and cell grammar [GarminCsvParser] reads Garmin's activity CSV with (PLAN P7.3).
@@ -119,7 +122,7 @@ private fun foldGerman(raw: String): String = raw.lowercase()
 // ---- cell parsing ---------------------------------------------------------------------------
 
 /** Decimal separator convention of one file, inferred from the numbers the file actually holds. */
-internal enum class NumberStyle {
+enum class NumberStyle {
     ENGLISH,
     GERMAN,
     ;
@@ -211,7 +214,7 @@ internal enum class NumberStyle {
 }
 
 /** `h:mm:ss`, `mm:ss` or plain seconds; fractional seconds (`00:09:53.7`) are truncated. */
-internal fun parseDuration(raw: String, style: NumberStyle = NumberStyle.ENGLISH): Int? {
+fun parseDuration(raw: String, style: NumberStyle = NumberStyle.ENGLISH): Int? {
     val value = raw.trim()
     if (':' !in value) return style.parse(value)?.toInt()
     val parts = value.split(':')
@@ -226,31 +229,68 @@ internal fun parseDuration(raw: String, style: NumberStyle = NumberStyle.ENGLISH
     return seconds.toInt()
 }
 
-internal val DATE_FORMATS: List<DateTimeFormatter> = listOf(
-    "yyyy-MM-dd HH:mm:ss",
-    "yyyy-MM-dd HH:mm",
-    "dd.MM.yyyy HH:mm:ss",
-    "dd.MM.yyyy HH:mm",
-    "dd/MM/yyyy HH:mm:ss",
-    "MM/dd/yyyy HH:mm:ss",
-    "yyyy-MM-dd'T'HH:mm:ss",
-).map { DateTimeFormatter.ofPattern(it) }
+/**
+ * The date-time layouts Garmin exports use, tried in this order. Each was a `java.time`
+ * `DateTimeFormatter.ofPattern` until P20.2: `(y, M, d)` are the regex groups holding year, month
+ * and day; every layout has hour and minute after them and optionally seconds.
+ */
+private class DateLayout(pattern: String, val y: Int, val m: Int, val d: Int) {
+    val regex = Regex(pattern)
+}
+
+private val DATE_LAYOUTS: List<DateLayout> = listOf(
+    DateLayout("""(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})""", 1, 2, 3), // yyyy-MM-dd HH:mm:ss
+    DateLayout("""(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})()""", 1, 2, 3), // yyyy-MM-dd HH:mm
+    DateLayout("""(\d{2})\.(\d{2})\.(\d{4}) (\d{2}):(\d{2}):(\d{2})""", 3, 2, 1), // dd.MM.yyyy HH:mm:ss
+    DateLayout("""(\d{2})\.(\d{2})\.(\d{4}) (\d{2}):(\d{2})()""", 3, 2, 1), // dd.MM.yyyy HH:mm
+    DateLayout("""(\d{2})/(\d{2})/(\d{4}) (\d{2}):(\d{2}):(\d{2})""", 3, 2, 1), // dd/MM/yyyy HH:mm:ss
+    DateLayout("""(\d{2})/(\d{2})/(\d{4}) (\d{2}):(\d{2}):(\d{2})""", 3, 1, 2), // MM/dd/yyyy HH:mm:ss
+    DateLayout("""(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})""", 1, 2, 3), // yyyy-MM-dd'T'HH:mm:ss
+)
+
+private val ISO_DATE = Regex("""(\d{4})-(\d{2})-(\d{2})""")
 
 /** Garmin writes wall-clock local time with no offset, so the app's zone supplies it. */
-internal fun parseDateTime(raw: String, zone: ZoneId): Long? {
+fun parseDateTime(raw: String, zone: TimeZone): Long? {
     val value = raw.trim().removeSuffix("Z")
-    for (format in DATE_FORMATS) {
-        try {
-            return LocalDateTime.parse(value, format).atZone(zone).toInstant().toEpochMilli()
-        } catch (_: DateTimeParseException) {
-            // Try the next known layout.
-        }
+    for (layout in DATE_LAYOUTS) {
+        val groups = layout.regex.matchEntire(value)?.groupValues ?: continue
+        val local = resolveSmart(
+            year = groups[layout.y].toInt(),
+            month = groups[layout.m].toInt(),
+            day = groups[layout.d].toInt(),
+            hour = groups[4].toInt(),
+            minute = groups[5].toInt(),
+            second = groups[6].ifEmpty { "0" }.toInt(),
+        ) ?: continue
+        return local.toInstant(zone).toEpochMilliseconds()
     }
-    return try {
-        LocalDate.parse(value).atStartOfDay(zone).toInstant().toEpochMilli()
-    } catch (_: DateTimeParseException) {
-        null
+    // ISO date alone, resolved strictly as `LocalDate.parse` does.
+    val groups = ISO_DATE.matchEntire(value)?.groupValues ?: return null
+    val (year, month, day) = groups.drop(1).map { it.toInt() }
+    if (month !in 1..12 || day !in 1..daysIn(year, month)) return null
+    return LocalDate(year, month, day).atStartOfDayIn(zone).toEpochMilliseconds()
+}
+
+/**
+ * `java.time`'s SMART resolution, which the `ofPattern` formatters used: a day of 29–31 past the
+ * month's end is moved back to its last day, `24:00:00` is midnight of the next day, every other
+ * out-of-range field rejects the layout.
+ */
+private fun resolveSmart(year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int): LocalDateTime? {
+    if (month !in 1..12 || day !in 1..31 || minute !in 0..59 || second !in 0..59) return null
+    val date = LocalDate(year, month, minOf(day, daysIn(year, month)))
+    return when (hour) {
+        in 0..23 -> LocalDateTime(date, LocalTime(hour, minute, second))
+        24 -> if (minute == 0 && second == 0) LocalDateTime(date.plus(1, DateTimeUnit.DAY), LocalTime(0, 0)) else null
+        else -> null
     }
+}
+
+private fun daysIn(year: Int, month: Int): Int = when (month) {
+    2 -> if (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) 29 else 28
+    4, 6, 9, 11 -> 30
+    else -> 31
 }
 
 /** RFC-4180 splitting: quoted fields may contain commas, and `""` is a literal quote. */
@@ -285,7 +325,7 @@ internal fun splitCsvLine(line: String): List<String> {
  * Lookup is case- and diacritic-insensitive and ignores punctuation, so "Fußball", "FUSSBALL" and
  * "Indoor-Radfahren" all resolve ("indoor radfahren" is the normalised key).
  */
-internal object GarminActivityTypeMap {
+object GarminActivityTypeMap {
 
     fun toSportType(raw: String?): SportType {
         val key = raw?.let { normalizeHeader(it) }.orEmpty()

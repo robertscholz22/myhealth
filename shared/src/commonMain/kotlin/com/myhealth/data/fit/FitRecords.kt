@@ -1,5 +1,6 @@
 package com.myhealth.data.fit
 
+import kotlin.math.roundToLong
 import kotlinx.serialization.Serializable
 
 /**
@@ -121,5 +122,5 @@ object Semicircles {
     fun toDegrees(semicircles: Int): Double = semicircles * DEGREES_PER_SEMICIRCLE
 
     /** The `1e7 * degrees` integer the domain's [com.myhealth.domain.model.GeoPoint] stores. */
-    fun toE7(semicircles: Int): Int = Math.round(toDegrees(semicircles) * 1e7).toInt()
+    fun toE7(semicircles: Int): Int = (toDegrees(semicircles) * 1e7).roundToLong().toInt()
 }

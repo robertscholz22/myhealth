@@ -1,12 +1,15 @@
 package com.myhealth.di
 
 import android.app.Application
-import com.myhealth.BuildConfig
-import androidx.work.WorkManager
 import androidx.room.withTransaction
+import androidx.work.WorkManager
+import com.myhealth.BuildConfig
 import com.myhealth.data.backup.AndroidBackupContentSource
 import com.myhealth.data.backup.BackupService
 import com.myhealth.data.db.MyHealthDatabase
+import com.myhealth.data.db.RoomTransactionRunner
+import com.myhealth.data.db.buildMyHealthDatabase
+import com.myhealth.data.fit.GarminCsvParser
 import com.myhealth.data.healthconnect.HcBackfill
 import com.myhealth.data.healthconnect.HcMapper
 import com.myhealth.data.healthconnect.HcReader
@@ -14,7 +17,6 @@ import com.myhealth.data.healthconnect.HcSyncService
 import com.myhealth.data.healthconnect.HealthConnectMapper
 import com.myhealth.data.healthconnect.HealthConnectProvider
 import com.myhealth.data.healthconnect.HealthConnectReader
-import com.myhealth.data.fit.GarminCsvParser
 import com.myhealth.data.ocr.MlKitBarcodeSource
 import com.myhealth.data.ocr.MlKitTextSource
 import com.myhealth.data.off.OffClient
@@ -23,13 +25,13 @@ import com.myhealth.data.prefs.DataStoreSettingsRepository
 import com.myhealth.data.repository.ActivityIngestor
 import com.myhealth.data.repository.AndroidImportContentSource
 import com.myhealth.data.repository.ImportService
+import com.myhealth.data.repository.LoadRecomputeService
 import com.myhealth.data.repository.RoomActivityRepository
+import com.myhealth.data.repository.RoomBodyRepository
 import com.myhealth.data.repository.RoomCalendarRepository
 import com.myhealth.data.repository.RoomCycleRepository
-import com.myhealth.data.repository.RoomBodyRepository
 import com.myhealth.data.repository.RoomGoalRepository
 import com.myhealth.data.repository.RoomHealthRepository
-import com.myhealth.data.repository.LoadRecomputeService
 import com.myhealth.data.repository.RoomImportRepository
 import com.myhealth.data.repository.RoomIngredientRepository
 import com.myhealth.data.repository.RoomLoadRepository
@@ -41,10 +43,9 @@ import com.myhealth.data.repository.RoomRideBestRepository
 import com.myhealth.data.repository.RoomRunningBestRepository
 import com.myhealth.data.repository.RoomStrengthRepository
 import com.myhealth.data.repository.RoomSuggestionRepository
-import com.myhealth.data.repository.StrengthWorkoutSeeder
 import com.myhealth.data.repository.RoomSyncStateRepository
-import com.myhealth.data.db.RoomTransactionRunner
-import com.myhealth.data.db.buildMyHealthDatabase
+import com.myhealth.data.repository.StrengthWorkoutSeeder
+import com.myhealth.data.time.timeZone
 import com.myhealth.domain.engine.calendar.EventActivityLinker
 import com.myhealth.domain.engine.nutrition.NutritionTargetEngine
 import com.myhealth.domain.engine.strength.EquipmentSetCodec
@@ -310,7 +311,7 @@ class AppGraph(private val app: Application) {
             content = AndroidImportContentSource(app),
             activityRepo = activityRepo,
             importRepo = importRepo,
-            csvParser = GarminCsvParser(zoneId),
+            csvParser = GarminCsvParser(clock.timeZone),
             clock = clock,
             onImported = { day -> syncScheduler.requestLoadRecompute(day) },
         )

@@ -9,13 +9,13 @@ import com.myhealth.domain.model.Lap
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
 import com.myhealth.domain.repository.ActivityIngestItem
+import com.myhealth.domain.util.epochMillisToDay
+import kotlin.math.floor
+import kotlinx.datetime.TimeZone
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.security.MessageDigest
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import kotlin.math.floor
+import okio.ByteString.Companion.encodeUtf8
+import okio.ByteString.Companion.toByteString
 
 /** The normalized snapshot stored in `activity_source_record.payloadJson` (§2.2.2) for a FIT file. */
 @Serializable
@@ -42,7 +42,7 @@ class FitToDomainMapper(
 
     fun toIngestItems(
         data: FitFileData,
-        zone: ZoneId,
+        zone: TimeZone,
         nowMillis: Long,
     ): List<ActivityIngestItem> = data.sessions.map { session ->
         val externalId = externalId(data.fileId, session.startAtMillis)
@@ -97,7 +97,7 @@ class FitToDomainMapper(
         endAtMillis: Long,
         records: List<FitRecord>,
         laps: List<FitLap>,
-        zone: ZoneId,
+        zone: TimeZone,
         nowMillis: Long,
     ): ActivitySession {
         val sportType = FitSportMap.toSportType(session.sport, session.subSport)
@@ -112,7 +112,7 @@ class FitToDomainMapper(
             id = 0L,
             startAtMillis = start,
             endAtMillis = endAtMillis,
-            day = start.toLocalDay(zone),
+            day = start.epochMillisToDay(zone),
             sportType = sportType,
             sportGroup = group,
             // FIT has no free-text title; the sport profile name ("Trail Run") is the closest thing.
@@ -242,11 +242,9 @@ class FitToDomainMapper(
 /** SHA-256 as lowercase hex — the `externalId`/file-hash primitive of §2.4 and P7.5. */
 internal object Sha256 {
 
-    fun hex(input: String): String = hex(input.toByteArray(Charsets.UTF_8))
+    fun hex(input: String): String = input.encodeUtf8().sha256().hex()
 
-    fun hex(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
-        .digest(bytes)
-        .joinToString("") { "%02x".format(it) }
+    fun hex(bytes: ByteArray): String = bytes.toByteString().sha256().hex()
 }
 
 private fun List<Double?>.carryForward(): DoubleArray? {
@@ -272,6 +270,3 @@ private fun List<Int>.medianInterval(): Double {
 
 /** Half-up rounding (§3 preamble, amendment A4) — `kotlin.math.round` is half-to-even. */
 private fun Double.roundHalfUp(): Int = floor(this + 0.5).toInt()
-
-private fun Long.toLocalDay(zone: ZoneId): Long =
-    LocalDate.ofInstant(Instant.ofEpochMilli(this), zone).toEpochDay()

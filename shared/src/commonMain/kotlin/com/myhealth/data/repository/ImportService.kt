@@ -1,61 +1,47 @@
 package com.myhealth.data.repository
 
-import android.content.Context
-import android.net.Uri
-import android.provider.OpenableColumns
 import com.myhealth.data.fit.ArchiveEntryKind
 import com.myhealth.data.fit.FitFileDecoder
 import com.myhealth.data.fit.FitToDomainMapper
 import com.myhealth.data.fit.GarminArchiveWalker
 import com.myhealth.data.fit.GarminCsvParser
+import com.myhealth.data.time.PlatformClock
+import com.myhealth.data.time.timeZone
+import com.myhealth.domain.model.ImportCounts
+import com.myhealth.domain.model.ImportItemError
 import com.myhealth.domain.model.ImportKind
+import com.myhealth.domain.model.ImportProgress
 import com.myhealth.domain.model.ImportRecord
 import com.myhealth.domain.repository.ActivityImporter
 import com.myhealth.domain.repository.ActivityIngestItem
 import com.myhealth.domain.repository.ActivityRepository
-import com.myhealth.domain.model.ImportCounts
-import com.myhealth.domain.model.ImportItemError
-import com.myhealth.domain.model.ImportProgress
 import com.myhealth.domain.repository.ImportRepository
 import com.myhealth.domain.util.AppError
 import com.myhealth.domain.util.Outcome
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.io.ByteArrayInputStream
-import java.io.InputStream
-import java.security.DigestInputStream
-import java.security.MessageDigest
-import java.time.Clock
+import okio.BufferedSource
+import okio.HashingSink
+import okio.Source
+import okio.blackholeSink
+import okio.buffer
+import okio.use
 
-/** Where an import reads its bytes from — the seam that keeps [ImportService] testable. */
+/**
+ * Where an import reads its bytes from — the seam that keeps [ImportService] testable. P20.2: an
+ * okio [Source] instead of `java.io.InputStream`; the Android implementation is
+ * `AndroidImportContentSource` (androidMain).
+ */
 interface ImportContentSource {
     suspend fun displayName(uri: String): String
-    suspend fun openStream(uri: String): InputStream
-}
-
-/** `content://` documents handed over by `OpenDocument` or the share sheet (P7.6). */
-class AndroidImportContentSource(private val context: Context) : ImportContentSource {
-
-    override suspend fun displayName(uri: String): String {
-        val parsed = Uri.parse(uri)
-        context.contentResolver
-            .query(parsed, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
-            ?.use { cursor ->
-                if (cursor.moveToFirst() && !cursor.isNull(0)) return cursor.getString(0)
-            }
-        return parsed.lastPathSegment?.substringAfterLast('/') ?: uri
-    }
-
-    override suspend fun openStream(uri: String): InputStream =
-        checkNotNull(context.contentResolver.openInputStream(Uri.parse(uri))) {
-            "Could not open $uri"
-        }
+    suspend fun openSource(uri: String): Source
 }
 
 @Serializable
@@ -81,7 +67,7 @@ class ImportService(
     private val activityRepo: ActivityRepository,
     private val importRepo: ImportRepository,
     private val csvParser: GarminCsvParser,
-    private val clock: Clock,
+    private val clock: PlatformClock,
     private val fitDecoder: FitFileDecoder = FitFileDecoder(),
     private val fitMapper: FitToDomainMapper = FitToDomainMapper(),
     private val walker: GarminArchiveWalker = GarminArchiveWalker(),
@@ -114,7 +100,7 @@ class ImportService(
 
         val run = Run(this, kind, importId)
         try {
-            content.openStream(uri).use { stream -> run.consume(stream, fileName) }
+            content.openSource(uri).buffer().use { stream -> run.consume(stream, fileName) }
             run.flush()
         } catch (e: Exception) {
             // Nothing usable was written, so the checksum must not be remembered.
@@ -149,16 +135,9 @@ class ImportService(
     }
 
     private suspend fun hashOf(uri: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        content.openStream(uri).use { stream ->
-            DigestInputStream(stream, digest).use { hashing ->
-                val buffer = ByteArray(HASH_BUFFER_BYTES)
-                while (hashing.read(buffer) > 0) {
-                    // The digest is updated by the stream itself.
-                }
-            }
-        }
-        return digest.digest().joinToString("") { "%02x".format(it) }
+        val hashing = HashingSink.sha256(blackholeSink())
+        content.openSource(uri).buffer().use { it.readAll(hashing) }
+        return hashing.hash.hex()
     }
 
     /** One import in flight: the ingest buffer, the running counts and the per-item errors. */
@@ -172,9 +151,9 @@ class ImportService(
         private var counts = ImportCounts()
         private var minDay: Long? = null
 
-        suspend fun consume(stream: InputStream, fileName: String) = when (kind) {
-            ImportKind.FIT_FILE -> addFit(stream, fileName)
-            ImportKind.GARMIN_CSV -> addCsv(stream.readBytes(), fileName)
+        suspend fun consume(stream: BufferedSource, fileName: String) = when (kind) {
+            ImportKind.FIT_FILE -> addFit(stream.readByteArray(), fileName)
+            ImportKind.GARMIN_CSV -> addCsv(stream.readByteArray(), fileName)
             ImportKind.GARMIN_ZIP -> walkArchive(stream)
             ImportKind.JSON_BACKUP -> errors += ImportItemError(
                 fileName,
@@ -182,10 +161,10 @@ class ImportService(
             )
         }
 
-        private suspend fun walkArchive(stream: InputStream) {
+        private suspend fun walkArchive(stream: BufferedSource) {
             val result = walker.walk(stream) { entry ->
                 when (entry.kind) {
-                    ArchiveEntryKind.FIT -> addFit(ByteArrayInputStream(entry.bytes), entry.path)
+                    ArchiveEntryKind.FIT -> addFit(entry.bytes, entry.path)
                     ArchiveEntryKind.CSV -> addCsv(entry.bytes, entry.path)
                 }
             }
@@ -200,11 +179,11 @@ class ImportService(
             }
         }
 
-        private suspend fun addFit(stream: InputStream, itemName: String) {
-            when (val decoded = fitDecoder.decode(stream)) {
+        private suspend fun addFit(bytes: ByteArray, itemName: String) {
+            when (val decoded = fitDecoder.decode(bytes)) {
                 is Outcome.Err -> fail(itemName, decoded.error)
                 is Outcome.Ok -> {
-                    val items = fitMapper.toIngestItems(decoded.value, clock.zone, clock.millis())
+                    val items = fitMapper.toIngestItems(decoded.value, clock.timeZone, clock.millis())
                     if (items.isEmpty()) {
                         fail(itemName, AppError.Parse("fit", "no session message in the file"))
                     } else {
@@ -215,7 +194,7 @@ class ImportService(
         }
 
         private suspend fun addCsv(bytes: ByteArray, itemName: String) {
-            val result = csvParser.parse(bytes.toString(Charsets.UTF_8))
+            val result = csvParser.parse(bytes.decodeToString())
             result.errors.forEach { errors += ImportItemError(itemName, it) }
             counts = counts.copy(failed = counts.failed + result.errors.size)
             offer(result.rows.map { csvParser.toIngestItem(it, clock.millis()) }, itemName)
@@ -288,13 +267,12 @@ class ImportService(
     private fun describe(error: AppError): String = when (error) {
         is AppError.Parse -> "${error.what}: ${error.detail}"
         is AppError.Storage -> error.cause.message ?: "storage error"
-        is AppError.Unexpected -> error.cause.message ?: error.cause.javaClass.simpleName
+        is AppError.Unexpected -> error.cause.message ?: (error.cause::class.simpleName ?: "error")
         else -> error.toString()
     }
 
     companion object {
         /** PLAN P7.5: chunks of 50, which is also the in-flight memory guard. */
         const val CHUNK_SIZE: Int = 50
-        private const val HASH_BUFFER_BYTES = 64 * 1024
     }
 }

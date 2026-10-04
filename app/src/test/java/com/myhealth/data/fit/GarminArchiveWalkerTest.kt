@@ -2,8 +2,8 @@ package com.myhealth.data.fit
 
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
+import okio.Buffer
 import org.junit.Test
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -27,7 +27,7 @@ class GarminArchiveWalkerTest {
         )
 
         val found = mutableListOf<ArchiveEntry>()
-        val result = GarminArchiveWalker().walk(ByteArrayInputStream(outer)) { found += it }
+        val result = GarminArchiveWalker().walk(Buffer().write(outer)) { found += it }
 
         assertThat(result.fitCount).isEqualTo(2)
         assertThat(result.csvCount).isEqualTo(1)
@@ -50,7 +50,7 @@ class GarminArchiveWalkerTest {
         val level1 = zipOf("level2.zip" to level2)
 
         val found = mutableListOf<ArchiveEntry>()
-        val result = GarminArchiveWalker(maxDepth = 3).walk(ByteArrayInputStream(level1)) { found += it }
+        val result = GarminArchiveWalker(maxDepth = 3).walk(Buffer().write(level1)) { found += it }
 
         // Depth 1 is the outer zip, 2 is level2.zip, 3 is level3.zip; level4.zip sits one level
         // too deep and is recorded rather than opened.
@@ -61,7 +61,7 @@ class GarminArchiveWalkerTest {
 
         // One level less nesting and the same file is reached.
         val found2 = mutableListOf<ArchiveEntry>()
-        GarminArchiveWalker(maxDepth = 3).walk(ByteArrayInputStream(level2)) { found2 += it }
+        GarminArchiveWalker(maxDepth = 3).walk(Buffer().write(level2)) { found2 += it }
         assertThat(found2.map { it.name }).containsExactly("deep.fit", "shallow.fit")
     }
 
@@ -74,7 +74,7 @@ class GarminArchiveWalkerTest {
         )
 
         val found = mutableListOf<ArchiveEntry>()
-        val result = GarminArchiveWalker().walk(ByteArrayInputStream(archive)) { found += it }
+        val result = GarminArchiveWalker().walk(Buffer().write(archive)) { found += it }
 
         assertThat(found.map { it.name }).containsExactly("good.fit")
         assertThat(result.fitCount).isEqualTo(1)
@@ -95,7 +95,7 @@ class GarminArchiveWalkerTest {
 
         val found = mutableListOf<ArchiveEntry>()
         val result = GarminArchiveWalker(maxTotalBytes = 50_000L)
-            .walk(ByteArrayInputStream(archive)) { found += it }
+            .walk(Buffer().write(archive)) { found += it }
 
         assertThat(result.truncatedBySize).isTrue()
         assertThat(found).hasSize(1)
@@ -103,7 +103,7 @@ class GarminArchiveWalkerTest {
 
         // The same archive walks completely under the default budget.
         val all = mutableListOf<ArchiveEntry>()
-        val full = GarminArchiveWalker().walk(ByteArrayInputStream(archive)) { all += it }
+        val full = GarminArchiveWalker().walk(Buffer().write(archive)) { all += it }
         assertThat(full.truncatedBySize).isFalse()
         assertThat(all).hasSize(3)
     }

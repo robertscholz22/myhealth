@@ -5,11 +5,10 @@ import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ActivitySourceRecord
 import com.myhealth.domain.model.SportType
 import com.myhealth.domain.repository.ActivityIngestItem
+import com.myhealth.domain.util.epochMillisToDay
+import kotlinx.datetime.TimeZone
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
 
 /** One recognised row of a Garmin "Activities" CSV export (PLAN P7.3). */
 data class GarminCsvActivity(
@@ -83,7 +82,7 @@ internal data class GarminCsvPayload(
  * headers and English numbers (BUG-11).
  */
 class GarminCsvParser(
-    private val zone: ZoneId = ZoneId.systemDefault(),
+    private val zone: TimeZone = TimeZone.currentSystemDefault(),
     private val json: Json = Json { encodeDefaults = true },
 ) {
 
@@ -147,7 +146,7 @@ class GarminCsvParser(
             id = 0L,
             startAtMillis = row.startAtMillis,
             endAtMillis = row.startAtMillis + durationSec * 1000L,
-            day = LocalDate.ofInstant(Instant.ofEpochMilli(row.startAtMillis), zone).toEpochDay(),
+            day = row.startAtMillis.epochMillisToDay(zone),
             sportType = row.sportType,
             sportGroup = group,
             title = row.title,
