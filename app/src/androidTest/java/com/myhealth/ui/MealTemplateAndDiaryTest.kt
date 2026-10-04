@@ -1,6 +1,5 @@
 package com.myhealth.ui
 
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -104,7 +103,7 @@ class MealTemplateAndDiaryTest {
         // "Save template" is the last item of the edit screen's LazyColumn, below the fold, so it
         // is not composed yet: scroll the list itself to it before clicking.
         val saveLabel = activity.getString(R.string.mealtpl_save_button)
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(saveLabel))
+        composeTestRule.verticalScroller().performScrollToNode(hasText(saveLabel))
         composeTestRule.onNodeWithText(saveLabel).performClick()
 
         // Back on the templates list.
@@ -124,6 +123,6 @@ class MealTemplateAndDiaryTest {
         // The template has no default slot, so it logged under the fallback slot (Lunch), not
         // Breakfast: the item row is further down the diary's LazyColumn than the fold, so the
         // list itself has to be scrolled to it rather than just waiting for its text to appear.
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(templateName))
+        composeTestRule.verticalScroller().performScrollToNode(hasText(templateName))
     }
 }

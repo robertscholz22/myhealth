@@ -238,6 +238,23 @@ object Migrations {
     }
 
     /**
+     * 7 -> 8 (P19.1): goal-driven training and the workout pool.
+     *
+     * Three additive columns, each with a default that keeps every existing row's behaviour:
+     * `goal.isRace` (`1` — a dated goal stays a race until the owner calls it a deadline),
+     * `strength_workout.useInSuggestions` (`1` — every workout stays in the rotation) and the
+     * nullable `suggested_session.workoutId` (no FK: a proposal names a workout, the accepted
+     * `planned_session.workoutId` is the enforced link).
+     */
+    private val MIGRATION_7_8 = Migration(7, 8) { db ->
+        db.execSQL("ALTER TABLE `goal` ADD COLUMN `isRace` INTEGER NOT NULL DEFAULT 1")
+        db.execSQL(
+            "ALTER TABLE `strength_workout` ADD COLUMN `useInSuggestions` INTEGER NOT NULL DEFAULT 1",
+        )
+        db.execSQL("ALTER TABLE `suggested_session` ADD COLUMN `workoutId` INTEGER")
+    }
+
+    /**
      * Every migration, oldest first. `.addMigrations(*ALL)` is the only call site, in
      * `MyHealthDatabase.build`, so adding a migration never changes it.
      */
@@ -249,5 +266,6 @@ object Migrations {
             MIGRATION_4_5,
             MIGRATION_5_6,
             MIGRATION_6_7,
+            MIGRATION_7_8,
         )
 }

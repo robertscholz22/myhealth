@@ -36,12 +36,16 @@ fun NumberField(
     enabled: Boolean = true,
 ) {
     var text by remember { mutableStateOf(value.toDisplayText(decimals)) }
+    var clearedByUser by remember { mutableStateOf(false) }
     // POLISH-20: the field owns its text while the user types, but an *external* change of
     // [value] (a prescription arriving after the sheet opened, a profile reloaded) must show up —
     // only when it differs from what the current text already parses to, so typing "2." is
     // never normalised away.
+    // A field the user has just emptied is left empty even when the caller maps "empty" to a
+    // value (onboarding stores 0 sessions): re-filling it put "0" back in front of the cursor,
+    // so typing 3 made "30", clamped to 14 (found during P19 verification).
     LaunchedEffect(value) {
-        if (parseDecimal(text) != value) text = value.toDisplayText(decimals)
+        if (!clearedByUser && parseDecimal(text) != value) text = value.toDisplayText(decimals)
     }
 
     OutlinedTextField(
@@ -49,6 +53,7 @@ fun NumberField(
         onValueChange = { candidate ->
             if (candidate.isValidNumberInput(allowNegative)) {
                 text = candidate
+                clearedByUser = candidate.isEmpty()
                 onValueChange(parseDecimal(candidate))
             }
         },

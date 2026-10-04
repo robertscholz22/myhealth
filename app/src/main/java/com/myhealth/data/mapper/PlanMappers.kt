@@ -151,6 +151,7 @@ fun SuggestedSessionEntity.toDomain(): SuggestedSession = SuggestedSession(
     targetPaceSecPerKm = targetPaceSecPerKm,
     structureJson = structureJson,
     workoutTemplateId = workoutTemplateId,
+    workoutId = workoutId,
 )
 
 fun SuggestedSession.toEntity(): SuggestedSessionEntity = SuggestedSessionEntity(
@@ -169,6 +170,7 @@ fun SuggestedSession.toEntity(): SuggestedSessionEntity = SuggestedSessionEntity
     targetPaceSecPerKm = targetPaceSecPerKm,
     structureJson = structureJson,
     workoutTemplateId = workoutTemplateId,
+    workoutId = workoutId,
 )
 
 // ---- goal ⇄ Goal ----------------------------------------------------------------------------------
@@ -188,6 +190,7 @@ fun GoalEntity.toDomain(): Goal = Goal(
     notes = notes,
     createdAtMillis = createdAtMillis,
     updatedAtMillis = updatedAtMillis,
+    isRace = isRace,
 )
 
 fun Goal.toEntity(): GoalEntity = GoalEntity(
@@ -205,4 +208,5 @@ fun Goal.toEntity(): GoalEntity = GoalEntity(
     notes = notes,
     createdAtMillis = createdAtMillis,
     updatedAtMillis = updatedAtMillis,
+    isRace = isRace,
 )

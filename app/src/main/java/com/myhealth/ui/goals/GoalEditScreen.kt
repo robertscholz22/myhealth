@@ -1,6 +1,7 @@
 package com.myhealth.ui.goals
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -144,6 +145,28 @@ internal fun GoalEditContent(
                     value = draft.targetDay,
                     onValueChange = { date -> onChange { it.copy(targetDay = date) } },
                 )
+                if (draft.asksRaceOrDeadline) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.goal_edit_race_day_label))
+                            Text(
+                                text = stringResource(
+                                    if (draft.isRace) R.string.goal_edit_race_day_on else R.string.goal_edit_race_day_off,
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = draft.isRace,
+                            onCheckedChange = { value -> onChange { it.copy(isRace = value) } },
+                        )
+                    }
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,

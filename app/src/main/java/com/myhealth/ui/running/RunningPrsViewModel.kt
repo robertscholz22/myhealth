@@ -44,12 +44,14 @@ class RunningPrsViewModel(
         runningBestRepo.observeBestPerDistance(),
         efforts,
         showAddDialog,
-    ) { bests, allEfforts, showDialog ->
-        val source = RiegelPredictor.pickSource(bests, today())
+        runningBestRepo.observeSince(today() - RiegelPredictor.MAX_SOURCE_AGE_DAYS),
+    ) { bests, allEfforts, showDialog, recent ->
+        // P19.1: current form comes from every recent effort, not from the (possibly old) PRs.
+        val source = RiegelPredictor.pickSource(recent, today())
         RunningPrsUiState(
             isLoading = false,
             bests = bests,
-            predictions = RiegelPredictor.predictAll(bests, today()),
+            predictions = RiegelPredictor.predictAll(recent, today()),
             vdot = source?.let { VdotCalculator.vdot(it.distanceMeters, it.timeSec.toDouble()) },
             progression = prProgressionSeries(allEfforts),
             showAddDialog = showDialog,

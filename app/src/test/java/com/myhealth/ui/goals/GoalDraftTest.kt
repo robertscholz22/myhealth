@@ -163,7 +163,9 @@ class GoalDraftTest {
             targetMinutes = 20,
             targetSeconds = 0,
         ).toGoal(clock)
-        assertThat(goalHeadline(race)).isEqualTo("5 km in 20:00 by 2026-11-15")
+        assertThat(goalHeadline(race)).isEqualTo("5 km in 20:00 on 2026-11-15")
+        // P19: a deadline goal is reached *by* its date.
+        assertThat(goalHeadline(race.copy(isRace = false))).isEqualTo("5 km in 20:00 by 2026-11-15")
 
         val weight = GoalDraft(type = GoalType.BODY_WEIGHT, title = "80 kg", targetWeightKg = 80.0).toGoal(clock)
         assertThat(goalHeadline(weight)).isEqualTo("80.0 kg")

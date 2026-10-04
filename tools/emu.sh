@@ -41,7 +41,7 @@ case "${1:-}" in
     echo "granted runtime permissions (health permissions must be granted in-app)"
     ;;
   seed)
-    adbs shell am broadcast -a com.myhealth.debug.SEED -p $PKG --ei days "${2:-45}" | tail -1
+    adbs shell am broadcast -a com.myhealth.seeder.SEED -p com.myhealth.seeder --ez clear true --ei days "${2:-45}" | tail -1
     ;;
   logcat) adbs logcat -d -v time | grep -E "AndroidRuntime|MyHealth|FATAL|E/$PKG|com.myhealth" | tail -${2:-60} ;;
   clearlog) adbs logcat -c; echo cleared ;;

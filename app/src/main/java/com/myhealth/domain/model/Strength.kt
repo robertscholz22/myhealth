@@ -58,6 +58,8 @@ data class StrengthWorkout(
     val exercises: List<StrengthWorkoutExercise> = emptyList(),
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    /** P19: the Workouts screen's "Use in suggestions" checkbox (DB v8). */
+    val useInSuggestions: Boolean = true,
 ) {
     /**
      * How long the workout takes, rounded up (§3.12.3):

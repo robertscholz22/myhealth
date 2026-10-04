@@ -145,6 +145,6 @@ data class BackupFile(
          * field exists for. P16.1 raises it to **7** ("my equipment", the set-log feedback and
          * `exercise_progress`).
          */
-        const val CURRENT_SCHEMA_VERSION: Int = 7
+        const val CURRENT_SCHEMA_VERSION: Int = 8
     }
 }

@@ -82,7 +82,9 @@ class SuggestionPaceResolver(
     }
 
     private suspend fun resolveVdot(todayDay: Long): Double? {
-        val bests = runningBestRepo?.observeBestPerDistance()?.first() ?: return null
+        // P19.1: every effort of the window — the PR table would hide a recent slower effort.
+        val bests = runningBestRepo
+            ?.observeSince(todayDay - RiegelPredictor.MAX_SOURCE_AGE_DAYS)?.first() ?: return null
         val source = RiegelPredictor.pickSource(bests, todayDay) ?: return null
         return VdotCalculator.vdot(source.distanceMeters, source.timeSec.toDouble())
     }

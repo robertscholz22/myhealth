@@ -57,6 +57,9 @@ object SessionCatalog {
         CatalogEntry(SessionType.BIKE_INTERVALS, SportType.CYCLING, Intensity.HIGH, 60, 8.0),
         CatalogEntry(SessionType.TRAINER_SESSION, SportType.CYCLING_INDOOR, Intensity.MODERATE, 45, 6.0),
         CatalogEntry(SessionType.RECOVERY_SPIN, SportType.CYCLING_INDOOR, Intensity.RECOVERY, 30, 2.0),
+
+        // P19: the benchmark run — placed only by `GoalRules`' pre-pass, never by the greedy loop.
+        CatalogEntry(SessionType.TIME_TRIAL, SportType.RUN_OUTDOOR, Intensity.HIGH, 40, 8.0),
     )
 
     private val byType: Map<SessionType, CatalogEntry> = ALL.associateBy { it.sessionType }
@@ -69,8 +72,13 @@ object SessionCatalog {
         SessionType.RECOVERY_SPIN,
     )
 
-    /** Everything except `SOCCER_MATCH` — a match is a fixed calendar event, never a suggestion. */
-    val SUGGESTABLE: List<CatalogEntry> = ALL.filter { it.sessionType != SessionType.SOCCER_MATCH }
+    /**
+     * Everything except `SOCCER_MATCH` — a match is a fixed calendar event, never a suggestion —
+     * and P19's `TIME_TRIAL`, which only the benchmark pre-pass (`GoalRules`) places.
+     */
+    val SUGGESTABLE: List<CatalogEntry> = ALL.filter {
+        it.sessionType != SessionType.SOCCER_MATCH && it.sessionType != SessionType.TIME_TRIAL
+    }
 
     /** [SUGGESTABLE] without the bike rows unless the athlete rides (`BikeRules.isBikeEnabled`). */
     private val SUGGESTABLE_WITHOUT_BIKE: List<CatalogEntry> =

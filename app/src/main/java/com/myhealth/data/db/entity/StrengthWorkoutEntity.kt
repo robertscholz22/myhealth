@@ -1,5 +1,6 @@
 package com.myhealth.data.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -30,4 +31,7 @@ data class StrengthWorkoutEntity(
     val notes: String? = null,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    /** P19 (DB v8): the "Use in suggestions" checkbox; every pre-0.8.0 workout starts checked. */
+    @ColumnInfo(defaultValue = "1")
+    val useInSuggestions: Boolean = true,
 )

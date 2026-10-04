@@ -49,6 +49,30 @@ object VdotCalculator {
         return velocity.takeIf { it > 0.0 }
     }
 
+    /**
+     * P19: the inverse of [vdot] in time — how long [distanceMeters] takes at [vdot]. [vdot] falls
+     * monotonically with time for a fixed distance, so a bisection between 36 km/h and 3.6 km/h
+     * converges to well under a second. `null` for a non-positive input or a VDOT outside that range.
+     */
+    fun raceTimeSec(vdot: Double, distanceMeters: Double): Double? {
+        if (vdot <= 0.0 || distanceMeters <= 0.0) return null
+        var fast = distanceMeters / RACE_TIME_MAX_SPEED_MPS
+        var slow = distanceMeters / RACE_TIME_MIN_SPEED_MPS
+        val atFast = vdot(distanceMeters, fast) ?: return null
+        val atSlow = vdot(distanceMeters, slow) ?: return null
+        if (vdot > atFast || vdot < atSlow) return null
+        repeat(RACE_TIME_ITERATIONS) {
+            val mid = (fast + slow) / 2.0
+            val atMid = vdot(distanceMeters, mid) ?: return null
+            if (atMid > vdot) fast = mid else slow = mid
+        }
+        return (fast + slow) / 2.0
+    }
+
+    private const val RACE_TIME_MAX_SPEED_MPS: Double = 10.0
+    private const val RACE_TIME_MIN_SPEED_MPS: Double = 1.0
+    private const val RACE_TIME_ITERATIONS: Int = 60
+
     /** VDOT for covering [distanceMeters] in [timeSec]; `null` for a non-positive input. */
     fun vdot(distanceMeters: Double, timeSec: Double): Double? {
         if (distanceMeters <= 0.0 || timeSec <= 0.0) return null

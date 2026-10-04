@@ -180,6 +180,7 @@ object IntervalBuilder {
             recoverySec = recoverySec,
             shortenedForTaper = isTaper(ctx) && reps < beforeTaper,
             summary = IntervalStructures.summary(structure).orEmpty(),
+            usesGoalPace = workPace != null && usesGoalPace(template, ctx),
         )
     }
 
@@ -211,6 +212,7 @@ object IntervalBuilder {
             recoverySec = 0,
             shortenedForTaper = isTaper(ctx) && workSec < before,
             summary = IntervalStructures.summary(structure).orEmpty(),
+            usesGoalPace = workPace != null && usesGoalPace(template, ctx),
         )
     }
 
@@ -238,9 +240,14 @@ object IntervalBuilder {
     private fun workPaceOf(template: IntervalTemplate, ctx: IntervalContext): Int? {
         if (template.isEffort) return null
         val pace = template.work.pace ?: return null
+        if (usesGoalPace(template, ctx)) return ctx.paceGoal?.goalPaceSecPerKm
         measuredCentre(template.work.zone, pace, ctx)?.let { return it }
         return ctx.vdot?.let { DanielsPaces.secPerKm(it, pace) }
     }
+
+    /** P19: a goal within 3 % in a build/peak/taper week replaces the race-distance template's pace. */
+    private fun usesGoalPace(template: IntervalTemplate, ctx: IntervalContext): Boolean =
+        GoalRules.usesGoalPace(ctx.paceGoal, template.id, ctx.phase)
 
     private fun measuredCentre(zone: Int, pace: DanielsPace, ctx: IntervalContext): Int? {
         if (ZONE_ANCHOR[zone] != pace) return null

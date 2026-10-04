@@ -55,6 +55,9 @@ interface StrengthDao {
     @Query("DELETE FROM strength_workout WHERE id = :id")
     suspend fun deleteWorkout(id: Long)
 
+    @Query("UPDATE strength_workout SET useInSuggestions = :use, updatedAtMillis = :nowMillis WHERE id = :id")
+    suspend fun setUseInSuggestions(id: Long, use: Boolean, nowMillis: Long)
+
     @Insert
     suspend fun insertSetLogs(rows: List<StrengthSetLogEntity>): List<Long>
 

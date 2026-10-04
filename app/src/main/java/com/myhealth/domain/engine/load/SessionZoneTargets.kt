@@ -27,6 +27,7 @@ object SessionZoneTargets {
         SessionType.BIKE_INTERVALS -> 4..5
         SessionType.TRAINER_SESSION -> 3..3
         SessionType.RECOVERY_SPIN -> 1..1
+        SessionType.TIME_TRIAL -> 4..5
         SessionType.STRENGTH_FULL,
         SessionType.STRENGTH_UPPER,
         SessionType.STRENGTH_LOWER,

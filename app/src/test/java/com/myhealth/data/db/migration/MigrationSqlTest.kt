@@ -108,11 +108,30 @@ class MigrationSqlTest {
         assertThat(sql).doesNotContain("exercise_progress_new")
     }
 
+    /**
+     * P19 (0.8.0): three additive columns; the two booleans carry a SQL `DEFAULT 1` so every
+     * existing goal stays a race and every existing workout stays in the suggestion pool.
+     */
     @Test
-    fun the_exported_schema_is_version_seven_and_the_older_ones_are_untouched() {
-        val latest = Json.parseToJsonElement(schemaFile(7).readText()).jsonObject.getValue("database")
-        assertThat(latest.jsonObject.getValue("version").jsonPrimitive.content).isEqualTo("7")
-        (1..6).forEach { assertThat(schemaFile(it).isFile).isTrue() }
+    fun migration_7_to_8_adds_the_three_p19_columns_with_their_defaults() {
+        val entities = exportedEntities(8)
+        val sql = flattenedMigrationSource()
+        assertThat(createSqlOf(entities, "goal")).contains("`isRace` INTEGER NOT NULL DEFAULT 1")
+        assertThat(createSqlOf(entities, "strength_workout")).contains("`useInSuggestions` INTEGER NOT NULL DEFAULT 1")
+        assertThat(createSqlOf(entities, "suggested_session")).contains("`workoutId` INTEGER")
+        listOf(
+            "ALTER TABLE `goal` ADD COLUMN `isRace` INTEGER NOT NULL DEFAULT 1",
+            "ALTER TABLE `strength_workout` ADD COLUMN `useInSuggestions` INTEGER NOT NULL DEFAULT 1",
+            "ALTER TABLE `suggested_session` ADD COLUMN `workoutId` INTEGER",
+        ).forEach { assertThat(sql).contains(it) }
+        assertThat(schemaFile(7).readText()).doesNotContain("useInSuggestions")
+    }
+
+    @Test
+    fun the_exported_schema_is_version_eight_and_the_older_ones_are_untouched() {
+        val latest = Json.parseToJsonElement(schemaFile(8).readText()).jsonObject.getValue("database")
+        assertThat(latest.jsonObject.getValue("version").jsonPrimitive.content).isEqualTo("8")
+        (1..7).forEach { assertThat(schemaFile(it).isFile).isTrue() }
         // `strength_*` exists only from v6 on: v5 must not have grown a table retroactively.
         assertThat(schemaFile(5).readText()).doesNotContain("strength_workout")
         // … and `exercise_progress` only from v7 on.

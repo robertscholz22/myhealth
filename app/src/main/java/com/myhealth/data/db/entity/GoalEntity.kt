@@ -1,5 +1,6 @@
 package com.myhealth.data.db.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -28,4 +29,7 @@ data class GoalEntity(
     val notes: String? = null,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    /** P19 (DB v8): race on `targetDay` (`1`, every pre-0.8.0 goal) or a deadline (`0`). */
+    @ColumnInfo(defaultValue = "1")
+    val isRace: Boolean = true,
 )

@@ -6,7 +6,7 @@ One row per task. A task is **Done** only when its acceptance commands in PLAN �
 Legend — **Done**: `yes` / `no` / `n/a`. **Tests**: executed unit tests reported by `tools/verify.sh`
 after the task. **APK MB**: debug APK size measured after the task. **Notes**: deviations, follow-ups.
 
-Last update: 2026-09-14 — **P18.1 (Pose model, side view, animation clips for all 87 shipped
+Last update: 2026-10-04 — **P19 (goal-driven training, workout pool; release 0.8.0)** — see the P19 table below. Previous: 2026-09-14 — **P18.1 (Pose model, side view, animation clips for all 87 shipped
 exercises)**: the pose vocabulary (`BodySegmentId`, `BodyFace {FRONT, BACK, SIDE}`, `BodyPose`)
 moves into `domain/model/Body.kt` so the catalog can author animations against it, and `BodyPose`
 gains **`rootScale`** alongside `rootOffsetX/Y` and `rootAngle` — a 213-unit figure cannot lie
@@ -422,6 +422,15 @@ Known limitation: when one of several sources is deleted, the canonical row keep
 | **P18.3** Emulator + release 0.7.0 | — | no | — | — | versionCode 160 / 0.7.0; squat / push-up / pigeon screenshots at two keyframes |
 | **P18.4** Animations re-authored (release 0.7.1) | lead | **yes** | 1017 | 88.6 (release 14.5) | Owner: "most of them are pretty much off" → all 44 clips reviewed on contact sheets and rewritten; **76 clips** in three files (`AnimationClips` 20 lower, `AnimationClipsUpper` 25, `AnimationClipsMobility` 31 + `STANDING`), one per distinct movement; poses authored in a JS mirror of the skeleton with planting helpers and generated into Kotlin; `BodyPose.lerp` takes the shortest arc for joint angles (`anui06`), `CIRCLE` timing for shoulder CARs; `an02` guards < 180° joint travel, `an07` relaxed to 90 ± 15°; `ExerciseAnimations` table rewritten (`MOBILITY` archetype → `CAT_COW`). VERIFICATION session 18. |
 
+## P19 — Goal-driven training and workout selection (release 0.8.0)
+
+| Task | Model | Done | Tests | APK MB | Notes |
+|---|---|---|---|---|---|
+| **P19.1** Data + recent-form fix | lead | **yes** | 1044 | 90.5 (release 14.6) | DB v8 (`MIGRATION_7_8`, additive: `goal.isRace`, `strength_workout.useInSuggestions`, `suggested_session.workoutId`); VDOT, predictions, goal progress and pace inputs use the best effort of the last 180 days instead of the all-time PR table |
+| **P19.2** Engines | lead | **yes** | 1044 | — | `GoalRules`: benchmark time trial when no effort ≤ 56 days, race vs deadline in `Periodization`, goal-pace intervals/tempo in Build…Race week, long-run build-up to the race distance, phase outlook; workout pool with rotation and `poolPreferred`; `sug01…sug43` unchanged |
+| **P19.3** UI | lead | **yes** | 1044 | — | "Race on this date" switch, "by"/"on" headlines, goal progress text, phase line on Training, "Use in suggestions" checkbox per workout; BUG-16 (`NumberField`) and BUG-17 (workouts list scroll) fixed |
+| **P19.4** Verify + release 0.8.0 | lead | **yes** | 1044 | 90.5 (release 14.6) | VERIFICATION session 19; 25/25 instrumented; versionCode 180 |
+
 ---
 
 ## Roll-up
@@ -446,5 +455,6 @@ Known limitation: when one of several sources is deleted, the canonical row keep
 | P16 | 3 | **1** |
 | P17 | 3 | **1** |
 | P18 | 3 | **1** |
-| **Total** | **114** | **95** |
+| P19 | 4 | **4** |
+| **Total** | **118** | **99** |
 

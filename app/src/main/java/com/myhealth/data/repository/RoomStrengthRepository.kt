@@ -88,6 +88,11 @@ class RoomStrengthRepository(
         runCatchingApp { dao.deleteWorkout(id) }
     }
 
+    override suspend fun setUseInSuggestions(id: Long, use: Boolean): Outcome<Unit> =
+        withContext(ioDispatcher) {
+            runCatchingApp { dao.setUseInSuggestions(id, use, System.currentTimeMillis()) }
+        }
+
     override suspend fun insertSetLogs(logs: List<StrengthSetLog>): Outcome<Unit> =
         withContext(ioDispatcher) {
             runCatchingApp {

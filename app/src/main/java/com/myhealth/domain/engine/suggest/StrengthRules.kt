@@ -269,7 +269,82 @@ object StrengthRules {
     /** The template row itself — what the `STRENGTH_WORKOUT` rationale names. */
     fun templateFor(templateId: String?): StrengthWorkout? =
         templateId?.let { StrengthTemplates.byId(it) }
+
+    // ---- P19: the checked workout pool --------------------------------------------------------
+
+    /** The session types the pool decides about; `MOBILITY` keeps its rest-day role either way. */
+    val POOL_GATED_TYPES: Set<SessionType> = setOf(
+        SessionType.STRENGTH_FULL,
+        SessionType.STRENGTH_UPPER,
+        SessionType.STRENGTH_LOWER,
+    )
+
+    /**
+     * §P19 item 9: the `STRENGTH_*` types none of the checked workouts maps to — the athlete
+     * unchecked every one of them, so the suggester does not propose that kind of day at all.
+     * Empty without a pool (`null`), which is the P14.5 behaviour.
+     */
+    fun excludedTypes(pool: List<StrengthWorkout>?): Set<SessionType> {
+        if (pool == null) return emptySet()
+        val covered = pool.map { it.kind.sessionType }.toSet()
+        return POOL_GATED_TYPES - covered
+    }
+
+    /**
+     * P19: a phase that prefers a strength type the pool cannot serve (e.g. `BUILD`'s
+     * `STRENGTH_LOWER` with only upper-body workouts checked) passes the preference on to the
+     * strength types the pool does cover — otherwise unchecking one kind would silently drop
+     * strength from the whole week. Unchanged without a pool.
+     */
+    fun poolPreferred(preferred: Set<SessionType>, pool: List<StrengthWorkout>?): Set<SessionType> {
+        val excluded = excludedTypes(pool)
+        if (excluded.none { it in preferred }) return preferred
+        return preferred - excluded + (POOL_GATED_TYPES - excluded)
+    }
+
+    /**
+     * The workout a placed session proposes. Without a pool this is P14.5's built-in rotation
+     * ([templateIdFor]); with one, the checked workouts whose kind maps to the session type,
+     * ordered by id, the next one after the last accepted for that type. A `MOBILITY` session
+     * keeps the muscle-state choice of kind and falls back to any checked mobility routine.
+     * `null` whenever the muscle layer is off — the same gate as before.
+     */
+    fun choiceFor(sessionType: SessionType, ctx: MuscleContext, occurrence: Int = 0): WorkoutChoice? {
+        if (!ctx.enabled) return null
+        val pool = ctx.pool
+            ?: return templateIdFor(sessionType, ctx, occurrence)
+                ?.let { WorkoutChoice(templateId = it, workoutId = null, workout = templateFor(it)) }
+        val options = poolOptions(sessionType, pool, ctx).sortedBy { it.id }
+        if (options.isEmpty()) return null
+        val last = ctx.lastWorkoutIdBySessionType[sessionType]
+        val start = options.indexOfFirst { it.id == last }
+        val chosen = options[(start + 1 + occurrence.coerceAtLeast(0)) % options.size]
+        return WorkoutChoice(templateId = chosen.templateId, workoutId = chosen.id, workout = chosen)
+    }
+
+    private fun poolOptions(
+        sessionType: SessionType,
+        pool: List<StrengthWorkout>,
+        ctx: MuscleContext,
+    ): List<StrengthWorkout> {
+        if (sessionType != SessionType.MOBILITY) {
+            return pool.filter { !it.kind.isMobility && it.kind.sessionType == sessionType }
+        }
+        val wanted = when (mobilityTemplateFor(ctx.state)) {
+            MOBILITY_LOWER_A -> StrengthWorkoutKind.MOBILITY_LOWER
+            MOBILITY_UPPER_A -> StrengthWorkoutKind.MOBILITY_UPPER
+            else -> StrengthWorkoutKind.MOBILITY_FULL
+        }
+        return pool.filter { it.kind == wanted }.ifEmpty { pool.filter { it.kind.isMobility } }
+    }
 }
+
+/** P19: the workout a suggested session proposes — a built-in id, a concrete row, or both. */
+data class WorkoutChoice(
+    val templateId: String?,
+    val workoutId: Long?,
+    val workout: StrengthWorkout?,
+)
 
 /**
  * Whether this athlete's week knows anything about muscle load at all, and the facts every §3.12.5
@@ -287,6 +362,10 @@ data class MuscleContext(
     val keyEventDays: Set<Long> = emptySet(),
     /** The most recently accepted built-in per workout kind, for the alternation. */
     val lastTemplateByKind: Map<StrengthWorkoutKind, String> = emptyMap(),
+    /** P19: the checked workouts; `null` = the built-in rotation of P14.5. */
+    val pool: List<StrengthWorkout>? = null,
+    /** P19: the most recently accepted workout per session type, for the pool's rotation. */
+    val lastWorkoutIdBySessionType: Map<SessionType, Long> = emptyMap(),
 ) {
     val enabled: Boolean get() = state != null
 
@@ -310,6 +389,8 @@ data class MuscleContext(
                     .map { it.occurrenceDay }
                     .toSet(),
                 lastTemplateByKind = input.lastAcceptedTemplateByKind,
+                pool = input.strengthPool,
+                lastWorkoutIdBySessionType = input.lastWorkoutIdBySessionType,
             )
         }
     }

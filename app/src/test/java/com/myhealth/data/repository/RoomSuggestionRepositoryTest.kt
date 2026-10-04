@@ -3,25 +3,27 @@ package com.myhealth.data.repository
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.data.db.entity.SuggestedSessionEntity
 import com.myhealth.data.db.entity.SuggestionBatchEntity
+import com.myhealth.domain.engine.strength.ProgressionEngine
 import com.myhealth.domain.engine.suggest.IntervalBuilder
 import com.myhealth.domain.engine.suggest.IntervalContext
 import com.myhealth.domain.engine.suggest.SuggestFixtures
 import com.myhealth.domain.engine.suggest.SuggestionEngine
-import com.myhealth.domain.model.Intensity
-import com.myhealth.domain.model.PlannedSession
-import com.myhealth.domain.model.PlanStatus
-import com.myhealth.domain.model.PlannedStatus
-import com.myhealth.domain.model.SessionType
-import com.myhealth.domain.model.SportType
-import com.myhealth.domain.engine.strength.ProgressionEngine
 import com.myhealth.domain.model.Exercise
 import com.myhealth.domain.model.ExercisePrescription
 import com.myhealth.domain.model.ExerciseProgress
+import com.myhealth.domain.model.Intensity
+import com.myhealth.domain.model.PlanStatus
+import com.myhealth.domain.model.PlannedSession
+import com.myhealth.domain.model.PlannedStatus
+import com.myhealth.domain.model.RunningBest
+import com.myhealth.domain.model.SessionType
+import com.myhealth.domain.model.SportType
 import com.myhealth.domain.model.StrengthSetLog
 import com.myhealth.domain.model.StrengthWorkout
+import com.myhealth.domain.model.StrengthWorkoutKind
 import com.myhealth.domain.model.SuggestionStatus
-import com.myhealth.domain.model.WorkoutStructureCodec
 import com.myhealth.domain.model.TrainingPhase
+import com.myhealth.domain.model.WorkoutStructureCodec
 import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.util.Outcome
 import com.myhealth.testutil.Fixtures
@@ -329,6 +331,84 @@ class RoomSuggestionRepositoryTest {
         // Nine rows since P17.1 — the six lifting templates plus the three mobility routines.
         assertThat(strengthRepo.stored.value).hasSize(9)
     }
+
+    @Test
+    fun p19_accept_uses_the_pool_workout_and_falls_back_to_the_built_in_when_it_was_deleted() = runTest {
+        val mine = (strengthRepo.upsertWorkout(
+            StrengthWorkout(id = 0L, name = "My upper", kind = StrengthWorkoutKind.UPPER, createdAtMillis = 0L, updatedAtMillis = 0L),
+        ) as Outcome.Ok).value
+        val batchId = seedBatch()
+        suggestionDao.upsertSessions(
+            listOf(
+                suggested(batchId, day = today + 2, sessionType = SessionType.STRENGTH_UPPER)
+                    .copy(sportType = SportType.STRENGTH, workoutTemplateId = null, workoutId = mine),
+                suggested(batchId, day = today + 4, sessionType = SessionType.STRENGTH_UPPER)
+                    .copy(sportType = SportType.STRENGTH, workoutTemplateId = "UPPER_A", workoutId = 999L),
+            ),
+        )
+        val strength = suggestionDao.getSessionsForBatch(batchId).filter { it.sessionType == SessionType.STRENGTH_UPPER }
+        assertThat(repo.accept(strength.map { it.id })).isInstanceOf(Outcome.Ok::class.java)
+
+        val planned = planRepo.getSessions(today, today + 7).associateBy { it.day }
+        assertThat(planned.getValue(today + 2).workoutId).isEqualTo(mine)
+        assertThat(planned.getValue(today + 4).workoutId)
+            .isEqualTo(requireNotNull(strengthRepo.getByTemplateId("UPPER_A")).id)
+    }
+
+    @Test
+    fun p19_unchecking_every_workout_removes_strength_from_the_generated_week() = runTest {
+        seedLoadHistory()
+        profileRepo.profiles.value = SuggestFixtures.profile(preferredSportsJson = """{"RUN":2,"STRENGTH":3}""")
+        val checked = (repo.generate(7) as Outcome.Ok).value
+        strengthRepo.stored.value.keys.forEach { strengthRepo.setUseInSuggestions(it, false) }
+        val unchecked = (repo.generate(7) as Outcome.Ok).value
+
+        assertThat(unchecked.inputsHash).isNotEqualTo(checked.inputsHash)
+        assertThat(repo.observeSessions(unchecked.id).first().map { it.sessionType })
+            .containsNoneOf(SessionType.STRENGTH_FULL, SessionType.STRENGTH_UPPER, SessionType.STRENGTH_LOWER)
+    }
+
+    @Test
+    fun p19_an_old_pr_alone_gets_a_benchmark_run_and_a_recent_effort_does_not() = runTest {
+        seedLoadHistory()
+        val bests = FakeRunningBestRepository()
+        val withBests = RoomSuggestionRepository(
+            suggestionDao = suggestionDao,
+            planRepo = planRepo,
+            goalRepo = goalRepo,
+            profileRepo = profileRepo,
+            calendarRepo = calendarRepo,
+            loadRepo = loadRepo,
+            activityRepo = activityRepo,
+            settingsRepo = settingsRepo,
+            engine = SuggestionEngine(clock),
+            clock = clock,
+            runningBestRepo = bests,
+            ioDispatcher = Dispatchers.Unconfined,
+        )
+        goalRepo.upsert(SuggestFixtures.raceGoal(today + 108).copy(id = 0L))
+        bests.byActivity[1L] = listOf(best(id = 1L, day = today - 988, timeSec = 1214))
+
+        val stale = (withBests.generate(7) as Outcome.Ok).value
+        assertThat(withBests.observeSessions(stale.id).first().map { it.sessionType }).contains(SessionType.TIME_TRIAL)
+
+        bests.byActivity[2L] = listOf(best(id = 2L, day = today - 9, timeSec = 1318))
+        val fresh = (withBests.generate(7) as Outcome.Ok).value
+        assertThat(withBests.observeSessions(fresh.id).first().map { it.sessionType })
+            .doesNotContain(SessionType.TIME_TRIAL)
+    }
+
+    private fun best(id: Long, day: Long, timeSec: Int) = RunningBest(
+        id = id,
+        distanceMeters = 5000.0,
+        timeSec = timeSec,
+        activityId = id,
+        day = day,
+        method = "FULL_ACTIVITY",
+        isEstimated = false,
+        paceSecPerKm = timeSec / 5,
+        createdAtMillis = 0L,
+    )
 
     // ---- helpers -------------------------------------------------------------------------------
 

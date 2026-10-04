@@ -10,6 +10,8 @@ import com.myhealth.domain.model.Goal
 import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.Profile
 import com.myhealth.domain.model.RecoveryState
+import com.myhealth.domain.model.SessionType
+import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.model.StrengthWorkoutKind
 import java.time.LocalDate
 
@@ -72,6 +74,19 @@ data class SuggestionInput(
      * is what makes the proposed template alternate (§3.12.5). Only read while [muscleLoad] is set.
      */
     val lastAcceptedTemplateByKind: Map<StrengthWorkoutKind, String> = emptyMap(),
+    /**
+     * P19: the goal facts of [GoalRules] (benchmark, long run, goal pace). `null` switches that
+     * whole layer off — every pre-P19 fixture leaves it `null`.
+     */
+    val goalForm: GoalFormInputs? = null,
+    /**
+     * P19: the workouts checked "Use in suggestions", with their exercises. `null` = the P14.5
+     * built-in rotation; a list (even an empty one) = rotate through these, and a `STRENGTH_*`
+     * type none of them maps to is not suggested at all.
+     */
+    val strengthPool: List<StrengthWorkout>? = null,
+    /** P19: the workout most recently accepted per session type, for the pool's rotation. */
+    val lastWorkoutIdBySessionType: Map<SessionType, Long> = emptyMap(),
 ) {
     val todayDay: Long get() = today.toEpochDay()
 

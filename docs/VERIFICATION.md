@@ -568,3 +568,24 @@ The owner reviewed the 0.7.0 animations on the review sheet and judged "most of 
 - NOTE-23: the front-view 90/90 hip switch and the Russian twist are the two clips this camera cannot show faithfully (both need a top-down or three-quarter view); they read as "knees swinging side to side" and "arms sweeping side to side" respectively.
 - NOTE-24: `an02`'s constant-scale rule means a clip with a very tall and a very wide keyframe (jump, world's greatest) is scaled to fit its widest frame; the viewport fit (POLISH-21) hides this.
 
+
+## Session 19 — 2026-10-04 (emulator, 0.8.0 debug build: goal-driven training, workout pool)
+Emulator `myhealth_api35`, today 2026-10-04. Fresh app data; Health Connect re-seeded with `tools/emu.sh seed 45` (now clears first); onboarding: soccer 1, runs 3, strength 2.
+
+| Step | Result | Evidence |
+|---|---|---|
+| Goal "5k" 5 km in 20:00, date 2026-12-31, **Race on this date off** → list shows "5 km in 20:00 **by** 2026-12-31"; before any sync "No 5 km effort in the last 6 months — run a time trial…", neutral colour, no bar | PASS | `p19_ge2.png` |
+| Goal "Berlin Half" HM in 1:25:00, race 2027-04-04, primary → "half marathon in 1:25:00 **on** 2027-04-04"; switch text "The plan builds towards this day and tapers before it." | PASS | `p19_ge3.png` |
+| After HC sync: 5k "Recent best 20:55 (26 Sep) — behind"; HM "Predicted 1:36:13 from your 5 km on 26 Sep — behind" (recent form, not the all-time table) | PASS | `p19_goals08.png` |
+| Training header: "Base · Build from 17 Jan · Berlin Half on 4 Apr" | PASS | |
+| Generate 5–11 Oct (non-starter week): strength days name **Upper A** then **Upper B** (pool rotation); long run "13 km — building from 12 km (your longest in 4 weeks) towards 19.0 km for Berlin Half on 4 Apr" at 5:27/km; no time trial (5 km effort 8 days old); no goal-pace session (Base phase) | PASS | `p19_acc.png` |
+| Accept → `planned_session.workoutId` = 1 (Upper A, Tue) and 2 (Upper B, Fri); Training card shows "Workout: Upper A" and its exercises | PASS | DB pull |
+| Strength workouts: uncheck Upper A + Upper B ("Use in suggestions") → generate 19–25 Oct: no upper day, one strength day with **Lower A** | PASS | `p19_wk4.png` |
+| Onboarding step 3: clear "Run sessions / week", type 3 | **FAIL → fixed**: field showed 14 ("0" re-inserted, "30" clamped); fixed in `NumberField`, re-tested: 3 | `p19_ob3c.png` |
+| `bash tools/verify.sh` | PASS | 1044 unit tests, lint clean |
+| `bash tools/connected.sh emulator-5554` | PASS | 25/25 (new `NumberFieldTest`, `workouts_useInSuggestions_checkbox_persists`, `migration_7_to_8_…`) |
+
+- BUG-16 (fixed in 0.8.0): `NumberField` re-filled a field the user had just emptied when the caller maps empty to a value; see PLAN P19 "As built".
+- BUG-17 (fixed in 0.8.0): Strength workouts opened scrolled to the bottom on first launch (list rendered while seeding).
+- NOTE-25: the first emulator pass showed a 21.2 km run in 59 min (VDOT 83.6, "HM 58:41"). Cause: the seeder ran twice without clearing, so Health Connect held two distance records per session window; the app summed them correctly. `tools/emu.sh seed` now passes `clear=true`. Not an app bug, but a duplicate-writing source on a real phone would produce the same effect.
+- NOTE-26: the Settings instrumented tests had been failing since P16.2 on an ambiguous `hasScrollAction()` node (equipment chips); fixed with `verticalScroller()`.

@@ -96,6 +96,10 @@ enum class SessionType {
     TRAINER_SESSION,
     /** Very easy spin for active recovery. */
     RECOVERY_SPIN,
+
+    // P19 (appended, ordinals above unchanged).
+    /** A 5 km benchmark run: warm-up, 5 km as fast as possible, cool-down (§P19 item 5). */
+    TIME_TRIAL,
 }
 
 enum class GoalType {
@@ -311,6 +315,20 @@ enum class StrengthWorkoutKind {
     /** True for the three P17 kinds — what the muscle-load and rationale rules branch on. */
     val isMobility: Boolean
         get() = this == MOBILITY_LOWER || this == MOBILITY_UPPER || this == MOBILITY_FULL
+
+    /**
+     * The `SessionType` a workout of this kind is planned as: `CORE`/`CUSTOM` fall back to
+     * `STRENGTH_FULL` (there is no dedicated core/custom session type, §2.1) and the three P17
+     * mobility kinds map onto `MOBILITY`. P19 moved it here from the Workouts screen because the
+     * suggester's workout pool rotates by it.
+     */
+    val sessionType: SessionType
+        get() = when (this) {
+            UPPER -> SessionType.STRENGTH_UPPER
+            LOWER -> SessionType.STRENGTH_LOWER
+            FULL, CORE, CUSTOM -> SessionType.STRENGTH_FULL
+            MOBILITY_LOWER, MOBILITY_UPPER, MOBILITY_FULL -> SessionType.MOBILITY
+        }
 }
 
 /**

@@ -1,10 +1,12 @@
 package com.myhealth.ui
 
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -58,7 +60,9 @@ class WorkoutScreenTest {
         composeTestRule.onNodeWithText(activity.getString(R.string.nav_more)).performClick()
         composeTestRule.waitUntilTextExists(activity.getString(R.string.more_entry_workouts))
         composeTestRule.onNodeWithText(activity.getString(R.string.more_entry_workouts)).performClick()
-        composeTestRule.waitUntilTextExists("Upper A")
+        composeTestRule.waitUntilTextExists("Core A")
+        // Sorted by name, "Upper A" is the last card — below the fold since P19's checkbox row.
+        composeTestRule.verticalScroller().performScrollToNode(hasText("Upper A"))
 
         // ---- Open "Upper A": move its first exercise down, rename, save ------------------
         composeTestRule.onNodeWithText("Upper A").performClick()
@@ -74,7 +78,7 @@ class WorkoutScreenTest {
         // "Save" sits below all six exercise rows — scroll the list to it rather than assume it
         // is already composed (same LazyColumn-virtualization idiom used throughout this suite).
         val saveLabel = activity.getString(R.string.action_save)
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(saveLabel))
+        composeTestRule.verticalScroller().performScrollToNode(hasText(saveLabel))
         composeTestRule.onNodeWithText(saveLabel).performClick()
 
         // ---- Back on the Workouts list: the new name shows --------------------------------
@@ -118,7 +122,7 @@ class WorkoutScreenTest {
         // The session's day row is a LazyColumn item — not necessarily composed until scrolled
         // into view (same idiom as MuscleLoadCardTest / SettingsPersistenceTest.openSettings).
         val overflowDesc = activity.getString(R.string.daydetail_overflow_more_actions_desc)
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasContentDescription(overflowDesc))
+        composeTestRule.verticalScroller().performScrollToNode(hasContentDescription(overflowDesc))
         composeTestRule.onNodeWithContentDescription(overflowDesc).performClick()
         composeTestRule.waitUntilTextExists(activity.getString(R.string.training_edit))
         composeTestRule.onNodeWithText(activity.getString(R.string.training_edit)).performClick()
@@ -128,10 +132,31 @@ class WorkoutScreenTest {
         composeTestRule.waitUntilTextExists(newName)
         composeTestRule.onNodeWithText(newName).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(saveLabel))
+        composeTestRule.verticalScroller().performScrollToNode(hasText(saveLabel))
         composeTestRule.onNodeWithText(saveLabel).performClick()
 
         // ---- Back on Training: the session card shows the workout name --------------------
         composeTestRule.waitUntilTextExists(activity.getString(R.string.session_workout_format, newName))
+    }
+
+    /** P19: the "Use in suggestions" checkbox on a workout card persists to the row. */
+    @Test
+    fun workouts_useInSuggestions_checkbox_persists() {
+        val activity = composeTestRule.activity
+        composeTestRule.onNodeWithText(activity.getString(R.string.nav_more)).performClick()
+        composeTestRule.waitUntilTextExists(activity.getString(R.string.more_entry_workouts))
+        composeTestRule.onNodeWithText(activity.getString(R.string.more_entry_workouts)).performClick()
+        // Sorted by name, "Core A" is the first card.
+        composeTestRule.waitUntilTextExists("Core A")
+
+        val label = activity.getString(R.string.workouts_use_in_suggestions)
+        composeTestRule.onAllNodesWithText(label)[0].assertIsOn().performClick()
+        composeTestRule.waitForIdle()
+
+        val repo = testGraph().strengthRepo
+        composeTestRule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { repo.getByTemplateId("CORE_A")?.useInSuggestions == false }
+        }
+        composeTestRule.onAllNodesWithText(label)[0].assertIsOff()
     }
 }

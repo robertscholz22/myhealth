@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myhealth.R
 import com.myhealth.domain.engine.strength.ExerciseCatalog
+import com.myhealth.domain.engine.suggest.GoalRules
 import com.myhealth.domain.engine.suggest.Periodization
 import com.myhealth.domain.model.CalendarDay
 import com.myhealth.domain.model.ExercisePrescription
@@ -24,10 +25,10 @@ import com.myhealth.domain.repository.SettingsRepository
 import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.strength.SetLogRow
 import com.myhealth.ui.strength.nextTimeDetails
 import com.myhealth.ui.strength.toStrengthSetLog
-import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -139,6 +140,7 @@ class TrainingViewModel(
             week = currentWeek,
             planName = ctx.plan?.name,
             phase = phaseOf(ctx),
+            outlook = GoalRules.outlook(ctx.goals, todayDay())?.let(::outlookLine),
             loads = weeklyLoadSums(planned, targetFor(currentWeek, ctx.batch), loads),
             selectedDay = act.selectedDay ?: defaultSelectedDay(currentWeek),
             isGenerating = act.isGenerating,

@@ -29,6 +29,9 @@ class RoomRunningBestRepository(
     override fun observeByDistance(distanceMeters: Double, limit: Int): Flow<List<RunningBest>> =
         dao.observeByDistance(distanceMeters, limit).map { rows -> rows.map { it.toDomain() } }
 
+    override fun observeSince(fromDay: Long): Flow<List<RunningBest>> =
+        dao.observeSince(fromDay).map { rows -> rows.map { it.toDomain() } }
+
     override suspend fun getForActivity(activityId: Long): List<RunningBest> =
         withContext(ioDispatcher) { dao.getByActivity(activityId).map { it.toDomain() } }
 

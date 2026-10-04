@@ -48,7 +48,13 @@ data class GoalDraft(
     val linkedEventId: Long? = null,
     val notes: String = "",
     val createdAtMillis: Long = 0L,
+    /** P19: a race on [targetDay] (default) or a deadline — only race-time and bike-event goals ask. */
+    val isRace: Boolean = true,
 ) {
+    /** P19: whether the editor shows the race-day/deadline switch (a race-type goal with a date). */
+    val asksRaceOrDeadline: Boolean
+        get() = (type == GoalType.RACE_TIME || type == GoalType.BIKE_EVENT) && targetDay != null
+
     /** The two time fields as one value; `null` when neither was entered. */
     val targetTimeSec: Int?
         get() = if (targetMinutes == null && targetSeconds == null) {
@@ -104,23 +110,25 @@ fun validateGoal(draft: GoalDraft): Map<GoalField, UiMessage> {
 /** The domain goal the editor saves; only the fields its [GoalDraft.type] uses are carried over. */
 fun GoalDraft.toGoal(clock: Clock): Goal {
     val now = clock.millis()
-    val isRace = type == GoalType.RACE_TIME
+    val isRunRace = type == GoalType.RACE_TIME
     val isBikeEvent = type == GoalType.BIKE_EVENT
     return Goal(
         id = id,
         type = type,
         title = title.trim(),
         targetDay = targetDay?.toEpochDay(),
-        targetDistanceMeters = targetDistanceMeters.takeIf { isRace || isBikeEvent },
-        targetTimeSec = targetTimeSec.takeIf { isRace || isBikeEvent },
+        targetDistanceMeters = targetDistanceMeters.takeIf { isRunRace || isBikeEvent },
+        targetTimeSec = targetTimeSec.takeIf { isRunRace || isBikeEvent },
         targetWeightKg = targetWeightKg.takeIf { type == GoalType.BODY_WEIGHT },
         targetValue = targetValue.takeIf { type != GoalType.RACE_TIME && type != GoalType.BODY_WEIGHT && !isBikeEvent },
         priority = if (isPrimary) 1 else 2,
         status = status,
-        linkedEventId = linkedEventId.takeIf { isRace },
+        linkedEventId = linkedEventId.takeIf { isRunRace },
         notes = notes.trim().takeIf { it.isNotEmpty() },
         createdAtMillis = if (id == 0L) now else createdAtMillis,
         updatedAtMillis = now,
+        // Only a dated race-type goal can be a deadline; everything else keeps the default.
+        isRace = isRace || !asksRaceOrDeadline,
     )
 }
 
@@ -140,6 +148,7 @@ fun goalDraftOf(goal: Goal): GoalDraft = GoalDraft(
     linkedEventId = goal.linkedEventId,
     notes = goal.notes.orEmpty(),
     createdAtMillis = goal.createdAtMillis,
+    isRace = goal.isRace,
 )
 
 /** "Race time", "Body weight", … — the §2.1 enum rendered for a dropdown. */
@@ -166,7 +175,10 @@ fun goalStatusLabel(status: GoalStatus): String = when (status) {
  * (§4.2 "Goals": "5k 20:00 by 15 Nov — current best 21:14, on track/behind").
  */
 fun goalHeadline(goal: Goal): String {
-    val by = goal.targetDay?.let { " by ${LocalDate.ofEpochDay(it)}" } ?: ""
+    // P19: a race happens *on* its date; a deadline goal is reached *by* it.
+    val raceType = goal.type == GoalType.RACE_TIME || goal.type == GoalType.BIKE_EVENT
+    val preposition = if (raceType && goal.isRace) "on" else "by"
+    val by = goal.targetDay?.let { " $preposition ${LocalDate.ofEpochDay(it)}" } ?: ""
     return when (goal.type) {
         GoalType.RACE_TIME -> {
             val distance = goal.targetDistanceMeters?.let { GoalProgress.distanceLabel(it) } ?: "race"

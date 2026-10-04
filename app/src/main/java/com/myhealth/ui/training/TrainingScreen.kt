@@ -252,6 +252,13 @@ private fun PlanHeaderCard(
             }
         },
     ) {
+        state.outlook?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         WeeklyLoadBar(state.loads)
         if (state.suggestionsStale) {
             StaleSuggestionsHint(onRegenerate = onGenerate)

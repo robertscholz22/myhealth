@@ -234,7 +234,7 @@ object Scorer {
         val primary = groups.firstOrNull()
         return ScoringContext(
             phase = result.phase,
-            preferredTypes = preferredTypesFor(result.phase, primary),
+            preferredTypes = StrengthRules.poolPreferred(preferredTypesFor(result.phase, primary), input.strengthPool),
             primaryGoalGroup = primary,
             secondaryGoalGroups = groups.drop(1).toSet(),
             remainingBudget = remainingBudget,

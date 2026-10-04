@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myhealth.R
 import com.myhealth.domain.engine.bike.FtpEstimator
+import com.myhealth.domain.engine.goal.GoalProgress
 import com.myhealth.domain.model.GoalStatus
 import com.myhealth.domain.model.RideBest
 import com.myhealth.domain.model.RideBestKind
@@ -85,7 +86,11 @@ class GoalsViewModel(
 
     val state: StateFlow<GoalsUiState> = combine(
         goalRepo.observeAll(),
-        runningBestRepo.observeBestPerDistance(),
+        // P19.1: the PR table (for the all-time note) plus every effort of the recent-form window.
+        combine(
+            runningBestRepo.observeBestPerDistance(),
+            runningBestRepo.observeSince(today().toEpochDay() - GoalProgress.RECENT_FORM_DAYS),
+        ) { prs, recent -> (prs + recent).distinctBy { it.id } },
         bodyRepo.observeRange(today().toEpochDay() - WEIGHT_WINDOW_DAYS, today().toEpochDay()),
         activityRepo.observeRange(today().toEpochDay() - ACTIVITY_WINDOW_DAYS, today().toEpochDay()),
         combine(bikeInputs, message) { bike, msg -> bike to msg },

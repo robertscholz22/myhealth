@@ -92,7 +92,8 @@ class ZonesViewModel(
     }
 
     private suspend fun resolveVdot(todayDay: Long): Double? {
-        val bests = runningBestRepo.observeBestPerDistance().first()
+        // P19.1: every effort of the window, so a recent slower effort still sets the VDOT.
+        val bests = runningBestRepo.observeSince(todayDay - RiegelPredictor.MAX_SOURCE_AGE_DAYS).first()
         val source = RiegelPredictor.pickSource(bests, todayDay) ?: return null
         return VdotCalculator.vdot(source.distanceMeters, source.timeSec.toDouble())
     }

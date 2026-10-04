@@ -176,7 +176,8 @@ private fun GoalCard(row: GoalRow, actions: GoalListActions) {
         },
     ) {
         Text(goalHeadline(goal), style = MaterialTheme.typography.bodyMedium)
-        if (!row.progress.isManual) {
+        // P19: no recent effort → no bar and no "behind" red; the text asks for a time trial.
+        if (!row.progress.isManual && !row.progress.isUnknown) {
             LinearProgressIndicator(
                 progress = { row.progress.percent.toFloat() },
                 modifier = Modifier.fillMaxWidth(),
@@ -185,7 +186,7 @@ private fun GoalCard(row: GoalRow, actions: GoalListActions) {
         Text(
             text = row.progress.statusText,
             style = MaterialTheme.typography.bodySmall,
-            color = if (row.progress.onTrack) {
+            color = if (row.progress.onTrack || row.progress.isUnknown) {
                 MaterialTheme.colorScheme.onSurfaceVariant
             } else {
                 MaterialTheme.colorScheme.error

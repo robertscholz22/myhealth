@@ -64,6 +64,8 @@ data class SuggestedSession(
     val structureJson: String? = null,
     /** A built-in `StrengthTemplates` id, materialised into a `strength_workout` row on accept. */
     val workoutTemplateId: String? = null,
+    /** P19 (DB v8): a concrete `strength_workout` the suggestion proposes (the checked pool). */
+    val workoutId: Long? = null,
 )
 
 /** Mirrors `suggestion_batch` (§2.2.4). */
@@ -95,4 +97,9 @@ data class Goal(
     val notes: String?,
     val createdAtMillis: Long,
     val updatedAtMillis: Long,
+    /**
+     * P19 (DB v8): `true` = a race on [targetDay] (periodized towards, with a taper); `false` = a
+     * deadline ("by 31 Dec") that shapes sport, pace and progress but never tapers.
+     */
+    val isRace: Boolean = true,
 )

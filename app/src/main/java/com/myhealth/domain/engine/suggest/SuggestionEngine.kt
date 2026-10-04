@@ -60,14 +60,20 @@ class SuggestionEngine(private val clock: Clock) {
         val ctx = ConstraintContext.of(input)
         val bike = BikeContext.of(input)
         val muscle = MuscleContext.of(input)
+        val shape = WeekShape.of(input, periodization)
         var grid = SuggestionGrid.seed(input)
         var remaining = max(periodization.weeklyTarget - grid.fixedLoad, 0.0)
         val stopFloor = MIN_BUDGET_FRACTION * periodization.weeklyTarget
 
+        placeBenchmark(input, periodization, grid, ctx, bike, muscle, remaining)?.let { (placed, load) ->
+            grid = placed
+            remaining = max(remaining - load, 0.0)
+        }
+
         var iterations = 0
         while (iterations < MAX_ITERATIONS && remaining > 0.0 && remaining >= stopFloor) {
             iterations++
-            val best = bestCandidate(input, periodization, grid, ctx, bike, remaining) ?: break
+            val best = bestCandidate(input, periodization, grid, ctx, bike, remaining, shape) ?: break
             val (candidate, breakdown) = best
             if (breakdown.total < MIN_SCORE) break
             val rationale = Rationale.forSession(
@@ -88,7 +94,42 @@ class SuggestionEngine(private val clock: Clock) {
         if (input.profile.mobilityOnRestDays) {
             grid = addMobilityToRestDays(grid, periodization.phase, periodization.isStarterWeek)
         }
-        return resultOf(input, periodization, grid, muscle)
+        return resultOf(input, periodization, grid, muscle, shape)
+    }
+
+    /**
+     * P19 (§P19 item 5): the benchmark pre-pass. When [GoalRules.benchmarkReason] says a time trial
+     * is due, one `TIME_TRIAL` goes on the best-scoring day that passes every constraint, before
+     * the greedy loop spends the budget — it is the one session the week is planned around. It
+     * carries a nominal score of 1.0 so the rest-day post-pass never picks it as its victim.
+     * Returns the new grid and the load it took, or `null` when nothing was placed.
+     */
+    @Suppress("LongParameterList")
+    private fun placeBenchmark(
+        input: SuggestionInput,
+        periodization: PeriodizationResult,
+        grid: SuggestionGrid,
+        ctx: ConstraintContext,
+        bike: BikeContext,
+        muscle: MuscleContext,
+        remaining: Double,
+    ): Pair<SuggestionGrid, Double>? {
+        val reason = GoalRules.benchmarkReason(input, periodization.phase, periodization.isStarterWeek)
+            ?: return null
+        val entry = SessionCatalog.entryFor(SessionType.TIME_TRIAL) ?: return null
+        val scoring = Scorer.contextOf(input, periodization, remaining)
+        val (candidate, _) = grid.days
+            .map { Candidate(entry, it.day, entry.defaultMin) }
+            .filter { Constraints.violations(it, it.day, grid, ctx).isEmpty() }
+            .map { it to Scorer.score(it, grid, scoring) }
+            .minWithOrNull(candidateOrder)
+            ?: return null
+        val rationale = Rationale.forSession(
+            candidate = candidate,
+            ctx = rationaleContext(input, periodization, grid, ctx, bike, muscle, remaining, candidate),
+        ) + GoalRules.benchmarkEntry(reason)
+        val placed = grid.place(candidate.day, candidate.asPlacedItem(BENCHMARK_SCORE, rationale))
+        return placed to candidate.estTrimp
     }
 
     // ---- steps 4 + 5 -----------------------------------------------------------------------------
@@ -100,10 +141,11 @@ class SuggestionEngine(private val clock: Clock) {
         ctx: ConstraintContext,
         bike: BikeContext,
         remaining: Double,
+        shape: WeekShape = WeekShape.NONE,
     ): Pair<Candidate, ScoreBreakdown>? {
         val scoring = Scorer.contextOf(input, periodization, remaining)
         return grid.days
-            .flatMap { plan -> candidatesFor(plan.day, periodization.phase, grid, remaining, bike) }
+            .flatMap { plan -> candidatesFor(plan.day, periodization.phase, grid, remaining, bike, shape) }
             .filter { Constraints.violations(it, it.day, grid, ctx).isEmpty() }
             .map { it to Scorer.score(it, grid, scoring) }
             .minWithOrNull(candidateOrder)
@@ -122,10 +164,14 @@ class SuggestionEngine(private val clock: Clock) {
         grid: SuggestionGrid,
         remaining: Double,
         bike: BikeContext = BikeContext.NONE,
+        shape: WeekShape = WeekShape.NONE,
     ): List<Candidate> = SessionCatalog.suggestableFor(bike.enabled)
+        .filter { it.sessionType !in shape.excludedTypes }
         .mapNotNull { entry -> BikeRules.entryFor(entry, day, bike) }
         .map { entry ->
-            Candidate(entry = entry, day = day, minutes = minutesFor(entry, phase, grid, remaining))
+            // P19: a race build-up fixes the long run's length; everything else scales with the budget.
+            val fixed = shape.longRunMinutes.takeIf { entry.sessionType == SessionType.LONG_RUN }
+            Candidate(entry = entry, day = day, minutes = fixed ?: minutesFor(entry, phase, grid, remaining))
         }
 
     /** §3.5.4's duration scaling — see the class KDoc for how `Σ(remaining defaults)` is read. */
@@ -262,15 +308,16 @@ class SuggestionEngine(private val clock: Clock) {
         periodization: PeriodizationResult,
         grid: SuggestionGrid,
         muscle: MuscleContext,
+        shape: WeekShape = WeekShape.NONE,
     ): SuggestionResult {
-        val intervalCtx = IntervalContext.of(input, periodization)
+        val intervalCtx = shape.intervalCtx ?: IntervalContext.of(input, periodization)
         val seen = mutableMapOf<SessionType, Int>()
         val sessions = grid.suggested()
             .sortedWith(compareBy({ it.first }, { it.second.sessionType.ordinal }))
             .map { (day, item) ->
                 val occurrence = seen.getOrDefault(item.sessionType, 0)
                 seen[item.sessionType] = occurrence + 1
-                sessionOf(day, item, intervalCtx, muscle, occurrence)
+                sessionOf(day, item, intervalCtx, muscle, occurrence, shape.longRun)
             }
         val hash = SuggestionInputsHash.of(input)
         return SuggestionResult(
@@ -315,16 +362,24 @@ class SuggestionEngine(private val clock: Clock) {
         ctx: IntervalContext,
         muscle: MuscleContext = MuscleContext.NONE,
         occurrence: Int = 0,
+        longRun: LongRunPlan? = null,
     ): SuggestedSession {
         val entry = SessionCatalog.entryFor(item.sessionType)
         val plan = entry?.let { IntervalBuilder.plan(Candidate(it, day, item.minutes), ctx) }
-        val pace = if (item.sportGroup == SportGroup.RUN) {
-            IntervalBuilder.targetPaceFor(item.sessionType, ctx)
-        } else {
-            null
+        val isTimeTrial = item.sessionType == SessionType.TIME_TRIAL
+        val pace = when {
+            isTimeTrial -> GoalRules.benchmarkPaceSecPerKm(ctx.vdot)
+            item.sportGroup == SportGroup.RUN -> IntervalBuilder.targetPaceFor(item.sessionType, ctx)
+            else -> null
         }
-        val templateId = StrengthRules.templateIdFor(item.sessionType, muscle, occurrence)
-        val workout = StrengthRules.templateFor(templateId)
+        val choice = StrengthRules.choiceFor(item.sessionType, muscle, occurrence)
+        val workout = choice?.workout
+        val longRunHere = longRun?.takeIf { item.sessionType == SessionType.LONG_RUN }
+        val distance = when {
+            isTimeTrial -> GoalRules.BENCHMARK_DISTANCE_M
+            longRunHere != null -> longRunHere.meters
+            else -> null
+        }
         return SuggestedSession(
             id = 0L,
             batchId = 0L,
@@ -333,19 +388,21 @@ class SuggestionEngine(private val clock: Clock) {
             sessionType = item.sessionType,
             intensity = item.intensity,
             targetDurationMin = item.minutes,
-            targetDistanceMeters = null,
+            targetDistanceMeters = distance,
             estimatedTrimp = item.estTrimp,
             score = item.score,
             rationale = item.rationale +
                 Rationale.intervalEntries(plan, pace, ctx, item.sessionType) +
                 listOfNotNull(
+                    longRunHere?.let { GoalRules.longRunEntry(it) },
                     StrengthRules.workoutEntry(workout),
                     StrengthRules.mobilityEntry(item.sessionType, muscle),
                 ),
             status = SuggestionStatus.PROPOSED,
             targetPaceSecPerKm = pace,
             structureJson = plan?.let { WorkoutStructureCodec.encode(it.structure) },
-            workoutTemplateId = templateId,
+            workoutTemplateId = choice?.templateId,
+            workoutId = choice?.workoutId,
         )
     }
 
@@ -358,11 +415,43 @@ class SuggestionEngine(private val clock: Clock) {
 
         const val MAX_ITERATIONS: Int = 20
 
+        /** P19: the benchmark's nominal score — highest, so no post-pass removes it first. */
+        const val BENCHMARK_SCORE: Double = 1.0
+
         /** Post-pass 7c/7d fillers are not scored candidates; they carry this nominal score. */
         const val MOBILITY_SCORE: Double = 0.0
 
         const val MIN_SESSION_MINUTES: Int = 10
 
         private const val HOURS_PER_DAY: Long = 24L
+    }
+}
+
+/**
+ * P19: the per-run facts that shape *which* candidates exist and how long the long run is —
+ * computed once per [SuggestionEngine.generate]. [NONE] is the pre-P19 shape (nothing excluded,
+ * no fixed long run), which is what every caller without a goal layer or a pool gets.
+ */
+internal data class WeekShape(
+    val excludedTypes: Set<SessionType> = emptySet(),
+    val longRun: LongRunPlan? = null,
+    val longRunMinutes: Int? = null,
+    val intervalCtx: IntervalContext? = null,
+) {
+    companion object {
+        val NONE: WeekShape = WeekShape()
+
+        fun of(input: SuggestionInput, periodization: PeriodizationResult): WeekShape {
+            val intervalCtx = IntervalContext.of(input, periodization)
+            val longRun = GoalRules.longRunPlan(input, periodization.phase)
+            return WeekShape(
+                excludedTypes = StrengthRules.excludedTypes(input.strengthPool),
+                longRun = longRun,
+                longRunMinutes = longRun?.let {
+                    GoalRules.longRunMinutes(it, IntervalBuilder.targetPaceFor(SessionType.LONG_RUN, intervalCtx))
+                },
+                intervalCtx = intervalCtx,
+            )
+        }
     }
 }

@@ -1,5 +1,7 @@
 package com.myhealth.ui.training
 
+import com.myhealth.domain.engine.suggest.GoalRules
+import com.myhealth.domain.engine.suggest.PhaseOutlook
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.CalendarDay
 import com.myhealth.domain.model.EventOccurrence
@@ -47,6 +49,8 @@ data class TrainingUiState(
     val week: TrainingWeek = TrainingWeek.EMPTY,
     val planName: String? = null,
     val phase: TrainingPhase? = null,
+    /** P19: "Base · Build from 15 Jan · Berlin Half on 4 Apr"; `null` without a dated race goal. */
+    val outlook: String? = null,
     val loads: WeeklyLoadSums = WeeklyLoadSums.ZERO,
     /** The day "+ Session" and "Generate suggestions" act on — today, or the week's Monday. */
     val selectedDay: Long = 0L,
@@ -134,5 +138,15 @@ fun trainingLabelOf(name: String): String =
     name.split("_").joinToString(" ") { it.lowercase(Locale.US) }.replaceFirstChar(Char::uppercase)
 
 fun TrainingPhase.label(): String = trainingLabelOf(name)
+
+/**
+ * P19 (§P19 item 8): the race calendar in one line — the phase the race date implies, when the
+ * next one starts, and the race itself, e.g. "Base · Build from 15 Jan · Berlin Half on 4 Apr".
+ */
+fun outlookLine(outlook: PhaseOutlook): String = listOfNotNull(
+    outlook.phase.label(),
+    outlook.nextPhase?.let { next -> outlook.nextPhaseDay?.let { "${next.label()} from ${GoalRules.dayLabel(it)}" } },
+    outlook.raceGoal.targetDay?.let { "${outlook.raceGoal.title} on ${GoalRules.dayLabel(it)}" },
+).joinToString(" · ")
 
 fun Intensity.label(): String = trainingLabelOf(name)

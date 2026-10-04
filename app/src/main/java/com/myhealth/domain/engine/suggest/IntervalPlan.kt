@@ -27,6 +27,8 @@ data class IntervalContext(
     val acwr: Double? = null,
     val recoveryBand: RecoveryBand? = null,
     val isStarterWeek: Boolean = false,
+    /** P19: the race-time goal the reps are measured against; `null` while the goal layer is off. */
+    val paceGoal: PaceGoal? = null,
 ) {
     companion object {
         fun of(input: SuggestionInput, periodization: PeriodizationResult): IntervalContext =
@@ -39,6 +41,7 @@ data class IntervalContext(
                 acwr = periodization.acwr,
                 recoveryBand = periodization.band,
                 isStarterWeek = periodization.isStarterWeek,
+                paceGoal = GoalRules.paceGoal(input),
             )
 
         /** The race the week is periodized towards, else the highest-priority goal with a distance. */
@@ -67,6 +70,8 @@ data class IntervalPlan(
     /** True when §3.11 rule 2's `TAPER`/`RACE_WEEK` shortening actually removed work. */
     val shortenedForTaper: Boolean,
     val summary: String,
+    /** P19: the work pace is the goal pace (§P19 item 6), not the current Daniels/measured pace. */
+    val usesGoalPace: Boolean = false,
 ) {
     /** A structure worth explaining: it prescribes more than "be in this zone". */
     val hasQuantifiedTarget: Boolean get() = workPaceSecPerKm != null || workPowerLowW != null

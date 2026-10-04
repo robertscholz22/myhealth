@@ -80,11 +80,12 @@ object Periodization {
 
     /**
      * The primary race goal: a [RACE_GOAL_TYPES] goal with a `targetDay` that has not passed,
-     * lowest priority. P12.3 adds `BIKE_EVENT` — a cycling event periodizes exactly like a race,
+     * lowest priority. P19: only a goal marked as a race (`isRace`) — a deadline never tapers.
+     * P12.3 adds `BIKE_EVENT` — a cycling event periodizes exactly like a race,
      * only the preferred sessions of each phase differ ([bikePreferredTypes]).
      */
     fun primaryRaceGoal(goals: List<Goal>, todayDay: Long): Goal? = goals
-        .filter { it.type in RACE_GOAL_TYPES && (it.targetDay ?: Long.MIN_VALUE) >= todayDay }
+        .filter { it.type in RACE_GOAL_TYPES && it.isRace && (it.targetDay ?: Long.MIN_VALUE) >= todayDay }
         .minByOrNull { it.priority }
 
     /**

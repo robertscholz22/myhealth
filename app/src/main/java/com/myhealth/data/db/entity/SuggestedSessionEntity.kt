@@ -50,4 +50,6 @@ data class SuggestedSessionEntity(
     val structureJson: String? = null,
     /** A built-in `StrengthTemplates` id, materialised into a workout row on accept (P14, DB v6). */
     val workoutTemplateId: String? = null,
+    /** P19 (DB v8): a concrete `strength_workout` id from the checked pool; no FK (a proposal). */
+    val workoutId: Long? = null,
 )

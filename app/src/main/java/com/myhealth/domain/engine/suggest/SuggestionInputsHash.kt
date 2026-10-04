@@ -41,6 +41,8 @@ object SuggestionInputsHash {
         bikeLine(input)?.let { line("bike", it) }
         pacesLine(input)?.let { line("paces", it) }
         muscleLine(input)?.let { line("muscle", it) }
+        goalFormLine(input)?.let { line("goalForm", it) }
+        poolLine(input)?.let { line("pool", it) }
         input.goals.sortedWith(compareBy({ it.priority }, { it.id })).forEach { goal ->
             line(
                 "goal",
@@ -48,7 +50,7 @@ object SuggestionInputsHash {
                     goal.id.toString(), goal.type.name, goal.status.name, goal.priority.toString(),
                     goal.targetDay?.toString() ?: "", num(goal.targetDistanceMeters),
                     goal.targetTimeSec?.toString() ?: "", num(goal.targetWeightKg), num(goal.targetValue),
-                ).joinToString("|"),
+                ).joinToString("|") + (if (goal.isRace) "" else "|deadline"),
             )
         }
         input.events.sortedWith(compareBy({ it.occurrenceDay }, { it.eventId }, { it.type.name })).forEach { e ->
@@ -181,5 +183,25 @@ object SuggestionInputsHash {
 
     private fun StringBuilder.line(key: String, value: String?) {
         append(key).append('=').append(value ?: "").append('\n')
+    }
+
+    /** P19: the goal layer's facts; absent (no line at all) while `goalForm` is `null`. */
+    private fun goalFormLine(input: SuggestionInput): String? {
+        val form = input.goalForm ?: return null
+        return listOf(
+            form.vdotSourceDay?.toString() ?: "",
+            num(form.longestRunMeters28d),
+            form.timeTrialDays.sorted().joinToString(","),
+        ).joinToString("|")
+    }
+
+    /** P19: the checked workouts and the rotation state; absent while `strengthPool` is `null`. */
+    private fun poolLine(input: SuggestionInput): String? {
+        val pool = input.strengthPool ?: return null
+        val workouts = pool.sortedBy { it.id }.joinToString(",") { "${it.id}:${it.kind.name}:${it.updatedAtMillis}" }
+        val last = input.lastWorkoutIdBySessionType.entries
+            .sortedBy { it.key.name }
+            .joinToString(",") { "${it.key.name}=${it.value}" }
+        return "$workouts|$last"
     }
 }

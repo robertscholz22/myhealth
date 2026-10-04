@@ -37,13 +37,21 @@ class WorkoutsViewModel(
 
     private val action = MutableStateFlow(WorkoutsAction())
 
+    /**
+     * The first visit seeds the built-ins one row at a time; showing the list before that is done
+     * made the LazyColumn anchor on the first row it saw ("Upper A") and open scrolled past the
+     * rows sorted above it. The list appears once, complete.
+     */
+    private val seeded = MutableStateFlow(false)
+
     val state: StateFlow<WorkoutsUiState> = combine(
         strengthRepo.observeAll(),
         action,
-    ) { workouts, act ->
+        seeded,
+    ) { workouts, act, isSeeded ->
         WorkoutsUiState(
-            isLoading = false,
-            workouts = workouts,
+            isLoading = !isSeeded,
+            workouts = if (isSeeded) workouts else emptyList(),
             pendingDeleteId = act.pendingDeleteId,
             planForDayId = act.planForDayId,
             message = act.message,
@@ -51,7 +59,13 @@ class WorkoutsViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), WorkoutsUiState())
 
     init {
-        viewModelScope.launch { seed() }
+        viewModelScope.launch {
+            try {
+                seed()
+            } finally {
+                seeded.value = true
+            }
+        }
     }
 
     fun duplicate(workoutId: Long) {
@@ -69,6 +83,11 @@ class WorkoutsViewModel(
             )
             strengthRepo.upsertWorkout(copy)
         }
+    }
+
+    /** P19: the "Use in suggestions" checkbox; the next Generate rotates through checked ones only. */
+    fun setUseInSuggestions(workoutId: Long, use: Boolean) {
+        viewModelScope.launch { strengthRepo.setUseInSuggestions(workoutId, use) }
     }
 
     fun requestDelete(workoutId: Long) = action.set { it.copy(pendingDeleteId = workoutId) }
@@ -158,12 +177,4 @@ private fun MutableStateFlow<WorkoutsAction>.set(transform: (WorkoutsAction) -> 
 /** The `SessionType` a planned session gets from a workout's kind; `CORE`/`CUSTOM` fall back to
  * `STRENGTH_FULL` — there is no dedicated core/custom session type (§2.1) — and the three P17
  * `MOBILITY_*` kinds map onto `SessionType.MOBILITY`, which already exists and carries no load. */
-fun sessionTypeFor(kind: StrengthWorkoutKind): SessionType = when (kind) {
-    StrengthWorkoutKind.UPPER -> SessionType.STRENGTH_UPPER
-    StrengthWorkoutKind.LOWER -> SessionType.STRENGTH_LOWER
-    StrengthWorkoutKind.FULL, StrengthWorkoutKind.CORE, StrengthWorkoutKind.CUSTOM -> SessionType.STRENGTH_FULL
-    StrengthWorkoutKind.MOBILITY_LOWER,
-    StrengthWorkoutKind.MOBILITY_UPPER,
-    StrengthWorkoutKind.MOBILITY_FULL,
-    -> SessionType.MOBILITY
-}
+fun sessionTypeFor(kind: StrengthWorkoutKind): SessionType = kind.sessionType

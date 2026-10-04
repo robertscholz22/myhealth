@@ -3,6 +3,8 @@ package com.myhealth.data.repository
 import com.myhealth.data.db.dao.SuggestionDao
 import com.myhealth.data.mapper.toDomain
 import com.myhealth.data.mapper.toEntity
+import com.myhealth.domain.engine.running.RiegelPredictor
+import com.myhealth.domain.engine.suggest.GoalFormInputs
 import com.myhealth.domain.engine.suggest.SuggestionEngine
 import com.myhealth.domain.engine.suggest.SuggestionInput
 import com.myhealth.domain.model.DailyLoad
@@ -12,6 +14,9 @@ import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.PlannedStatus
 import com.myhealth.domain.model.Profile
 import com.myhealth.domain.model.RecoveryState
+import com.myhealth.domain.model.SessionType
+import com.myhealth.domain.model.SportGroup
+import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.model.SuggestedSession
 import com.myhealth.domain.model.SuggestionBatch
 import com.myhealth.domain.model.SuggestionStatus
@@ -150,7 +155,7 @@ class RoomSuggestionRepository(
                     }
                 }
                 planRepo.upsertSessions(
-                    rows.map { it.toPlannedSession(planId, workoutIdFor(it.workoutTemplateId)) },
+                    rows.map { it.toPlannedSession(planId, workoutIdFor(it)) },
                 )
                 suggestionDao.updateSessionStatuses(rows.map { it.id }, SuggestionStatus.ACCEPTED)
                 closeBatches(rows.map { it.batchId }.distinct())
@@ -229,6 +234,8 @@ class RoomSuggestionRepository(
         val latestLoad = loadRepo.getLatest()
         val paces = paceResolver.resolve(profile, todayDay)
         val muscle = muscleResolver.resolve(todayDay, latestLoad?.ctl ?: 0.0)
+        val lockedPlanned = planRepo.getSessions(todayDay, horizonEnd - 1)
+            .filter { it.locked || it.sourceSuggestionId == null }
         return SuggestionInput(
             today = today,
             horizonDays = horizonDays,
@@ -239,8 +246,7 @@ class RoomSuggestionRepository(
                 .first(),
             // BUG-15: a session the user planned by hand is as fixed as a locked one — it is never
             // replaced (PlanDao.getReplaceableSessions) and the engine must plan around it.
-            lockedPlanned = planRepo.getSessions(todayDay, horizonEnd - 1)
-                .filter { it.locked || it.sourceSuggestionId == null },
+            lockedPlanned = lockedPlanned,
             recentLoad = loadRepo.getRange(todayDay - LOAD_WINDOW_DAYS, todayDay),
             recovery = latestLoad.toRecoveryState(),
             recentActivities = activityRepo
@@ -253,7 +259,45 @@ class RoomSuggestionRepository(
             ftpWatts = paces.ftpWatts,
             muscleLoad = muscle.muscleLoad,
             lastAcceptedTemplateByKind = muscle.lastAcceptedTemplateByKind,
+            goalForm = goalForm(todayDay, lockedPlanned),
+            strengthPool = strengthPool(),
+            lastWorkoutIdBySessionType = muscle.lastWorkoutIdBySessionType,
         )
+    }
+
+    /**
+     * P19 (§P19 item 4): the goal layer's facts, or `null` where running bests are not wired (the
+     * P6.5 tests), which keeps that whole layer off.
+     *
+     * A time trial counts as "already planned" when it is in the last seven days (unless skipped),
+     * or fixed inside the horizon (locked, hand-planned or completed). An *unlocked* suggested one
+     * in the horizon does not count: accepting this batch replaces it, so the batch must carry its
+     * own.
+     */
+    private suspend fun goalForm(todayDay: Long, lockedPlanned: List<PlannedSession>): GoalFormInputs? {
+        val bests = runningBestRepo ?: return null
+        val recent = bests.observeSince(todayDay - RiegelPredictor.MAX_SOURCE_AGE_DAYS).first()
+        val runs = activityRepo.observeRange(todayDay - LONG_RUN_WINDOW_DAYS, todayDay).first()
+            .filter { it.sportGroup == SportGroup.RUN }
+        val pastTrials = planRepo.getSessions(todayDay - BENCHMARK_LOOKBACK_DAYS, todayDay - 1)
+            .filter { it.sessionType == SessionType.TIME_TRIAL && it.status != PlannedStatus.SKIPPED }
+        val fixedTrials = lockedPlanned.filter { it.sessionType == SessionType.TIME_TRIAL }
+        return GoalFormInputs(
+            vdotSourceDay = RiegelPredictor.pickSource(recent, todayDay)?.day,
+            longestRunMeters28d = runs.maxOfOrNull { it.distanceMeters ?: 0.0 } ?: 0.0,
+            timeTrialDays = (pastTrials + fixedTrials).map { it.day }.toSet(),
+        )
+    }
+
+    /**
+     * P19 (§P19 item 9): the workouts checked "Use in suggestions", or `null` where strength is
+     * not wired. The built-ins are seeded first (idempotent): without that, an athlete who never
+     * opened the Workouts screen would have an empty pool and no strength days at all.
+     */
+    private suspend fun strengthPool(): List<StrengthWorkout>? {
+        val repo = strengthRepo ?: return null
+        strengthSeeder?.seed()
+        return repo.observeAll().first().filter { it.useInSuggestions }
     }
 
     /** The horizon's cycle statuses, or an empty map when tracking is off (P11.2). */
@@ -315,6 +359,15 @@ class RoomSuggestionRepository(
         return strengthSeeder?.workoutFor(id)?.id
     }
 
+    /**
+     * P19: the pool's concrete workout when it still exists (it may have been deleted between
+     * generating and accepting — `planned_session.workoutId` is a real FK), else the built-in.
+     */
+    private suspend fun workoutIdFor(session: SuggestedSession): Long? {
+        session.workoutId?.let { id -> if (strengthRepo?.getById(id) != null) return id }
+        return workoutIdFor(session.workoutTemplateId)
+    }
+
     private fun SuggestedSession.toPlannedSession(
         planId: Long?,
         workoutId: Long? = null,
@@ -352,6 +405,12 @@ class RoomSuggestionRepository(
         /** §3.5.1: 42 days of `daily_load`, 14 days of activities. */
         const val LOAD_WINDOW_DAYS: Long = 42L
         const val ACTIVITY_WINDOW_DAYS: Long = 14L
+
+        /** P19: the long-run build-up grows from the longest run of the last four weeks. */
+        const val LONG_RUN_WINDOW_DAYS: Long = 28L
+
+        /** P19: a time trial planned or run in the last week means no new benchmark yet. */
+        const val BENCHMARK_LOOKBACK_DAYS: Long = 7L
 
         const val MIN_HORIZON_DAYS: Int = 1
         const val MAX_HORIZON_DAYS: Int = 28

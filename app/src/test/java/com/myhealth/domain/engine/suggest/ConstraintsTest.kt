@@ -342,6 +342,8 @@ class ConstraintsTest {
             SessionType.BIKE_INTERVALS to 144.0,
             SessionType.TRAINER_SESSION to 81.0,
             SessionType.RECOVERY_SPIN to 18.0,
+            // P19's benchmark run (not suggestable through the greedy loop).
+            SessionType.TIME_TRIAL to 96.0,
         )
         assertThat(SessionCatalog.ALL).hasSize(expected.size)
         SessionCatalog.ALL.forEach { entry ->

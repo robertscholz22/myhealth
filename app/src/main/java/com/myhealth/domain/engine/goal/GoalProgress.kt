@@ -12,6 +12,7 @@ import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.model.RunningBest
 import com.myhealth.domain.model.SportGroup
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.max
@@ -20,8 +21,10 @@ import kotlin.math.min
 /**
  * Goal progress (PLAN P6.1): `compute(goal, bests, weights, today) -> Progress`.
  *
- * - `RACE_TIME` — `percent = clamp(targetTime / currentBest, 0, 1)`; `onTrack` when the Riegel
- *   prediction (§3.4) from the best effort of the **last 60 days** is within 2 % of the target.
+ * - `RACE_TIME` (P19.1) — current form = the faster of the best effort at the goal distance and
+ *   the Riegel prediction (§3.4), both from the **last 180 days**; `percent = clamp(target /
+ *   current, 0, 1)`, `onTrack` when current is within 2 % of the target. Nothing recent ⇒
+ *   [Progress.isUnknown], with the all-time best only as a dated note.
  * - `BODY_WEIGHT` — linear from the weight at creation to `targetWeightKg`; `onTrack` when the
  *   achieved rate is at least 80 % of the rate needed to hit `targetDay`.
  * - `CONSISTENCY` — sessions/week over the last 4 weeks against `targetValue`.
@@ -44,8 +47,12 @@ import kotlin.math.min
  */
 object GoalProgress {
 
-    /** Look-back for the Riegel source effort of a race goal (P6.1). */
-    const val RACE_SOURCE_WINDOW_DAYS: Long = 60L
+    /**
+     * P19.1: the recent-form window of a race goal — both the "recent best" at the goal distance
+     * and the Riegel source effort must lie inside it (the same 180 days the VDOT uses). It
+     * replaced P6.1's 60-day prediction window and the all-time "current best".
+     */
+    const val RECENT_FORM_DAYS: Long = RiegelPredictor.MAX_SOURCE_AGE_DAYS
 
     /** A prediction within 2 % of the target still counts as on track (P6.1). */
     const val RACE_ON_TRACK_TOLERANCE: Double = 1.02
@@ -71,6 +78,8 @@ object GoalProgress {
         val onTrack: Boolean,
         /** True when nothing in the data model can measure this goal (see the class KDoc). */
         val isManual: Boolean = false,
+        /** P19.1: measurable, but nothing recent to measure it with — neither behind nor on track. */
+        val isUnknown: Boolean = false,
     )
 
     fun compute(
@@ -192,30 +201,53 @@ object GoalProgress {
             return Progress(0.0, "Set a target distance and time.", onTrack = false, isManual = true)
         }
         val todayDay = today.toEpochDay()
-        val current = bests
-            .filter { abs(it.distanceMeters - distance) < 1.0 && it.timeSec > 0 }
-            .minByOrNull { it.timeSec }
-            ?: return Progress(
-                percent = 0.0,
-                statusText = "No ${distanceLabel(distance)} effort recorded yet.",
-                onTrack = false,
-            )
+        val fromDay = todayDay - RECENT_FORM_DAYS
+        val atDistance = bests.filter { abs(it.distanceMeters - distance) < 1.0 && it.timeSec > 0 }
+        val allTime = atDistance.minByOrNull { it.timeSec }
+        val recentBest = atDistance.filter { it.day >= fromDay }.minByOrNull { it.timeSec }
+        val recent = bests.filter { it.day >= fromDay }
+        val source = RiegelPredictor.pickSource(recent, todayDay)
+        val predicted = predictedSec(recent, distance, todayDay)
+        val current = listOfNotNull(recentBest?.timeSec?.toDouble(), predicted).minOrNull()
+            ?: return unknownForm(distance, allTime)
 
-        val percent = clamp01(targetSec.toDouble() / current.timeSec)
-        val predicted = predictedSec(bests, distance, todayDay)
-        val onTrack = percent >= 1.0 || (predicted != null && predicted <= targetSec * RACE_ON_TRACK_TOLERANCE)
-        val prediction = predicted?.let { " · predicted ${formatTime(it.toInt())}" } ?: ""
+        val percent = clamp01(targetSec / current)
+        val onTrack = current <= targetSec * RACE_ON_TRACK_TOLERANCE
+        val verdict = if (onTrack) "on track" else "behind"
+        val text = if (recentBest != null) {
+            val predictionNote = predicted
+                ?.takeIf { it < recentBest.timeSec - 0.5 }
+                ?.let { " · predicted ${formatTime(it.toInt())}" }
+                .orEmpty()
+            "Recent best ${formatTime(recentBest.timeSec)} (${dayLabel(recentBest.day)})$predictionNote — $verdict."
+        } else {
+            val from = source?.let { " from your ${distanceLabel(it.distanceMeters)} on ${dayLabel(it.day)}" }.orEmpty()
+            "Predicted ${formatTime(current.toInt())}$from — $verdict."
+        }
+        return Progress(percent = percent, statusText = text, onTrack = onTrack)
+    }
+
+    /** P19.1: nothing inside the recent-form window — say so instead of comparing to an old PR. */
+    private fun unknownForm(distance: Double, allTime: RunningBest?): Progress {
+        val note = allTime?.let { " (all-time ${formatTime(it.timeSec)}, ${monthLabel(it.day)})" } ?: ""
         return Progress(
-            percent = percent,
-            statusText = "Current best ${formatTime(current.timeSec)}$prediction — " +
-                (if (onTrack) "on track" else "behind") + ".",
-            onTrack = onTrack,
+            percent = 0.0,
+            statusText = "No ${distanceLabel(distance)} effort in the last 6 months$note — " +
+                "run a time trial to measure your form.",
+            onTrack = false,
+            isUnknown = true,
         )
     }
 
-    /** Riegel from the best qualifying effort of the last [RACE_SOURCE_WINDOW_DAYS] days. */
+    private fun dayLabel(day: Long): String =
+        LocalDate.ofEpochDay(day).format(DateTimeFormatter.ofPattern("d MMM", Locale.US))
+
+    private fun monthLabel(day: Long): String =
+        LocalDate.ofEpochDay(day).format(DateTimeFormatter.ofPattern("MMM yyyy", Locale.US))
+
+    /** Riegel from the best qualifying effort of the last [RECENT_FORM_DAYS] days. */
     fun predictedSec(bests: List<RunningBest>, targetDistanceMeters: Double, todayDay: Long): Double? {
-        val recent = bests.filter { it.day >= todayDay - RACE_SOURCE_WINDOW_DAYS }
+        val recent = bests.filter { it.day >= todayDay - RECENT_FORM_DAYS }
         val source = RiegelPredictor.pickSource(recent, todayDay) ?: return null
         return RiegelPredictor.predictSec(
             sourceDistanceMeters = source.distanceMeters,

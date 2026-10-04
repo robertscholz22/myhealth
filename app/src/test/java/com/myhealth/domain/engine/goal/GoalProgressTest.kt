@@ -89,14 +89,49 @@ class GoalProgressTest {
         assertThat(slow.onTrack).isFalse()
         assertThat(slow.statusText).contains("behind")
 
-        // The same fast effort 90 days ago is outside the 60-day window and proves nothing.
+        // P19.1: the same fast effort 200 days ago is outside the 180-day window and proves nothing.
         val stale = GoalProgress.compute(
             goal,
-            listOf(best(5000.0, 1274, dayOffset = -90), best(10000.0, 2450, dayOffset = -90)),
+            listOf(best(5000.0, 1274, dayOffset = -200), best(10000.0, 2450, dayOffset = -200)),
             emptyList(),
             today,
         )
         assertThat(stale.onTrack).isFalse()
+        assertThat(stale.isUnknown).isTrue()
+    }
+
+    @Test
+    fun goal13_old_pr_is_only_a_note_recent_slower_effort_is_current_form() {
+        // The owner's case: 20:14 on 2023-12-31, 21:58 on 2026-09-05, target 20:00.
+        val goal = raceGoal(targetSec = 1200)
+        val old = best(5000.0, 1214, dayOffset = -988)
+        val recent = best(5000.0, 1318, dayOffset = -9)
+        val progress = GoalProgress.compute(goal, listOf(old, recent), emptyList(), today)
+        assertThat(progress.percent).isWithin(1e-6).of(1200.0 / 1318.0)
+        assertThat(progress.statusText).startsWith("Recent best 21:58 (5 Sep)")
+        assertThat(progress.statusText).contains("behind")
+        assertThat(progress.onTrack).isFalse()
+        assertThat(progress.isUnknown).isFalse()
+    }
+
+    @Test
+    fun goal14_nothing_recent_is_unknown_with_the_all_time_note() {
+        val goal = raceGoal(targetSec = 1200)
+        val progress = GoalProgress.compute(goal, listOf(best(5000.0, 1214, dayOffset = -988)), emptyList(), today)
+        assertThat(progress.isUnknown).isTrue()
+        assertThat(progress.percent).isWithin(1e-9).of(0.0)
+        assertThat(progress.statusText)
+            .isEqualTo("No 5 km effort in the last 6 months (all-time 20:14, Dec 2023) — run a time trial to measure your form.")
+    }
+
+    @Test
+    fun goal15_half_marathon_predicted_from_a_recent_5k() {
+        val goal = raceGoal(targetSec = 5100, distance = 21097.5, targetDayOffset = 200)
+        val progress = GoalProgress.compute(goal, listOf(best(5000.0, 1318, dayOffset = -9)), emptyList(), today)
+        // Riegel: 1318 × (21097.5 / 5000)^1.06 ≈ 6095 s = 1:41:35.
+        assertThat(progress.statusText).startsWith("Predicted 1:41:")
+        assertThat(progress.statusText).contains("from your 5 km on 5 Sep — behind.")
+        assertThat(progress.percent).isWithin(0.01).of(5100.0 / 6095.0)
     }
 
     @Test

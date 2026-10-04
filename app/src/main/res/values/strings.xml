@@ -546,6 +546,10 @@
     <string name="goal_edit_title_label">Title</string>
     <string name="goal_edit_target_date_label">Target date (optional)</string>
     <string name="goal_edit_primary_label">Primary goal</string>
+    <string name="workouts_use_in_suggestions">Use in suggestions</string>
+    <string name="goal_edit_race_day_label">Race on this date</string>
+    <string name="goal_edit_race_day_on">The plan builds towards this day and tapers before it.</string>
+    <string name="goal_edit_race_day_off">A deadline: no taper — the plan keeps building and checks your form.</string>
     <string name="goal_edit_notes_label">Notes</string>
     <string name="goal_edit_create_action">Create goal</string>
     <string name="goal_edit_save_action">Save goal</string>

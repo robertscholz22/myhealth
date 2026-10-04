@@ -41,6 +41,10 @@ interface RunningBestDao {
     )
     fun observeByDistance(distanceMeters: Double, limit: Int): Flow<List<RunningBestEntity>>
 
+    /** P19.1: every effort since [fromDay] — the recent-form window VDOT and goal progress read. */
+    @Query("SELECT * FROM running_best WHERE day >= :fromDay ORDER BY day ASC, id ASC")
+    fun observeSince(fromDay: Long): Flow<List<RunningBestEntity>>
+
     @Query("SELECT * FROM running_best WHERE activityId = :activityId")
     suspend fun getByActivity(activityId: Long): List<RunningBestEntity>
 

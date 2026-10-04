@@ -513,6 +513,45 @@ class MyHealthMigrationTest {
         }
     }
 
+    /**
+     * P19: an existing v7 database keeps its goals as races and its workouts in the suggestion
+     * pool (`DEFAULT 1`), and a stored suggestion has no concrete workout yet.
+     */
+    @Test
+    fun migration_7_to_8_keeps_goals_races_and_workouts_in_the_pool() {
+        migrations.createDatabase(MIGRATION_DB, 7).use { v7 ->
+            v7.execSQL(
+                "INSERT INTO goal (id, type, title, targetDay, targetDistanceMeters, targetTimeSec, " +
+                    "priority, status, createdAtMillis, updatedAtMillis) VALUES " +
+                    "(1, 'RACE_TIME', 'Berlin Half', 20547, 21097.5, 5100, 1, 'ACTIVE', 1, 1)",
+            )
+            v7.execSQL(
+                "INSERT INTO strength_workout (id, name, kind, templateId, isBuiltIn, notes, " +
+                    "createdAtMillis, updatedAtMillis) VALUES (1, 'Upper A', 'UPPER', 'UPPER_A', 1, NULL, 1, 1)",
+            )
+        }
+
+        migrations.runMigrationsAndValidate(MIGRATION_DB, 8, true, *Migrations.ALL)
+
+        val migrated = Room.databaseBuilder(
+            ApplicationProvider.getApplicationContext(),
+            MyHealthDatabase::class.java,
+            MIGRATION_DB,
+        ).addMigrations(*Migrations.ALL).build()
+        try {
+            runTest {
+                val goal = checkNotNull(migrated.goalDao().getById(1L))
+                assertThat(goal.isRace).isTrue()
+                val dao = migrated.strengthDao()
+                assertThat(checkNotNull(dao.getById(1L)).workout.useInSuggestions).isTrue()
+                dao.setUseInSuggestions(1L, false, 2L)
+                assertThat(checkNotNull(dao.getById(1L)).workout.useInSuggestions).isFalse()
+            }
+        } finally {
+            migrated.close()
+        }
+    }
+
     private companion object {
         const val MIGRATION_DB = "migration-test.db"
     }

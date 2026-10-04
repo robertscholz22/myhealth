@@ -1,5 +1,8 @@
 package com.myhealth.ui
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -50,6 +53,13 @@ class ClearAppStateRule : TestRule {
         }
     }
 }
+
+/**
+ * The screen's vertical scroller. `onNode(hasScrollAction())` is ambiguous as soon as a
+ * horizontal row (Settings' equipment chips, a chip `LazyRow`) is composed next to it.
+ */
+fun ComposeTestRule.verticalScroller(): SemanticsNodeInteraction =
+    onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange))
 
 /**
  * Waits (up to [timeoutMillis]) for a node matching [text] to exist, then leaves it for the

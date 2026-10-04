@@ -5,6 +5,7 @@ import com.myhealth.domain.engine.strength.MuscleLoadInput
 import com.myhealth.domain.engine.strength.MuscleLoadState
 import com.myhealth.domain.engine.strength.MuscleSession
 import com.myhealth.domain.model.PlannedSession
+import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.model.StrengthWorkoutKind
 import com.myhealth.domain.repository.ActivityRepository
@@ -23,6 +24,8 @@ import kotlinx.coroutines.flow.first
 data class SuggestionMuscleInputs(
     val muscleLoad: MuscleLoadState? = null,
     val lastAcceptedTemplateByKind: Map<StrengthWorkoutKind, String> = emptyMap(),
+    /** P19: the newest planned workout (any, built-in or own) per session type — the pool rotation. */
+    val lastWorkoutIdBySessionType: Map<SessionType, Long> = emptyMap(),
 ) {
     companion object {
         val EMPTY: SuggestionMuscleInputs = SuggestionMuscleInputs()
@@ -79,6 +82,10 @@ class SuggestionMuscleResolver(
                 MuscleLoadInput(today = todayDay, ctl = ctl, sessions = sessions),
             ),
             lastAcceptedTemplateByKind = lastTemplates(planned, repo, workouts),
+            lastWorkoutIdBySessionType = planned
+                .filter { it.workoutId != null }
+                .sortedWith(compareBy({ it.day }, { it.id }))
+                .associate { it.sessionType to it.workoutId!! },
         )
     }
 

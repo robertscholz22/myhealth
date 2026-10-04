@@ -117,7 +117,7 @@ import com.myhealth.data.db.migration.Migrations
         // §P16 P16.1 per-exercise load progression
         ExerciseProgressEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

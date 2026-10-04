@@ -40,6 +40,18 @@ interface StrengthRepository {
     /** Deletes the workout; its exercise rows go with it (`CASCADE`), its set logs do not. */
     suspend fun deleteWorkout(id: Long): Outcome<Unit>
 
+    /**
+     * P19: the Workouts list's "Use in suggestions" checkbox. The default rewrites the row through
+     * [upsertWorkout]; the Room implementation updates the one column.
+     */
+    suspend fun setUseInSuggestions(id: Long, use: Boolean): Outcome<Unit> {
+        val workout = getById(id) ?: return Outcome.Ok(Unit)
+        return when (val written = upsertWorkout(workout.copy(useInSuggestions = use))) {
+            is Outcome.Ok -> Outcome.Ok(Unit)
+            is Outcome.Err -> written
+        }
+    }
+
     suspend fun insertSetLogs(logs: List<StrengthSetLog>): Outcome<Unit>
 
     /**

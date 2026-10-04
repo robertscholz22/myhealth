@@ -1,6 +1,5 @@
 package com.myhealth.ui
 
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -59,19 +58,19 @@ class IngredientTest {
         // so they are not composed yet: scroll the list itself to each field's node before typing
         // into it (PLAN P10.2 test-support notes on `performScrollToNode`).
         val caloriesLabel = activity.getString(R.string.ingredient_edit_calories_label)
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(caloriesLabel))
+        composeTestRule.verticalScroller().performScrollToNode(hasText(caloriesLabel))
         composeTestRule.onNodeWithText(caloriesLabel).performTextInput("350")
 
         val proteinLabel = activity.getString(R.string.ingredient_edit_protein_label)
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(proteinLabel))
+        composeTestRule.verticalScroller().performScrollToNode(hasText(proteinLabel))
         composeTestRule.onNodeWithText(proteinLabel).performTextInput("12")
 
         val carbsLabel = activity.getString(R.string.ingredient_edit_carbs_label)
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(carbsLabel))
+        composeTestRule.verticalScroller().performScrollToNode(hasText(carbsLabel))
         composeTestRule.onNodeWithText(carbsLabel).performTextInput("60")
 
         val fatLabel = activity.getString(R.string.ingredient_edit_fat_label)
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(fatLabel))
+        composeTestRule.verticalScroller().performScrollToNode(hasText(fatLabel))
         composeTestRule.onNodeWithText(fatLabel).performTextInput("6")
 
         // The Save button is a fixed footer below the LazyColumn, not a list item, so it is

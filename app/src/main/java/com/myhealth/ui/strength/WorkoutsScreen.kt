@@ -12,12 +12,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -43,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myhealth.R
@@ -54,8 +57,8 @@ import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.SCREEN_PADDING
 import com.myhealth.ui.common.SectionCard
 import com.myhealth.ui.common.body.BodyFigure
-import com.myhealth.ui.common.resolve
 import com.myhealth.ui.common.body.highlightFor
+import com.myhealth.ui.common.resolve
 import com.myhealth.ui.theme.MyHealthTheme
 import java.time.Instant
 import java.time.LocalDate
@@ -110,6 +113,7 @@ fun WorkoutsScreen(
             onDuplicate = vm::duplicate,
             onRequestDelete = vm::requestDelete,
             onRequestPlanForDay = vm::requestPlanForDay,
+            onUseInSuggestions = vm::setUseInSuggestions,
             modifier = Modifier.fillMaxSize().padding(innerPadding),
         )
     }
@@ -140,6 +144,7 @@ internal fun WorkoutsContent(
     onRequestDelete: (Long) -> Unit,
     onRequestPlanForDay: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    onUseInSuggestions: (Long, Boolean) -> Unit = { _, _ -> },
 ) {
     if (!state.isLoading && state.workouts.isEmpty()) {
         EmptyState(
@@ -161,6 +166,7 @@ internal fun WorkoutsContent(
                 onDuplicate = { onDuplicate(workout.id) },
                 onDelete = { onRequestDelete(workout.id) },
                 onPlanForDay = { onRequestPlanForDay(workout.id) },
+                onUseInSuggestions = { use -> onUseInSuggestions(workout.id, use) },
             )
         }
     }
@@ -173,6 +179,7 @@ private fun WorkoutRow(
     onDuplicate: () -> Unit,
     onDelete: () -> Unit,
     onPlanForDay: () -> Unit,
+    onUseInSuggestions: (Boolean) -> Unit,
 ) {
     SectionCard(
         title = workout.name,
@@ -203,6 +210,23 @@ private fun WorkoutRow(
                     )
                 }
             }
+        }
+        // P19: whether Generate may propose this workout (the strength / mobility rotation).
+        Row(
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .toggleable(
+                    value = workout.useInSuggestions,
+                    role = Role.Checkbox,
+                    onValueChange = onUseInSuggestions,
+                ),
+        ) {
+            Checkbox(checked = workout.useInSuggestions, onCheckedChange = null)
+            Text(
+                text = stringResource(R.string.workouts_use_in_suggestions),
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
     }
 }

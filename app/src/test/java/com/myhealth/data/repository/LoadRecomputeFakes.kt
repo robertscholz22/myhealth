@@ -63,6 +63,10 @@ internal class FakeRunningBestRepository : RunningBestRepository {
             .take(limit),
     )
 
+    override fun observeSince(fromDay: Long): Flow<List<RunningBest>> = flowOf(
+        byActivity.values.flatten().filter { it.day >= fromDay }.sortedBy { it.day },
+    )
+
     override suspend fun getForActivity(activityId: Long): List<RunningBest> =
         byActivity[activityId].orEmpty()
 

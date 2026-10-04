@@ -29,6 +29,7 @@ fun StrengthWorkoutWithExercises.toDomain(): StrengthWorkout = StrengthWorkout(
     exercises = exercises.sortedBy { it.orderIndex }.map { it.toDomain() },
     createdAtMillis = workout.createdAtMillis,
     updatedAtMillis = workout.updatedAtMillis,
+    useInSuggestions = workout.useInSuggestions,
 )
 
 /** The header row only; the children are written separately (see `RoomStrengthRepository`). */
@@ -41,6 +42,7 @@ fun StrengthWorkout.toEntity(): StrengthWorkoutEntity = StrengthWorkoutEntity(
     notes = notes,
     createdAtMillis = createdAtMillis,
     updatedAtMillis = updatedAtMillis,
+    useInSuggestions = useInSuggestions,
 )
 
 fun StrengthWorkoutExerciseEntity.toDomain(): StrengthWorkoutExercise = StrengthWorkoutExercise(

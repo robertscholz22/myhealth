@@ -73,6 +73,10 @@ object Rationale {
     const val RULE_INTERVAL_SHORTENED_TAPER: String = "INTERVAL_SHORTENED_TAPER"
     const val RULE_PACE_TARGET: String = "PACE_TARGET"
 
+    /** P19: the run sessions that carry a `GOAL_PACE` line. */
+    private val GOAL_PACE_SESSION_TYPES: Set<SessionType> =
+        setOf(SessionType.TEMPO_RUN, SessionType.INTERVAL_RUN)
+
     /** P14.5's four strength ids (§3.12.5); only ever attached while muscle load is known. */
     const val RULE_MUSCLE_LOWER_LOADED: String = "MUSCLE_LOWER_LOADED"
     const val RULE_MUSCLE_LEGS_FRESH: String = "MUSCLE_LEGS_FRESH"
@@ -208,6 +212,11 @@ object Rationale {
                 text = "Target pace ${IntervalBuilder.mmss(targetPaceSecPerKm)}/km$zoneText.",
             )
         }
+        // P19: every tempo / interval run says how far the goal pace is, once a pace goal exists.
+        val goal = ctx.paceGoal
+        if (goal != null && sessionType in GOAL_PACE_SESSION_TYPES) {
+            entries += GoalRules.goalPaceEntry(goal, usedGoalPace = plan?.usesGoalPace == true)
+        }
         return entries
     }
 
@@ -218,6 +227,7 @@ object Rationale {
             ""
         }
         val source = when {
+            plan.usesGoalPace -> " — goal pace"
             plan.workPaceSecPerKm != null && ctx.vdot != null ->
                 " — ${paceLabel(plan)} pace from VDOT ${vdotLabel(ctx.vdot)}"
             plan.workPowerLowW != null && ctx.ftpWatts != null -> " — from an FTP of ${ctx.ftpWatts} W"
@@ -373,6 +383,7 @@ object Rationale {
         SessionType.BIKE_INTERVALS -> "bike intervals raise threshold power"
         SessionType.TRAINER_SESSION -> "the trainer keeps the intensity controlled indoors"
         SessionType.RECOVERY_SPIN -> "an easy spin moves the legs without adding load"
+        SessionType.TIME_TRIAL -> "a benchmark run measures your current form"
     }
 
     private fun groupLabel(group: SportGroup): String = when (group) {

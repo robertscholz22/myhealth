@@ -3,7 +3,6 @@ package com.myhealth.ui
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextContains
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -167,7 +166,7 @@ class BikeScreenTest {
         composeTestRule.activityRule.scenario.recreate()
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasTestTag(indoorTrainerTag))
+        composeTestRule.verticalScroller().performScrollToNode(hasTestTag(indoorTrainerTag))
         composeTestRule.onNodeWithTag(indoorTrainerTag).assertIsOn()
         composeTestRule.onNodeWithTag(rideSessionsTag).performScrollTo().assertTextContains("2")
     }
@@ -210,6 +209,6 @@ class BikeScreenTest {
         composeTestRule.waitUntilTextExists(activity.getString(R.string.settings_title))
         composeTestRule.onNodeWithText(activity.getString(R.string.settings_title)).performClick()
         composeTestRule.waitUntilTextExists(activity.getString(R.string.settings_section_profile))
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasTestTag("settings_indoor_trainer_switch"))
+        composeTestRule.verticalScroller().performScrollToNode(hasTestTag("settings_indoor_trainer_switch"))
     }
 }

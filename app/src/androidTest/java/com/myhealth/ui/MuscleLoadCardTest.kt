@@ -1,6 +1,5 @@
 package com.myhealth.ui
 
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -100,7 +99,7 @@ class MuscleLoadCardTest {
         // until scrolled into view, so it cannot be waited on before telling the list to scroll
         // to it; same idiom as SettingsPersistenceTest.openSettings) --------------------------
         val muscleLoadTitle = activity.getString(R.string.load_muscle_title)
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(muscleLoadTitle))
+        composeTestRule.verticalScroller().performScrollToNode(hasText(muscleLoadTitle))
         composeTestRule.waitUntilTextExists(muscleLoadTitle)
         composeTestRule.onNodeWithText(muscleLoadTitle).assertExists()
 

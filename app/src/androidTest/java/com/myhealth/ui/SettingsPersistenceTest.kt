@@ -2,7 +2,6 @@ package com.myhealth.ui
 
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -59,7 +58,7 @@ class SettingsPersistenceTest {
         // target" within it) is no longer guaranteed to still be composed here — scroll the list
         // to it explicitly instead of assuming `performScrollTo()` finds an already-live node.
         val sleepTargetLabel = activity.getString(R.string.settings_profile_sleep_target_label)
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(sleepTargetLabel))
+        composeTestRule.verticalScroller().performScrollToNode(hasText(sleepTargetLabel))
         composeTestRule.onNodeWithText(sleepTargetLabel).performTextReplacement("9.5")
         composeTestRule.waitForIdle()
 
@@ -74,13 +73,13 @@ class SettingsPersistenceTest {
         composeTestRule.activityRule.scenario.recreate()
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasTestTag(dynamicColorSwitchTag))
+        composeTestRule.verticalScroller().performScrollToNode(hasTestTag(dynamicColorSwitchTag))
         composeTestRule.onNodeWithTag(dynamicColorSwitchTag).assertIsOn()
 
         // The sleep target field (in the profile item, now two items above the app-preferences
         // item scrolled to above — P14.6's inserted "Heart-rate zones" section) is no longer
         // guaranteed to still be composed here either; scroll back to it before reading its value.
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(sleepTargetLabel))
+        composeTestRule.verticalScroller().performScrollToNode(hasText(sleepTargetLabel))
         composeTestRule.waitUntil(timeoutMillis = 10_000) {
             composeTestRule.onAllNodesWithText("9.5", substring = true).fetchSemanticsNodes().isNotEmpty()
         }
@@ -98,6 +97,6 @@ class SettingsPersistenceTest {
         composeTestRule.waitUntilTextExists(activity.getString(R.string.settings_title))
         composeTestRule.onNodeWithText(activity.getString(R.string.settings_title)).performClick()
         composeTestRule.waitUntilTextExists(activity.getString(R.string.settings_section_profile))
-        composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasTestTag(dynamicColorSwitchTag))
+        composeTestRule.verticalScroller().performScrollToNode(hasTestTag(dynamicColorSwitchTag))
     }
 }
