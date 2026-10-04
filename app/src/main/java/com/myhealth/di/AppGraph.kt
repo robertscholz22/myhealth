@@ -74,6 +74,7 @@ import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.repository.SyncStateRepository
 import com.myhealth.sync.SyncScheduler
+import com.myhealth.sync.TargetRecomputeService
 import com.myhealth.sync.WorkManagerSyncScheduler
 import com.myhealth.ui.camera.DraftStore
 import kotlinx.coroutines.CoroutineScope
@@ -221,6 +222,8 @@ class AppGraph(private val app: Application) {
     }
 
     /** TRIMP / ATL-CTL-ACWR / recovery / running-PR recompute pipeline (§3.2–§3.4, P5.5). */
+    val targetRecomputeService: TargetRecomputeService by lazy { TargetRecomputeService(nutritionRepo, clock) }
+
     val loadRecomputeService: LoadRecomputeService by lazy {
         LoadRecomputeService(
             activityDao = db.activityDao(),

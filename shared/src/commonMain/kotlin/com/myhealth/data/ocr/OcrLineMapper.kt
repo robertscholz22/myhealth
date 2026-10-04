@@ -1,15 +1,15 @@
 package com.myhealth.data.ocr
 
-import com.google.mlkit.vision.text.Text
 import com.myhealth.domain.engine.label.OcrLine
 
 /**
- * Converts ML Kit's `Text` result into the parser's Android-free [OcrLine]s (PLAN P4.8).
+ * Turns a text recogniser's lines into the parser's platform-free [OcrLine]s (PLAN P4.8).
  *
- * The Android-dependent part is one line ([boundsOf], which reads `android.graphics.Rect`);
- * everything the parser depends on — dropping boxless/blank lines and ordering them the way a
- * human reads a label, top to bottom and then left to right — lives in the pure [map] below and
- * is unit-tested through [RawLine] stand-ins (`OcrLineMapperTest`).
+ * The recogniser-specific part is a thin adapter to [RawLine]s (ML Kit's `Text` on Android,
+ * `MlKitOcrLines.kt`; Vision on iOS, P22); everything the parser depends on — dropping
+ * boxless/blank lines and ordering them the way a human reads a label, top to bottom and then
+ * left to right — lives in the pure [map] below and is unit-tested through [RawLine] stand-ins
+ * (`OcrLineMapperTest`).
  */
 object OcrLineMapper {
 
@@ -21,10 +21,6 @@ object OcrLineMapper {
 
     /** Lines whose vertical centres are within this many pixels count as the same row. */
     private const val ROW_TOLERANCE = 12
-
-    /** Every line of every block of a recognition result, in reading order (see [map]). */
-    fun fromText(text: Text): List<OcrLine> =
-        map(text.textBlocks.flatMap { block -> block.lines }.map { line -> RawLine(line.text, boundsOf(line)) })
 
     /**
      * Pure part: skips lines without a box or without text, then sorts top → bottom and, within
@@ -48,7 +44,4 @@ object OcrLineMapper {
         .sortedWith(compareBy({ it.rowBand() }, { it.left }, { it.top }))
 
     private fun OcrLine.rowBand(): Int = ((top + bottom) / 2) / ROW_TOLERANCE
-
-    private fun boundsOf(line: Text.Line): Bounds? =
-        line.boundingBox?.let { box -> Bounds(box.left, box.top, box.right, box.bottom) }
 }

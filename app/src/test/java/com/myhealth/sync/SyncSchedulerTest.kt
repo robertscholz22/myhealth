@@ -41,9 +41,9 @@ class SyncSchedulerTest {
 
     @Test
     fun the_recompute_window_is_yesterday_through_a_week_out() {
-        assertThat(TargetRecomputeWorker.PAST_DAYS).isEqualTo(-1L)
-        assertThat(TargetRecomputeWorker.FUTURE_DAYS).isEqualTo(7L)
-        val days = (TargetRecomputeWorker.PAST_DAYS..TargetRecomputeWorker.FUTURE_DAYS).count()
+        assertThat(TargetRecomputeService.PAST_DAYS).isEqualTo(-1L)
+        assertThat(TargetRecomputeService.FUTURE_DAYS).isEqualTo(7L)
+        val days = (TargetRecomputeService.PAST_DAYS..TargetRecomputeService.FUTURE_DAYS).count()
         assertThat(days).isEqualTo(9)
     }
 }
