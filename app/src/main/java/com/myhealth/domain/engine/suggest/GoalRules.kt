@@ -35,6 +35,8 @@ data class PaceGoal(
     val targetSec: Int,
     /** What the current VDOT predicts for [distanceMeters]; `null` without a VDOT. */
     val predictedSec: Double?,
+    /** The goal's date — set for a [GoalRules.sideGoal], which names it in its rationale. */
+    val targetDay: Long? = null,
 ) {
     val goalPaceSecPerKm: Int get() = TrimpDefaults.roundHalfUp(targetSec / (distanceMeters / 1000.0))
 
@@ -97,6 +99,10 @@ object GoalRules {
     const val RULE_BENCHMARK: String = "BENCHMARK"
     const val RULE_GOAL_PACE: String = "GOAL_PACE"
     const val RULE_LONG_RUN_BUILD: String = "LONG_RUN_BUILD"
+    const val RULE_SIDE_GOAL: String = "SIDE_GOAL"
+
+    /** The template a side-goal session is built from: the classic 5 k / 10 k session. */
+    const val SIDE_GOAL_TEMPLATE_ID: String = "RUN_1000_I"
 
     /** The race-distance templates goal pace may replace (§P19 item 6). */
     private val SHORT_GOAL_TEMPLATES = setOf("RUN_1000_I", "RUN_800_I")
@@ -107,6 +113,14 @@ object GoalRules {
         TrainingPhase.PEAK,
         TrainingPhase.TAPER,
         TrainingPhase.RACE_WEEK,
+    )
+
+    /** The phases a side-goal session may go into: not a taper, a race week or a recovery week. */
+    private val SIDE_GOAL_PHASES = setOf(
+        TrainingPhase.BASE,
+        TrainingPhase.BUILD,
+        TrainingPhase.PEAK,
+        TrainingPhase.IN_SEASON,
     )
 
     private val DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.US)
@@ -189,6 +203,67 @@ object GoalRules {
                     "(${percentLabel(goal.gap ?: 0.0)}) — reps stay at your current paces until you are within 3 %."
         }
         return RationaleEntry(ruleId = RULE_GOAL_PACE, text = text)
+    }
+
+    // ---- side goal (0.8.1) ----------------------------------------------------------------------
+
+    /**
+     * A short running goal (≤ 10 km, timed, dated, still ahead) the week is *not* built around
+     * because the goal pace comes from a longer one — "5 km in 20:00 by 31 Dec" next to a half
+     * marathon in April. It earns one interval session a week ([SuggestionEngine]'s side-goal
+     * pre-pass) until its date. The nearest such goal wins, then priority. `null` while the goal
+     * layer is off, in a starter week and in a taper, race or recovery week of the main goal.
+     */
+    fun sideGoal(input: SuggestionInput, phase: TrainingPhase, isStarterWeek: Boolean): PaceGoal? {
+        if (input.goalForm == null || isStarterWeek || phase !in SIDE_GOAL_PHASES) return null
+        val main = paceGoal(input) ?: return null
+        if (main.distanceMeters <= SHORT_GOAL_MAX_M) return null
+        val goal = input.goals
+            .filter {
+                it.status == GoalStatus.ACTIVE && it.isTimedRun() &&
+                    (it.targetDistanceMeters ?: Double.MAX_VALUE) <= SHORT_GOAL_MAX_M &&
+                    (it.targetDay ?: Long.MIN_VALUE) >= input.todayDay
+            }
+            .minWithOrNull(compareBy<Goal>({ it.targetDay }, { it.priority }))
+            ?: return null
+        val distance = goal.targetDistanceMeters ?: return null
+        return PaceGoal(
+            title = goal.title,
+            distanceMeters = distance,
+            targetSec = goal.targetTimeSec ?: return null,
+            predictedSec = input.vdot?.let { VdotCalculator.raceTimeSec(it, distance) },
+            targetDay = goal.targetDay,
+        )
+    }
+
+    /** Whether a side-goal session runs its reps at goal pace: once current form is within 3 %. */
+    fun sideGoalUsesGoalPace(goal: PaceGoal?, templateId: String): Boolean =
+        goal != null && goal.withinReach && templateId == SIDE_GOAL_TEMPLATE_ID
+
+    /** The line that says why this interval session is in a week built for another goal. */
+    fun sideGoalEntry(goal: PaceGoal): RationaleEntry {
+        val target = "${distanceLabel(goal.distanceMeters)} in ${clock(goal.targetSec)}"
+        val by = goal.targetDay?.let { " by ${dayLabel(it)}" } ?: ""
+        return RationaleEntry(
+            ruleId = RULE_SIDE_GOAL,
+            text = "${goal.title}: $target$by — one ${distanceLabel(goal.distanceMeters)}-specific " +
+                "interval session a week until then.",
+        )
+    }
+
+    /**
+     * The fallback when no day can take the side goal's interval session (two hard sessions are
+     * already in the week, C5): the week's first easy run finishes with strides at goal pace, which
+     * keeps the leg speed without adding a hard session.
+     */
+    fun sideGoalStridesEntry(goal: PaceGoal): RationaleEntry {
+        val pace = mmss(goal.goalPaceSecPerKm)
+        return RationaleEntry(
+            ruleId = RULE_SIDE_GOAL,
+            text = "${goal.title}: the week already has two hard sessions, so no interval run fits — " +
+                "finish this run with 6 × 20 s strides at about $pace /km (your " +
+                "${distanceLabel(goal.distanceMeters)} goal pace), walking back between them.",
+        )
     }
 
     // ---- long run ---------------------------------------------------------------------------

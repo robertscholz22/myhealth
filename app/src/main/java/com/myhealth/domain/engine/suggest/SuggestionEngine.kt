@@ -2,6 +2,7 @@ package com.myhealth.domain.engine.suggest
 
 import com.myhealth.domain.engine.load.TrimpDefaults
 import com.myhealth.domain.model.Intensity
+import com.myhealth.domain.model.RationaleEntry
 import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.SuggestedSession
 import com.myhealth.domain.model.SuggestionBatch
@@ -65,9 +66,17 @@ class SuggestionEngine(private val clock: Clock) {
         var remaining = max(periodization.weeklyTarget - grid.fixedLoad, 0.0)
         val stopFloor = MIN_BUDGET_FRACTION * periodization.weeklyTarget
 
-        placeBenchmark(input, periodization, grid, ctx, bike, muscle, remaining)?.let { (placed, load) ->
+        val benchmark = placeBenchmark(input, periodization, grid, ctx, bike, muscle, remaining)
+        benchmark?.let { (placed, load) ->
             grid = placed
             remaining = max(remaining - load, 0.0)
+        }
+        if (benchmark == null) {
+            placeSideGoalSession(input, periodization, grid, ctx, bike, muscle, remaining, shape)
+                ?.let { (placed, load) ->
+                    grid = placed
+                    remaining = max(remaining - load, 0.0)
+                }
         }
 
         var iterations = 0
@@ -117,6 +126,54 @@ class SuggestionEngine(private val clock: Clock) {
         val reason = GoalRules.benchmarkReason(input, periodization.phase, periodization.isStarterWeek)
             ?: return null
         val entry = SessionCatalog.entryFor(SessionType.TIME_TRIAL) ?: return null
+        return placeKeySession(
+            entry, GoalRules.benchmarkEntry(reason), input, periodization, grid, ctx, bike, muscle, remaining,
+        )
+    }
+
+    /**
+     * 0.8.1: the side-goal pre-pass. While [GoalRules.sideGoal] names a short goal next to the long
+     * one the week is built for, one `INTERVAL_RUN` (built as 1000 m reps for that goal, see
+     * [IntervalBuilder]) goes on the best day the constraints allow — unless the week already
+     * holds a planned interval run or time trial, or the benchmark pre-pass placed one. The greedy
+     * loop gets no further `INTERVAL_RUN` ([WeekShape.excludedTypes]), so it takes a run slot an
+     * easy run would otherwise have had.
+     */
+    @Suppress("LongParameterList")
+    private fun placeSideGoalSession(
+        input: SuggestionInput,
+        periodization: PeriodizationResult,
+        grid: SuggestionGrid,
+        ctx: ConstraintContext,
+        bike: BikeContext,
+        muscle: MuscleContext,
+        remaining: Double,
+        shape: WeekShape,
+    ): Pair<SuggestionGrid, Double>? {
+        val goal = shape.intervalCtx?.sideGoal ?: return null
+        val alreadyThere = grid.days.any { plan ->
+            plan.items.any { it.sessionType in SIDE_GOAL_COVERED_BY }
+        }
+        if (alreadyThere) return null
+        val entry = SessionCatalog.entryFor(SessionType.INTERVAL_RUN) ?: return null
+        return placeKeySession(
+            entry, GoalRules.sideGoalEntry(goal), input, periodization, grid, ctx, bike, muscle, remaining,
+        )
+    }
+
+    /** A pre-placed session on its best legal day, with a nominal top score; `null` if no day fits. */
+    @Suppress("LongParameterList")
+    private fun placeKeySession(
+        entry: CatalogEntry,
+        reason: RationaleEntry,
+        input: SuggestionInput,
+        periodization: PeriodizationResult,
+        grid: SuggestionGrid,
+        ctx: ConstraintContext,
+        bike: BikeContext,
+        muscle: MuscleContext,
+        remaining: Double,
+    ): Pair<SuggestionGrid, Double>? {
         val scoring = Scorer.contextOf(input, periodization, remaining)
         val (candidate, _) = grid.days
             .map { Candidate(entry, it.day, entry.defaultMin) }
@@ -127,7 +184,7 @@ class SuggestionEngine(private val clock: Clock) {
         val rationale = Rationale.forSession(
             candidate = candidate,
             ctx = rationaleContext(input, periodization, grid, ctx, bike, muscle, remaining, candidate),
-        ) + GoalRules.benchmarkEntry(reason)
+        ) + reason
         val placed = grid.place(candidate.day, candidate.asPlacedItem(BENCHMARK_SCORE, rationale))
         return placed to candidate.estTrimp
     }
@@ -312,12 +369,20 @@ class SuggestionEngine(private val clock: Clock) {
     ): SuggestionResult {
         val intervalCtx = shape.intervalCtx ?: IntervalContext.of(input, periodization)
         val seen = mutableMapOf<SessionType, Int>()
+        val stridesDay = stridesDayOf(grid, intervalCtx)
         val sessions = grid.suggested()
             .sortedWith(compareBy({ it.first }, { it.second.sessionType.ordinal }))
             .map { (day, item) ->
                 val occurrence = seen.getOrDefault(item.sessionType, 0)
                 seen[item.sessionType] = occurrence + 1
-                sessionOf(day, item, intervalCtx, muscle, occurrence, shape.longRun)
+                val session = sessionOf(day, item, intervalCtx, muscle, occurrence, shape.longRun)
+                val strides = intervalCtx.sideGoal
+                    ?.takeIf { day == stridesDay && item.sessionType in STRIDES_CARRIERS }
+                if (strides == null) {
+                    session
+                } else {
+                    session.copy(rationale = session.rationale + GoalRules.sideGoalStridesEntry(strides))
+                }
             }
         val hash = SuggestionInputsHash.of(input)
         return SuggestionResult(
@@ -336,6 +401,21 @@ class SuggestionEngine(private val clock: Clock) {
             weeklyTarget = periodization.weeklyTarget,
             inputsHash = hash,
         )
+    }
+
+    /**
+     * 0.8.1: the day of the week's first suggested easy run (else long run, else recovery run), when a side goal exists but the week
+     * ended up with no interval run or time trial at all (the pre-pass found no legal day); `null`
+     * otherwise. That run carries the side goal's strides line.
+     */
+    private fun stridesDayOf(grid: SuggestionGrid, ctx: IntervalContext): Long? {
+        if (ctx.sideGoal == null) return null
+        val covered = grid.days.any { plan -> plan.items.any { it.sessionType in SIDE_GOAL_COVERED_BY } }
+        if (covered) return null
+        val suggested = grid.suggested()
+        return STRIDES_CARRIERS.firstNotNullOfOrNull { type ->
+            suggested.filter { it.second.sessionType == type }.minOfOrNull { it.first }
+        }
     }
 
     /**
@@ -423,6 +503,14 @@ class SuggestionEngine(private val clock: Clock) {
 
         const val MIN_SESSION_MINUTES: Int = 10
 
+        /** A week that already holds one of these needs no side-goal session of its own. */
+        /** The runs that may carry the strides fallback, in order of preference. */
+        private val STRIDES_CARRIERS: List<SessionType> =
+            listOf(SessionType.EASY_RUN, SessionType.LONG_RUN, SessionType.RECOVERY_RUN)
+
+        private val SIDE_GOAL_COVERED_BY: Set<SessionType> =
+            setOf(SessionType.INTERVAL_RUN, SessionType.TIME_TRIAL)
+
         private const val HOURS_PER_DAY: Long = 24L
     }
 }
@@ -444,8 +532,10 @@ internal data class WeekShape(
         fun of(input: SuggestionInput, periodization: PeriodizationResult): WeekShape {
             val intervalCtx = IntervalContext.of(input, periodization)
             val longRun = GoalRules.longRunPlan(input, periodization.phase)
+            // 0.8.1: the side-goal pre-pass owns the week's interval run; the loop adds no other.
+            val sideGoalTypes = if (intervalCtx.sideGoal != null) setOf(SessionType.INTERVAL_RUN) else emptySet()
             return WeekShape(
-                excludedTypes = StrengthRules.excludedTypes(input.strengthPool),
+                excludedTypes = StrengthRules.excludedTypes(input.strengthPool) + sideGoalTypes,
                 longRun = longRun,
                 longRunMinutes = longRun?.let {
                     GoalRules.longRunMinutes(it, IntervalBuilder.targetPaceFor(SessionType.LONG_RUN, intervalCtx))

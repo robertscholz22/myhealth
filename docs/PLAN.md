@@ -3010,6 +3010,12 @@ DB 7 → 8 (`MIGRATION_7_8`, additive): `goal.isRace INTEGER NOT NULL DEFAULT 1`
 - Test-side: `TestSupport.verticalScroller()` replaces `onNode(hasScrollAction())`, which became ambiguous when Settings gained the equipment-chip row (P16.2); `tools/emu.sh seed` now targets the seeder package and clears first (a second seed without clearing doubled the distance records, which produced a 21 km run in 59 min and a VDOT of 83.6).
 
 
+**Addendum 0.8.1 — side goal.** A short goal (≤ 10 km, timed run, active, date today or later) next to a longer main goal (> 10 km) is a *side goal*: `GoalRules.sideGoal` picks the nearest one by date (then priority) in BASE, BUILD, PEAK and IN_SEASON, never in a starter week, never with `goalForm == null`. While it exists:
+- `SuggestionEngine` places one `INTERVAL_RUN` in a pre-pass after the benchmark (skipped when the benchmark placed a time trial, or the week already holds an interval run or a time trial) on the best day the constraints allow, scored like the benchmark; `WeekShape.excludedTypes` gets `INTERVAL_RUN`, so the greedy loop adds no other. The pre-pass ignores the weekly budget like the benchmark does; C1/C5/C9 still apply.
+- `IntervalBuilder` builds it as `RUN_1000_I` (4–6 × 1000 m); reps run at the side goal's pace once current form is within 3 % (`GoalRules.sideGoalUsesGoalPace`), else at I pace from VDOT. The goal-pace rationale names the side goal; rule `SIDE_GOAL` explains the session ("5k best: 5 km in 20:00 by 31 Dec — one 5 km-specific interval session a week until then.").
+- When no day is legal (two hard sessions already in the rolling week, C5) the first suggested easy run (else long run, else recovery run) carries a `SIDE_GOAL` line: 6 × 20 s strides at goal pace.
+- Inert after the goal's date, with a short main goal, and in TAPER / RACE_WEEK / RECOVERY_WEEK / OFF_SEASON. Old fixtures unchanged. Tests: `SideGoalTest` `sg01`…`sg08`.
+
 ## 6. Verification strategy
 
 ### 6.1 After every task (the lead runs this)

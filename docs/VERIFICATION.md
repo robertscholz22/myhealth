@@ -589,3 +589,19 @@ Emulator `myhealth_api35`, today 2026-10-04. Fresh app data; Health Connect re-s
 - BUG-17 (fixed in 0.8.0): Strength workouts opened scrolled to the bottom on first launch (list rendered while seeding).
 - NOTE-25: the first emulator pass showed a 21.2 km run in 59 min (VDOT 83.6, "HM 58:41"). Cause: the seeder ran twice without clearing, so Health Connect held two distance records per session window; the app summed them correctly. `tools/emu.sh seed` now passes `clear=true`. Not an app bug, but a duplicate-writing source on a real phone would produce the same effect.
 - NOTE-26: the Settings instrumented tests had been failing since P16.2 on an ambiguous `hasScrollAction()` node (equipment chips); fixed with `verticalScroller()`.
+
+
+## Session 20 — 2026-10-04 (emulator, 0.8.1 debug build: side goal)
+Emulator `myhealth_api35`; onboarding, then the owner's phone backup (`myhealth-backup-2026-10-04.json`, 3058 rows) imported with **Replace**.
+
+| Step | Result | Evidence |
+|---|---|---|
+| Goals as on the phone (5k best primary, race 31 Dec): generate 4–10 Oct → recovery week, no side session (phase off) | PASS | |
+| Berlin Half → Make primary; 5k best → Race on this date **off** → "5 km in 20:00 by 2026-12-31"; header "Base · Build from 17 Jan · Berlin Half on 4 Apr" | PASS | |
+| 4–10 Oct is a recovery week → still no side session (by design) | PASS | |
+| Emulator clock moved to 11 Oct (non-recovery week) → generate: **Interval run "4 × 1000 m @ 4:16"** with "5k best: 5 km in 20:00 by 31 Dec — one 5 km-specific interval session a week until then." and "Goal pace 4:00 /km (5 km in 20:00). Current form predicts 21:54 (+9.5 %) — reps stay at your current paces until you are within 3 %."; only one interval run in the week | PASS | `sidegoal_emu.png` |
+| Clock restored (auto time) | PASS | |
+| `bash tools/verify.sh` | PASS | 1052 unit tests (+8 `SideGoalTest`), lint clean |
+| `bash tools/connected.sh emulator-5554` | PASS | 25/25 |
+
+- NOTE-27: the "N AU still unallocated" line of a pre-placed session (benchmark or side goal) shows the budget *before* that session, as for every other session; with a low weekly target the side session alone can exceed it (the 11-Oct check had a 118 AU target because the jumped clock left a week without training).

@@ -108,6 +108,8 @@ object IntervalBuilder {
 
     private fun templateFor(sessionType: SessionType, ctx: IntervalContext): IntervalTemplate? {
         if (ctx.phase == TrainingPhase.RECOVERY_WEEK || ctx.phase == TrainingPhase.OFF_SEASON) return null
+        // 0.8.1: the side goal's weekly session is the 1000 m reps, whatever the long goal wants.
+        if (sessionType == SessionType.INTERVAL_RUN && ctx.sideGoal != null) return IntervalCatalog.RUN_1000_I
         val base = when (sessionType) {
             SessionType.INTERVAL_RUN -> intervalRunTemplate(ctx)
             SessionType.TEMPO_RUN ->
@@ -240,14 +242,26 @@ object IntervalBuilder {
     private fun workPaceOf(template: IntervalTemplate, ctx: IntervalContext): Int? {
         if (template.isEffort) return null
         val pace = template.work.pace ?: return null
-        if (usesGoalPace(template, ctx)) return ctx.paceGoal?.goalPaceSecPerKm
+        if (usesGoalPace(template, ctx)) return goalOf(template, ctx)?.goalPaceSecPerKm
         measuredCentre(template.work.zone, pace, ctx)?.let { return it }
         return ctx.vdot?.let { DanielsPaces.secPerKm(it, pace) }
     }
 
     /** P19: a goal within 3 % in a build/peak/taper week replaces the race-distance template's pace. */
     private fun usesGoalPace(template: IntervalTemplate, ctx: IntervalContext): Boolean =
-        GoalRules.usesGoalPace(ctx.paceGoal, template.id, ctx.phase)
+        if (isSideGoalSession(template, ctx)) {
+            GoalRules.sideGoalUsesGoalPace(ctx.sideGoal, template.id)
+        } else {
+            GoalRules.usesGoalPace(ctx.paceGoal, template.id, ctx.phase)
+        }
+
+    /** The goal a template's goal pace comes from: the side goal for its own session, else the main one. */
+    private fun goalOf(template: IntervalTemplate, ctx: IntervalContext): PaceGoal? =
+        if (isSideGoalSession(template, ctx)) ctx.sideGoal else ctx.paceGoal
+
+    /** A side goal only exists next to a long main goal, whose own runs never use `RUN_1000_I`. */
+    private fun isSideGoalSession(template: IntervalTemplate, ctx: IntervalContext): Boolean =
+        ctx.sideGoal != null && template.id == GoalRules.SIDE_GOAL_TEMPLATE_ID
 
     private fun measuredCentre(zone: Int, pace: DanielsPace, ctx: IntervalContext): Int? {
         if (ZONE_ANCHOR[zone] != pace) return null

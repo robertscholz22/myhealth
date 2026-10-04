@@ -213,7 +213,8 @@ object Rationale {
             )
         }
         // P19: every tempo / interval run says how far the goal pace is, once a pace goal exists.
-        val goal = ctx.paceGoal
+        // 0.8.1: the side goal's interval session measures itself against the side goal.
+        val goal = ctx.sideGoal?.takeIf { sessionType == SessionType.INTERVAL_RUN } ?: ctx.paceGoal
         if (goal != null && sessionType in GOAL_PACE_SESSION_TYPES) {
             entries += GoalRules.goalPaceEntry(goal, usedGoalPace = plan?.usesGoalPace == true)
         }

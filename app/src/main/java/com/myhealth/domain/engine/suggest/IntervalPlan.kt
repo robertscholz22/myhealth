@@ -29,6 +29,8 @@ data class IntervalContext(
     val isStarterWeek: Boolean = false,
     /** P19: the race-time goal the reps are measured against; `null` while the goal layer is off. */
     val paceGoal: PaceGoal? = null,
+    /** 0.8.1: a short goal next to a longer one — its `INTERVAL_RUN` is built as 1000 m reps for it. */
+    val sideGoal: PaceGoal? = null,
 ) {
     companion object {
         fun of(input: SuggestionInput, periodization: PeriodizationResult): IntervalContext =
@@ -42,6 +44,7 @@ data class IntervalContext(
                 recoveryBand = periodization.band,
                 isStarterWeek = periodization.isStarterWeek,
                 paceGoal = GoalRules.paceGoal(input),
+                sideGoal = GoalRules.sideGoal(input, periodization.phase, periodization.isStarterWeek),
             )
 
         /** The race the week is periodized towards, else the highest-priority goal with a distance. */
