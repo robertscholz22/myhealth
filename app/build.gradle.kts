@@ -5,8 +5,6 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.room)
 }
 
 android {
@@ -62,15 +60,17 @@ android {
         unitTests.isReturnDefaultValues = true
     }
 
+    // MigrationTestHelper reads the exported schemas; the database moved to :shared in P20.2.
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$rootDir/shared/schemas")
+    }
+
     lint {
         abortOnError = true
         lintConfig = file("lint.xml")
     }
 }
 
-room {
-    schemaDirectory("$projectDir/schemas")
-}
 
 dependencies {
     val composeBom = platform(libs.compose.bom)
@@ -93,7 +93,6 @@ dependencies {
 
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
-    ksp(libs.room.compiler)
 
     implementation(libs.datastore.prefs)
 

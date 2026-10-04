@@ -43,7 +43,8 @@ import com.myhealth.data.repository.RoomStrengthRepository
 import com.myhealth.data.repository.RoomSuggestionRepository
 import com.myhealth.data.repository.StrengthWorkoutSeeder
 import com.myhealth.data.repository.RoomSyncStateRepository
-import com.myhealth.data.repository.RoomTransactionRunner
+import com.myhealth.data.db.RoomTransactionRunner
+import com.myhealth.data.db.buildMyHealthDatabase
 import com.myhealth.domain.engine.calendar.EventActivityLinker
 import com.myhealth.domain.engine.nutrition.NutritionTargetEngine
 import com.myhealth.domain.engine.strength.EquipmentSetCodec
@@ -97,7 +98,7 @@ class AppGraph(private val app: Application) {
     /** Every "day" boundary in the app is a local day in this zone (§1.6). */
     val zoneId: ZoneId by lazy { clock.zone }
 
-    val db: MyHealthDatabase by lazy { MyHealthDatabase.build(app) }
+    val db: MyHealthDatabase by lazy { buildMyHealthDatabase(app, debug = BuildConfig.DEBUG) }
 
     val settings: SettingsRepository by lazy { DataStoreSettingsRepository(app) }
 

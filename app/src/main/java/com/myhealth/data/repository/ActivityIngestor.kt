@@ -1,7 +1,5 @@
 package com.myhealth.data.repository
 
-import androidx.room.withTransaction
-import com.myhealth.data.db.MyHealthDatabase
 import com.myhealth.data.db.dao.ActivityDao
 import com.myhealth.data.db.entity.ActivitySessionEntity
 import com.myhealth.data.mapper.toDomain
@@ -15,24 +13,6 @@ import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.repository.ActivityIngestItem
 import com.myhealth.domain.repository.IngestResult
 import java.time.Clock
-
-/**
- * Runs a block inside one database transaction. An interface rather than a direct
- * [MyHealthDatabase] reference so [ActivityIngestor] can be unit-tested against fake DAOs with no
- * Room and no Android (P2.5).
- */
-interface TransactionRunner {
-    suspend operator fun <T> invoke(block: suspend () -> T): T
-}
-
-class RoomTransactionRunner(private val db: MyHealthDatabase) : TransactionRunner {
-    override suspend fun <T> invoke(block: suspend () -> T): T = db.withTransaction(block)
-}
-
-/** For tests and for callers that are already inside a transaction. */
-object DirectTransactionRunner : TransactionRunner {
-    override suspend fun <T> invoke(block: suspend () -> T): T = block()
-}
 
 /**
  * The single write path for synced and imported activities (PLAN P2.5), implementing §2.4.

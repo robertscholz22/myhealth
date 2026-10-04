@@ -8,17 +8,21 @@ import androidx.room.migration.Migration
  * Convention — every schema change follows all five steps, in this order:
  *
  * 1. Change the entity/entities, then bump `@Database(version = N)` by exactly one.
- * 2. Add `private val MIGRATION_(N-1)_N = Migration(N - 1, N) { db -> … }` below, using only
+ * 2. Add `private val MIGRATION_(N-1)_N = MigrationStep(N - 1, N) { db -> … }` below, using only
  *    `db.execSQL(...)`. Never reference an entity class or a DAO from a migration: migrations run
  *    against the schema as it was, not as the code now describes it.
  * 3. Append it to [ALL]. The array stays ordered by version, oldest first, and a migration that
  *    has shipped to the device is never reordered or edited in place.
- * 4. Build once so Room writes `app/schemas/com.myhealth.data.db.MyHealthDatabase/N.json`, and
+ * 4. Build once so Room writes `shared/schemas/com.myhealth.data.db.MyHealthDatabase/N.json`, and
  *    keep that file — `MigrationTestHelper` replays real upgrades from it.
  * 5. Add a row to the migration table in `docs/PLAN.md` §6.4 (from, to, what changed, why).
  *
  * `fallbackToDestructiveMigration` is forbidden outside the debug-only escape hatch in
- * `MyHealthDatabase.build` (§2.2): losing a user's history is never an acceptable upgrade path.
+ * `buildMyHealthDatabase` (§2.2): losing a user's history is never an acceptable upgrade path.
+ *
+ * P20.2: a step only records its SQL; [toRoomMigration] turns it into a Room `Migration` for the
+ * platform's database mode (Android: `SupportSQLiteDatabase`, iOS: the bundled driver's
+ * `SQLiteConnection`), so both apps run the very same statements.
  */
 object Migrations {
 
@@ -32,7 +36,7 @@ object Migrations {
      * character. The final `'rebuild'` command fills the index from the rows that already exist,
      * which the triggers alone would never do.
      */
-    private val MIGRATION_1_2 = Migration(1, 2) { db ->
+    private val MIGRATION_1_2 = MigrationStep(1, 2) { db ->
         db.execSQL(
             "CREATE VIRTUAL TABLE IF NOT EXISTS `ingredient_fts` USING FTS4(" +
                 "`name` TEXT NOT NULL, `brand` TEXT, content=`ingredient`)",
@@ -69,7 +73,7 @@ object Migrations {
      * `app/schemas/com.myhealth.data.db.MyHealthDatabase/3.json`, so `runMigrationsAndValidate`
      * compares them character for character.
      */
-    private val MIGRATION_2_3 = Migration(2, 3) { db ->
+    private val MIGRATION_2_3 = MigrationStep(2, 3) { db ->
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS `cycle_entry` (" +
                 "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
@@ -90,7 +94,7 @@ object Migrations {
      * copied from `app/schemas/com.myhealth.data.db.MyHealthDatabase/4.json`, so
      * `runMigrationsAndValidate` compares them character for character.
      */
-    private val MIGRATION_3_4 = Migration(3, 4) { db ->
+    private val MIGRATION_3_4 = MigrationStep(3, 4) { db ->
         db.execSQL("ALTER TABLE `activity_source_record` ADD COLUMN `importRecordId` INTEGER")
         db.execSQL(
             "CREATE INDEX IF NOT EXISTS `idx_asr_import` ON `activity_source_record` (`importRecordId`)",
@@ -108,7 +112,7 @@ object Migrations {
      * `app/schemas/com.myhealth.data.db.MyHealthDatabase/5.json`, so `runMigrationsAndValidate`
      * compares them character for character.
      */
-    private val MIGRATION_4_5 = Migration(4, 5) { db ->
+    private val MIGRATION_4_5 = MigrationStep(4, 5) { db ->
         db.execSQL("ALTER TABLE `activity_session` ADD COLUMN `avgPowerW` INTEGER")
         db.execSQL("ALTER TABLE `activity_session` ADD COLUMN `maxPowerW` INTEGER")
         db.execSQL("ALTER TABLE `activity_session` ADD COLUMN `normalizedPowerW` INTEGER")
@@ -154,7 +158,7 @@ object Migrations {
      * compares them character for character. Existing rows keep `NULL` in every new column:
      * nothing before 0.4.0 knew a muscle or a zone override.
      */
-    private val MIGRATION_5_6 = Migration(5, 6) { db ->
+    private val MIGRATION_5_6 = MigrationStep(5, 6) { db ->
         db.execSQL(
             "CREATE TABLE IF NOT EXISTS `strength_workout` (" +
                 "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, " +
@@ -226,7 +230,7 @@ object Migrations {
      * catalog id itself - a `TEXT` key, which is why the `CREATE TABLE` ends in
      * `PRIMARY KEY(exerciseId)` rather than an autoincrementing rowid.
      */
-    private val MIGRATION_6_7 = Migration(6, 7) { db ->
+    private val MIGRATION_6_7 = MigrationStep(6, 7) { db ->
         db.execSQL("ALTER TABLE `profile` ADD COLUMN `availableEquipmentJson` TEXT")
         db.execSQL("ALTER TABLE `strength_set_log` ADD COLUMN `feedback` TEXT")
         db.execSQL(
@@ -246,7 +250,7 @@ object Migrations {
      * nullable `suggested_session.workoutId` (no FK: a proposal names a workout, the accepted
      * `planned_session.workoutId` is the enforced link).
      */
-    private val MIGRATION_7_8 = Migration(7, 8) { db ->
+    private val MIGRATION_7_8 = MigrationStep(7, 8) { db ->
         db.execSQL("ALTER TABLE `goal` ADD COLUMN `isRace` INTEGER NOT NULL DEFAULT 1")
         db.execSQL(
             "ALTER TABLE `strength_workout` ADD COLUMN `useInSuggestions` INTEGER NOT NULL DEFAULT 1",
@@ -255,11 +259,15 @@ object Migrations {
     }
 
     /**
-     * Every migration, oldest first. `.addMigrations(*ALL)` is the only call site, in
-     * `MyHealthDatabase.build`, so adding a migration never changes it.
+     * Every migration, oldest first. `.addMigrations(*ALL)` is the only call site, in each
+     * platform's database builder, so adding a migration never changes it.
      */
-    val ALL: Array<Migration> =
-        arrayOf(
+    val ALL: Array<Migration>
+        get() = STEPS.map { it.toRoomMigration() }.toTypedArray()
+
+    /** The statements of every migration, oldest first. */
+    val STEPS: List<MigrationStep> =
+        listOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
             MIGRATION_3_4,
@@ -269,3 +277,23 @@ object Migrations {
             MIGRATION_7_8,
         )
 }
+
+/**
+ * One schema step: [from] → [to] and the statements it runs. The builder lambda keeps the
+ * `db.execSQL(…)` shape of Room's `Migration { db -> … }`, which `MigrationSqlTest` reads.
+ */
+class MigrationStep(val from: Int, val to: Int, script: (SqlScript) -> Unit) {
+    val statements: List<String> = SqlScript().also(script).statements
+}
+
+/** Records `execSQL` calls in order. */
+class SqlScript {
+    internal val statements = mutableListOf<String>()
+
+    fun execSQL(sql: String) {
+        statements += sql
+    }
+}
+
+/** The platform's Room `Migration` running [MigrationStep.statements] in order. */
+expect fun MigrationStep.toRoomMigration(): Migration

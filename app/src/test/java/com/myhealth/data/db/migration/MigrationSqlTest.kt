@@ -165,6 +165,20 @@ class MigrationSqlTest {
     private fun indexSqlOf(entities: Map<String, ExportedEntity>, table: String): List<String> =
         entities.getValue(table).indices
 
+    @Test
+    fun p20_2_the_steps_chain_1_to_8_and_each_platform_migration_runs_exactly_their_sql() {
+        assertThat(Migrations.STEPS.map { it.from to it.to }).isEqualTo((1..7).map { it to it + 1 })
+        val source = flattenedMigrationSource()
+        Migrations.STEPS.flatMap { it.statements }.forEach { assertThat(source).contains(it) }
+
+        // The Android migration replays the statements on the SupportSQLite database it is given.
+        val executed = mutableListOf<String>()
+        val db = io.mockk.mockk<androidx.sqlite.db.SupportSQLiteDatabase>()
+        io.mockk.every { db.execSQL(any<String>()) } answers { executed += firstArg<String>() }
+        Migrations.ALL.forEach { it.migrate(db) }
+        assertThat(executed).isEqualTo(Migrations.STEPS.flatMap { it.statements })
+    }
+
     /** `Migrations.kt` with Kotlin's `"a" + "b"` string concatenations joined into one literal. */
     private fun flattenedMigrationSource(): String =
         MIGRATION_SOURCE.readText().replace(CONCATENATION, "")
@@ -177,16 +191,16 @@ class MigrationSqlTest {
         /** `"…" +` followed by whitespace and the next `"` — what Kotlin joins at compile time. */
         val CONCATENATION = Regex("""["]\s*\+\s*["]""")
 
-        /** Resolves a path under `app/` from either the module directory or the project root. */
+        /** Resolves a path under `shared/` (P20.2) from either the app module or the project root. */
         fun resolve(suffix: String): File {
             val userDir = File(System.getProperty("user.dir") ?: ".").absoluteFile
-            return listOf(File(userDir, suffix), File(userDir, "app/$suffix"), File(userDir.parentFile, "app/$suffix"))
+            return listOf(File(userDir, "shared/$suffix"), File(userDir.parentFile, "shared/$suffix"))
                 .firstOrNull { it.exists() }
                 ?: error("Could not locate $suffix from user.dir=$userDir")
         }
 
         val schemaDir: File = resolve("schemas/com.myhealth.data.db.MyHealthDatabase")
         val MIGRATION_SOURCE: File =
-            resolve("src/main/java/com/myhealth/data/db/migration/Migrations.kt")
+            resolve("src/commonMain/kotlin/com/myhealth/data/db/migration/Migrations.kt")
     }
 }

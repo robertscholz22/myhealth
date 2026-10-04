@@ -86,7 +86,8 @@ class ArchitectureTest {
         val FORBIDDEN_IN_DOMAIN =
             Regex("""^import (android|androidx|kotlinx\.coroutines\.android|com\.myhealth\.(data|ui|di))\.""")
 
-        val JVM_ONLY = Regex("""^import (java|javax|android|androidx)\.""")
+        /** Room and SQLite are Kotlin Multiplatform libraries (P20.2); the rest of androidx is not. */
+        val JVM_ONLY = Regex("""^import (java\.|javax\.|android\.|androidx\.(?!room\.|sqlite\.))""")
 
         /** `shared/src/commonMain/kotlin/com/myhealth` (P20.1). */
         val sharedRoot: File by lazy { File(sourceRoot, "../../../../../../shared/src/commonMain/kotlin/com/myhealth").normalize() }

@@ -1,7 +1,7 @@
 package com.myhealth.data.db.converter
 
-import android.util.Log
 import androidx.room.TypeConverter
+import com.myhealth.data.log.PlatformLog
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.DayType
 import com.myhealth.domain.model.EventType
@@ -46,7 +46,7 @@ class Converters {
     private fun <T : Enum<T>> decode(raw: String, values: Array<T>, fallback: T): T {
         val match = values.firstOrNull { it.name == raw }
         if (match == null) {
-            Log.w(LOG_TAG, "Converters: unknown ${fallback.javaClass.simpleName} '$raw' -> $fallback")
+            PlatformLog.w(LOG_TAG, "Converters: unknown ${fallback::class.simpleName} '$raw' -> $fallback")
         }
         return match ?: fallback
     }
