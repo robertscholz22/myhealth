@@ -1,7 +1,6 @@
 package com.myhealth.data.backup
 
 import com.myhealth.data.db.dao.BackupDao
-import com.myhealth.domain.repository.BackupContentSource
 import com.myhealth.domain.repository.BackupMode
 import com.myhealth.domain.repository.BackupRepository
 import com.myhealth.domain.repository.BackupSummary

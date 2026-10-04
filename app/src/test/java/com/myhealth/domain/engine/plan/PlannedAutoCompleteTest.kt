@@ -17,7 +17,7 @@ import org.junit.Test
  */
 class PlannedAutoCompleteTest {
 
-    private val zone = Fixtures.ZONE
+    private val zone = Fixtures.TZ
     private val day = Fixtures.epochDay("2026-09-14")
 
     @Test

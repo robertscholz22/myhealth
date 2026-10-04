@@ -1,5 +1,6 @@
 package com.myhealth.ui.goals
 
+import kotlinx.datetime.toKotlinLocalDate
 import com.myhealth.domain.engine.bike.FtpEstimate
 import com.myhealth.domain.engine.goal.GoalProgress
 import com.myhealth.domain.model.ActivitySummary
@@ -54,7 +55,7 @@ fun goalRows(
 ): List<GoalRow> = goals.map { goal ->
     GoalRow(
         goal = goal,
-        progress = GoalProgress.compute(goal, bests, weights, today, activities, rideBests, ftp),
+        progress = GoalProgress.compute(goal, bests, weights, today.toKotlinLocalDate(), activities, rideBests, ftp),
     )
 }
 

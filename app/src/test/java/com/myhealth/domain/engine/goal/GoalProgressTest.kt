@@ -15,7 +15,7 @@ import com.myhealth.domain.engine.bike.FtpSource
 import com.myhealth.domain.engine.suggest.SuggestFixtures
 import com.myhealth.testutil.Fixtures
 import org.junit.Test
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /**
  * [GoalProgress] against PLAN P6.1: `goal01`…`goal05` are the plan's named cases (`goal06` is the
@@ -24,8 +24,8 @@ import java.time.LocalDate
  */
 class GoalProgressTest {
 
-    private val today = LocalDate.of(2026, 9, 14)
-    private val todayDay = today.toEpochDay()
+    private val today = LocalDate(2026, 9, 14)
+    private val todayDay = today.toEpochDays()
 
     private fun best(distance: Double, timeSec: Int, dayOffset: Long = -5): RunningBest = RunningBest(
         id = distance.toLong() + timeSec,

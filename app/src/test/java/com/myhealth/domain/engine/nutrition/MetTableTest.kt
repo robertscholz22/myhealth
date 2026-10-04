@@ -102,14 +102,14 @@ class MetTableTest {
             completed = listOf(completed),
             planned = listOf(overlapping),
             weightKg = 80.0,
-            zone = Fixtures.ZONE,
+            zone = Fixtures.TZ,
         )
         val both = TrainingEnergyCalculator.forDay(
             date = TODAY,
             completed = listOf(completed),
             planned = listOf(separate),
             weightKg = 80.0,
-            zone = Fixtures.ZONE,
+            zone = Fixtures.TZ,
         )
 
         assertThat(overlap.kcal).isEqualTo(500.0)

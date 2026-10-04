@@ -1,5 +1,6 @@
 package com.myhealth.data.repository
 
+import kotlinx.datetime.toKotlinLocalDate
 import com.myhealth.data.db.dao.NutritionDao
 import com.myhealth.data.mapper.toDomain
 import com.myhealth.data.mapper.toEntity
@@ -113,14 +114,14 @@ class RoomNutritionRepository(
         val events = calendarRepo.observeOccurrences(day - 1, day + 1).first()
         val dayType = DayTypeResolver.resolve(
             DayTypeResolver.Input(
-                date = date,
+                date = date.toKotlinLocalDate(),
                 events = events,
                 plannedSessions = planned,
                 completedSessions = completed,
             ),
         )
         return NutritionTargetInput(
-            date = date,
+            date = date.toKotlinLocalDate(),
             profile = profile,
             latestWeight = bodyRepo.latestWeight(window),
             latestBodyFat = bodyRepo.latestWithBodyFat(window),

@@ -1,5 +1,6 @@
 package com.myhealth.data.repository
 
+import kotlinx.datetime.toKotlinLocalDate
 import com.myhealth.domain.engine.calendar.RecurrenceExpander
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.CalendarDay
@@ -77,7 +78,7 @@ object CalendarAggregator {
         val from = fromDay.toLocalDate()
         val to = toDay.toLocalDate()
         return events.flatMap { event ->
-            RecurrenceExpander.expand(event, overridesByEvent[event.id].orEmpty(), from, to)
+            RecurrenceExpander.expand(event, overridesByEvent[event.id].orEmpty(), from.toKotlinLocalDate(), to.toKotlinLocalDate())
         }
     }
 

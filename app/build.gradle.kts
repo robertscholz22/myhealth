@@ -17,8 +17,8 @@ android {
         applicationId = "com.myhealth"
         minSdk = 34
         targetSdk = 36
-        versionCode = 181
-        versionName = "0.8.1"
+        versionCode = 190
+        versionName = "0.9.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -74,6 +74,7 @@ room {
 
 dependencies {
     val composeBom = platform(libs.compose.bom)
+    implementation(project(":shared"))
     implementation(composeBom)
     androidTestImplementation(composeBom)
 

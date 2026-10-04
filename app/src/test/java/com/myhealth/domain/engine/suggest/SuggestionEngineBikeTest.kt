@@ -12,7 +12,7 @@ import com.myhealth.domain.model.SuggestedSession
 import com.myhealth.domain.model.TrainingPhase
 import com.myhealth.testutil.Fixtures
 import org.junit.Test
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /**
  * [SuggestionEngine] against the cycling rules of PLAN §3.5.8 (`sug27`, `sug29`–`sug33`; `sug28`,
@@ -198,7 +198,7 @@ class SuggestionEngineBikeTest {
     }
 
     private companion object {
-        val DECEMBER: LocalDate = LocalDate.of(2026, 12, 7)
-        val DECEMBER_DAY: Long = DECEMBER.toEpochDay()
+        val DECEMBER: LocalDate = LocalDate(2026, 12, 7)
+        val DECEMBER_DAY: Long = DECEMBER.toEpochDays()
     }
 }

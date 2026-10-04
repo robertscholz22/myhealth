@@ -15,6 +15,9 @@ object Fixtures {
     /** UTC is the default test zone: deterministic, no DST surprises. */
     val ZONE: ZoneId = ZoneId.of("UTC")
 
+    /** [ZONE] for the shared (kotlinx-datetime) engines. */
+    val TZ: kotlinx.datetime.TimeZone = kotlinx.datetime.TimeZone.UTC
+
     /**
      * A fixed [Clock] from an ISO-8601 string.
      * Accepts an instant (`2026-09-12T07:30:00Z`) or a local date-time (`2026-09-12T07:30`),

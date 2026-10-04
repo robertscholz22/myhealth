@@ -50,7 +50,7 @@ class RoomNutritionRepositoryTest {
         activityRepo = activityRepo,
         planRepo = planRepo,
         calendarRepo = calendarRepo,
-        engine = NutritionTargetEngine(Fixtures.ZONE),
+        engine = NutritionTargetEngine(Fixtures.TZ),
         clock = clock,
         ioDispatcher = Dispatchers.Unconfined,
     )

@@ -1,5 +1,6 @@
 package com.myhealth.ui.activities
 
+import kotlinx.datetime.toKotlinLocalDate
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.myhealth.domain.engine.activity.ActivityFields
@@ -204,7 +205,7 @@ class ActivityDetailViewModel(
  */
 private fun hrZoneModelFor(profile: Profile?, today: LocalDate): HrZoneModel {
     val hrRest = profile?.restingHrManual ?: FALLBACK_HR_REST
-    val hrMax = profile?.let { it.estimatedMaxHr(it.ageYears(today)) } ?: FALLBACK_HR_MAX
+    val hrMax = profile?.let { it.estimatedMaxHr(it.ageYears(today.toKotlinLocalDate())) } ?: FALLBACK_HR_MAX
     val bounds = HrBounds(hrMax = hrMax, hrRest = hrRest)
     return if (profile != null) {
         HrZoneModel.resolve(profile, bounds)

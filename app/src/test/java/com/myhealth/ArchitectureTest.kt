@@ -51,7 +51,8 @@ class ArchitectureTest {
     @Test
     fun the_scan_actually_sees_the_sources() {
         // Guards the three tests above against silently passing on an empty file list.
-        assertThat(kotlinFilesUnder("domain").size).isAtLeast(10)
+        assertThat(kotlinFilesUnder("domain").size).isAtLeast(100)
+        assertThat(sharedRoot.isDirectory).isTrue()
         assertThat(kotlinFilesUnder("ui")).isNotEmpty()
     }
 
@@ -59,8 +60,24 @@ class ArchitectureTest {
         relativeTo(sourceRoot).invariantPath.startsWith("$relativePath/")
 
     private fun kotlinFilesUnder(relativePath: String): List<File> {
-        val root = if (relativePath == ".") sourceRoot else File(sourceRoot, relativePath)
-        return root.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
+        val roots = if (relativePath == ".") {
+            listOf(sourceRoot)
+        } else {
+            // P20.1: `domain` lives in the shared module; the app keeps only its java.time twins.
+            listOf(File(sourceRoot, relativePath), File(sharedRoot, relativePath))
+        }
+        return roots.flatMap { root -> root.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList() }
+    }
+
+    @Test
+    fun shared_common_code_uses_no_jvm_only_api() {
+        val offenders = sharedRoot.walkTopDown().filter { it.isFile && it.extension == "kt" }.flatMap { file ->
+            file.readLines()
+                .filter { JVM_ONLY.containsMatchIn(it) }
+                .map { "${file.name}: ${it.trim()}" }
+        }.toList()
+
+        assertThat(offenders).isEmpty()
     }
 
     private val File.invariantPath: String get() = path.replace(File.separatorChar, '/')
@@ -68,6 +85,11 @@ class ArchitectureTest {
     private companion object {
         val FORBIDDEN_IN_DOMAIN =
             Regex("""^import (android|androidx|kotlinx\.coroutines\.android|com\.myhealth\.(data|ui|di))\.""")
+
+        val JVM_ONLY = Regex("""^import (java|javax|android|androidx)\.""")
+
+        /** `shared/src/commonMain/kotlin/com/myhealth` (P20.1). */
+        val sharedRoot: File by lazy { File(sourceRoot, "../../../../../../shared/src/commonMain/kotlin/com/myhealth").normalize() }
 
         /** `app/src/main/java/com/myhealth`, from either the module dir or the project root. */
         val sourceRoot: File = run {

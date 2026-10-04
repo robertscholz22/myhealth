@@ -225,7 +225,7 @@ private fun CurrentWeightCard(latest: BodyMeasurement?, goalWeightKg: Double?, d
             Text(stringResource(R.string.body_no_weight_yet))
         } else {
             Text(
-                text = fmtKg(latest.weightKg),
+                text = fmtKg(latest.weightKg!!),
                 style = MaterialTheme.typography.headlineMedium,
             )
             if (goalWeightKg != null && deltaToGoalKg != null) {

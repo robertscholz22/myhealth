@@ -5,12 +5,12 @@ import com.myhealth.domain.model.EngineWarningCode
 import com.myhealth.domain.model.Profile
 import com.myhealth.domain.model.Sex
 import org.junit.Test
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /** HR bounds of PLAN §3.2.1, including the named case `load18`. */
 class HrBoundsTest {
 
-    private val today = LocalDate.of(2026, 1, 1)
+    private val today = LocalDate(2026, 1, 1)
 
     private fun profile(
         restingHrManual: Int? = null,
@@ -19,7 +19,7 @@ class HrBoundsTest {
     ) = Profile(
         displayName = "Test",
         sex = Sex.MALE,
-        birthDay = LocalDate.of(birthYear, 1, 1).toEpochDay(),
+        birthDay = LocalDate(birthYear, 1, 1).toEpochDays(),
         heightCm = 180.0,
         restingHrManual = restingHrManual,
         maxHrManual = maxHrManual,

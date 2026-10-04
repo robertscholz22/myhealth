@@ -106,11 +106,11 @@ class RoomIngredientRepository(
         name.isBlank() -> AppError.Validation("name", "Name is required.")
         kcal < 0.0 -> AppError.Validation("kcal", "Calories cannot be negative.")
         proteinG == null -> AppError.Validation("proteinG", "Protein is required.")
-        proteinG < 0.0 -> AppError.Validation("proteinG", "Protein cannot be negative.")
+        proteinG!! < 0.0 -> AppError.Validation("proteinG", "Protein cannot be negative.")
         carbsG == null -> AppError.Validation("carbsG", "Carbohydrate is required.")
-        carbsG < 0.0 -> AppError.Validation("carbsG", "Carbohydrate cannot be negative.")
+        carbsG!! < 0.0 -> AppError.Validation("carbsG", "Carbohydrate cannot be negative.")
         fatG == null -> AppError.Validation("fatG", "Fat is required.")
-        fatG < 0.0 -> AppError.Validation("fatG", "Fat cannot be negative.")
+        fatG!! < 0.0 -> AppError.Validation("fatG", "Fat cannot be negative.")
         else -> null
     }
 }

@@ -605,3 +605,19 @@ Emulator `myhealth_api35`; onboarding, then the owner's phone backup (`myhealth-
 | `bash tools/connected.sh emulator-5554` | PASS | 25/25 |
 
 - NOTE-27: the "N AU still unallocated" line of a pre-placed session (benchmark or side goal) shows the budget *before* that session, as for every other session; with a low weekly target the side session alone can exceed it (the 11-Oct check had a 118 AU target because the jumped clock left a week without training).
+
+
+## Session 21 — 2026-10-04 (emulator, 0.9.0 debug build: P20.1 shared module)
+Emulator `myhealth_api35`; onboarding, then the owner's backups imported with **Replace**. No user-visible change is expected.
+
+| Step | Result | Evidence |
+|---|---|---|
+| `bash tools/verify.sh` | PASS | 1057 unit tests (+4 `NumberFormatTest`, +1 architecture rule), lint clean, release 14.7 MB |
+| `bash tools/connected.sh emulator-5554` | PASS | 25/25 |
+| Import `myhealth-backup-2026-10-04-pre081.json` (3084 rows, schema 8) → export → JSON diff | PASS | only `exportedAtMillis` and `appVersion` differ |
+| Import the older `myhealth-backup-2026-10-04.json` (schema 7) → export → diff | PASS | only `goal.isRace` / `strengthWorkout.useInSuggestions` defaults added (DB v8 columns) |
+| Goals: "Recent best 21:54 (5 Sep) — behind.", "Predicted 1:40:44 from your 5 km on 5 Sep — behind." | PASS | same as 0.8.1 |
+| Training → Generate (4–10 Oct): "Recovery week · target 142 AU · 175 AU suggested · 1 rest day", recovery runs 6:42 /km, mobility/spin rationale texts | PASS | identical to the 0.8.1 walkthrough (session 20) |
+| Nutrition (2550 kcal target) and Calendar month view render | PASS | `p20_cal_emu.png` |
+
+- NOTE-28: the comparison of the nutrition target with the phone (0.8.1) was skipped — the phone was disconnected; the nutrition engine is covered by `nut*` fixtures with fixed expected values.

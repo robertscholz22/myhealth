@@ -3,7 +3,7 @@ package com.myhealth.domain.engine.calendar
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.testutil.Fixtures
 import org.junit.Test
-import java.time.DayOfWeek
+import kotlinx.datetime.DayOfWeek
 
 /** Parse/format round-trips for the RFC 5545 subset of PLAN §2.2.4 (P3.1). */
 class RecurrenceRuleTest {

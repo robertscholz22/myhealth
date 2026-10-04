@@ -1,5 +1,6 @@
 package com.myhealth.data.repository
 
+import kotlinx.datetime.toKotlinTimeZone
 import com.myhealth.data.db.dao.ActivityDao
 import com.myhealth.data.db.dao.EventDao
 import com.myhealth.data.db.dao.LoadDao
@@ -126,7 +127,7 @@ class RoomCalendarRepository(
             activityDao.observeRange(fromDay, toDay).map { rows -> rows.map { it.toSummary() } },
         ) { occurrences, activities ->
             withContext(computeDispatcher) {
-                EventActivityLinker.propose(occurrences, activities, zone)
+                EventActivityLinker.propose(occurrences, activities, zone.toKotlinTimeZone())
             }
         }
 

@@ -1,5 +1,7 @@
 package com.myhealth.domain.engine.nutrition
 
+import com.myhealth.domain.util.minusDays
+import com.myhealth.domain.util.plusDays
 import com.google.common.truth.Truth.assertThat
 import com.myhealth.domain.engine.nutrition.NutritionFixtures.TODAY
 import com.myhealth.domain.engine.nutrition.NutritionFixtures.activity

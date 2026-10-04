@@ -1,5 +1,6 @@
 package com.myhealth.data.repository
 
+import kotlinx.datetime.toKotlinLocalDate
 import com.myhealth.data.db.dao.SuggestionDao
 import com.myhealth.data.mapper.toDomain
 import com.myhealth.data.mapper.toEntity
@@ -237,7 +238,7 @@ class RoomSuggestionRepository(
         val lockedPlanned = planRepo.getSessions(todayDay, horizonEnd - 1)
             .filter { it.locked || it.sourceSuggestionId == null }
         return SuggestionInput(
-            today = today,
+            today = today.toKotlinLocalDate(),
             horizonDays = horizonDays,
             profile = profile,
             goals = goalRepo.observeByStatus(GoalStatus.ACTIVE).first().sortedBy { it.priority },

@@ -1,7 +1,7 @@
 package com.myhealth.data.backup
 
 import com.google.common.truth.Truth.assertThat
-import com.myhealth.domain.repository.BackupContentSource
+import com.myhealth.data.backup.BackupContentSource
 import com.myhealth.domain.model.RideBestKind
 import com.myhealth.domain.repository.BackupMode
 import com.myhealth.domain.util.AppError

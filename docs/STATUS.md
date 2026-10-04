@@ -6,7 +6,7 @@ One row per task. A task is **Done** only when its acceptance commands in PLAN �
 Legend — **Done**: `yes` / `no` / `n/a`. **Tests**: executed unit tests reported by `tools/verify.sh`
 after the task. **APK MB**: debug APK size measured after the task. **Notes**: deviations, follow-ups.
 
-Last update: 2026-10-04 — **P19.5 (side goal; release 0.8.1)**, before that **P19 (goal-driven training, workout pool; release 0.8.0)** — see the P19 table below. Previous: 2026-09-14 — **P18.1 (Pose model, side view, animation clips for all 87 shipped
+Last update: 2026-10-04 — **P20.1 (shared KMP module for the iPhone port; release 0.9.0)**, before that **P19.5 (side goal; release 0.8.1)**, before that **P19 (goal-driven training, workout pool; release 0.8.0)** — see the P19 table below. Previous: 2026-09-14 — **P18.1 (Pose model, side view, animation clips for all 87 shipped
 exercises)**: the pose vocabulary (`BodySegmentId`, `BodyFace {FRONT, BACK, SIDE}`, `BodyPose`)
 moves into `domain/model/Body.kt` so the catalog can author animations against it, and `BodyPose`
 gains **`rootScale`** alongside `rootOffsetX/Y` and `rootAngle` — a 213-unit figure cannot lie
@@ -431,6 +431,14 @@ Known limitation: when one of several sources is deleted, the canonical row keep
 | **P19.3** UI | lead | **yes** | 1044 | — | "Race on this date" switch, "by"/"on" headlines, goal progress text, phase line on Training, "Use in suggestions" checkbox per workout; BUG-16 (`NumberField`) and BUG-17 (workouts list scroll) fixed |
 | **P19.4** Verify + release 0.8.0 | lead | **yes** | 1044 | 90.5 (release 14.6) | VERIFICATION session 19; 25/25 instrumented; versionCode 180 |
 | **P19.5** Side goal + release 0.8.1 | lead | **yes** | 1052 | 89.0 (release 14.6) | A ≤ 10 km goal beside a longer main goal gets one 1000 m interval session a week until its date (goal pace within 3 %, strides fallback when two hard sessions fill the week); `SideGoalTest` `sg01`…`sg08`; VERIFICATION session 20; 25/25 instrumented; versionCode 181 |
+
+## P20 — Shared Kotlin Multiplatform module (iPhone port, step 1)
+
+| Task | Model | Done | Tests | APK MB | Notes |
+|---|---|---|---|---|---|
+| **P20.1** Domain → `:shared` (commonMain), `java.time` → `kotlinx-datetime` | lead | **yes** | 1057 | 89.0 (release 14.7) | Behaviour unchanged: all suggestion fixtures and hashes identical; `NumberFormatTest` `nf01`…`nf04`; backup round-trip of the owner's data (3084 rows) identical; 25/25 instrumented; VERIFICATION session 21; versionCode 190 |
+| **P20.2** Data layer → shared (Room KMP, DataStore KMP, Ktor, common FIT decoder) | lead | no | | | |
+| **P20.3** UI → Compose Multiplatform | lead | no | | | |
 
 ---
 

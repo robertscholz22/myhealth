@@ -121,11 +121,11 @@ class RepositoryContractTest {
             "CycleRepository",
         )
 
-        /** `app/src/main/java/com/myhealth/domain/repository`, from module dir or project root. */
+        /** `shared/src/commonMain/kotlin/com/myhealth/domain/repository` (P20.1), from module dir or project root. */
         val repositoryDir: File = run {
             val userDir = File(System.getProperty("user.dir") ?: ".").absoluteFile
-            val suffix = "src/main/java/com/myhealth/domain/repository"
-            listOf(File(userDir, suffix), File(userDir, "app/$suffix"), File(userDir.parentFile, "app/$suffix"))
+            val suffix = "shared/src/commonMain/kotlin/com/myhealth/domain/repository"
+            listOf(File(userDir, suffix), File(userDir.parentFile, suffix))
                 .firstOrNull { it.isDirectory }
                 ?: error("Could not locate $suffix from user.dir=$userDir")
         }

@@ -1,5 +1,7 @@
 package com.myhealth.ui.calendar
 
+import kotlinx.datetime.toJavaDayOfWeek
+import kotlinx.datetime.toKotlinDayOfWeek
 import com.myhealth.R
 import com.myhealth.domain.engine.calendar.RecurrenceFreq
 import com.myhealth.domain.engine.calendar.RecurrenceRule
@@ -112,7 +114,7 @@ fun EventDraft.recurrenceRule(): RecurrenceRule? {
     if (recurrenceMode == RecurrenceMode.NONE || recurrenceWeekdays.isEmpty()) return null
     return RecurrenceRule(
         freq = RecurrenceFreq.WEEKLY,
-        byDay = recurrenceWeekdays,
+        byDay = recurrenceWeekdays.map { it.toKotlinDayOfWeek() }.toSet(),
         interval = recurrenceIntervalWeeks.coerceAtLeast(1),
         untilDay = recurrenceUntil?.toEpochDay(),
     )
@@ -163,7 +165,7 @@ fun eventDraftFrom(event: CalendarEvent): EventDraft {
         isKeyEvent = event.isKeyEvent,
         notes = event.notes.orEmpty(),
         recurrenceMode = if (isWeekly) RecurrenceMode.WEEKLY else RecurrenceMode.NONE,
-        recurrenceWeekdays = if (isWeekly) rule.byDay else emptySet(),
+        recurrenceWeekdays = if (isWeekly) rule.byDay.map { it.toJavaDayOfWeek() }.toSet() else emptySet(),
         recurrenceIntervalWeeks = if (isWeekly) rule.interval else 1,
         recurrenceUntil = (rule?.untilDay ?: event.recurrenceUntilDay)?.toLocalDate(),
         linkedActivityId = event.linkedActivityId,

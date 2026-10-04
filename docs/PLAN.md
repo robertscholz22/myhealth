@@ -3016,6 +3016,22 @@ DB 7 → 8 (`MIGRATION_7_8`, additive): `goal.isRace INTEGER NOT NULL DEFAULT 1`
 - When no day is legal (two hard sessions already in the rolling week, C5) the first suggested easy run (else long run, else recovery run) carries a `SIDE_GOAL` line: 6 × 20 s strides at goal pace.
 - Inert after the goal's date, with a short main goal, and in TAPER / RACE_WEEK / RECOVERY_WEEK / OFF_SEASON. Old fixtures unchanged. Tests: `SideGoalTest` `sg01`…`sg08`.
 
+## P20–P23 — MyHealth on iPhone (approved 2026-10-04)
+
+The owner's wife (iPhone, Garmin watch → Garmin Connect iOS → Apple Health) gets a native iOS build of the same app: **Kotlin Multiplatform + Compose Multiplatform**, one codebase, distributed through the **Apple Developer Program + TestFlight** (internal tester). No Mac: iOS builds, simulator tests and uploads run on **GitHub Actions macOS runners** (XcodeGen project, fastlane, App Store Connect API key). Only the platform layer is written twice (Health Connect ↔ HealthKit, WorkManager ↔ BGTaskScheduler, CameraX/ML Kit ↔ AVFoundation/Vision, SAF ↔ document picker), behind interfaces in `commonMain`.
+
+- **P20** shared module, Android only, behaviour-preserving: P20.1 domain + `kotlinx-datetime` (0.9.0) · P20.2 data layer: Room KMP, DataStore KMP, Ktor instead of OkHttp, common FIT decoder, platform interfaces (0.9.1) · P20.3 UI: Compose Multiplatform + compose resources (0.9.2). Gate per step: `verify.sh`, `connected.sh`, emulator walkthrough, backup export → import diff, install from the tag.
+- **P21** iOS shell (`iosApp/`, XcodeGen `project.yml`) + `.github/workflows/ios.yml` (simulator build + XCUITest on push, TestFlight upload on `v*` tags) + `tools/ios.sh`.
+- **P22** iOS platform layer: HealthKit `HealthSource` (anchored queries, background delivery), BGTask recompute, camera barcode/OCR, file import, backup via share sheet, HealthKit seeder for tests.
+- **P23** CI simulator walkthrough mirroring VERIFICATION, Android regression, first TestFlight build (1.0.0 on both platforms), on-device checklist with the owner.
+- Prerequisites from the owner before P21: developer enrolment (99 €/year), ASC API key, CI minute budget (macOS minutes count ×10), the tester's Apple ID.
+
+**As built (P20.1, 0.9.0).** New Gradle module `:shared` (`org.jetbrains.kotlin.multiplatform` + `com.android.kotlin.multiplatform.library`, targets Android, `iosArm64`, `iosSimulatorArm64`; iOS targets are skipped on Linux, but `commonMain` is compiled as metadata there, which rejects any JVM API). `domain/` moved verbatim to `shared/src/commonMain/kotlin`; the app depends on `:shared`.
+- `java.time` → `kotlinx-datetime` 0.8.0 (`LocalDate`, `TimeZone`, `DayOfWeek`, `Month`) and `kotlin.time.Clock`/`Instant`. New `domain/util/Dates.kt` (epoch-day helpers, ISO week start, `yearsBetween` = `Period.between(...).years`, `d MMM` / `MMM yyyy` / `BASIC_ISO_DATE` formatting) and `domain/util/NumberFormat.kt` (`fixed` = Java's `%.nf` — half-up on the shortest decimal representation —, `signed`, `signedFixed`, `hex`, `pad2`, `clockLabel`). `NumberFormatTest` `nf01`…`nf04` checks them against `String.format`/`java.time` (220 000 random values, 5 000 random dates).
+- SHA-256 of the suggestion inputs via okio (`ByteString.sha256().hex()`), byte-identical; NFKD for the label lexicon is `expect`/`actual` (`java.text.Normalizer` / `NSString.decomposedStringWithCompatibilityMapping`); `MatchGroup.range`, `sortedMapOf`, `IntArray.binarySearch(from, to)`, `Map.getOrDefault`, `Math.round/rint` replaced by common equivalents.
+- Android bridges in `shared/src/androidMain`: `SuggestionEngine(java.time.Clock)`, `NutritionTargetEngine(java.time.Clock)`; the app converts at the boundary (`toKotlinLocalDate()`, `toKotlinTimeZone()`, `toKotlin/JavaDayOfWeek()`). The UI's `java.time` helpers (`Long.toLocalDate()`, `isoWeekOf`, `startOfIsoWeek`) stay in the app module until P20.3. `BackupContentSource` (streams) moved to `data/backup`.
+- Cross-module consequences: `IntervalStructures` and `SuggestionEngine.minutesFor` became public (tests and UI use them); three smart casts on shared properties became `!!` after the null check; the shared module compiles to JVM 17 like the app. Domain tests stay in `app/src/test` for now. `ArchitectureTest` scans the shared sources and gained `shared_common_code_uses_no_jvm_only_api`.
+
 ## 6. Verification strategy
 
 ### 6.1 After every task (the lead runs this)

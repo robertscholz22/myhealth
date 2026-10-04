@@ -26,7 +26,7 @@ import com.myhealth.domain.model.Sex
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
 import com.myhealth.testutil.Fixtures
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /**
  * Builders for the suggestion-engine tests (PLAN §3.5). Every default is deliberately boring so a
@@ -37,8 +37,8 @@ import java.time.LocalDate
  */
 object SuggestFixtures {
 
-    val TODAY: LocalDate = LocalDate.of(2026, 9, 14)
-    val TODAY_DAY: Long = TODAY.toEpochDay()
+    val TODAY: LocalDate = LocalDate(2026, 9, 14)
+    val TODAY_DAY: Long = TODAY.toEpochDays()
 
     fun day(offset: Long): Long = TODAY_DAY + offset
 

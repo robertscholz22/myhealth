@@ -8,7 +8,7 @@ import com.myhealth.domain.model.EventType
 import com.myhealth.domain.model.SportType
 import com.myhealth.testutil.Fixtures
 import org.junit.Test
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /**
  * The named cases of PLAN P3.3. The day is Tuesday 2026-09-15 and the zone is UTC, so an
@@ -27,7 +27,7 @@ class EventActivityLinkerTest {
             durationMin = 90,
         )
 
-        val proposals = EventActivityLinker.propose(listOf(occurrence), listOf(activity), Fixtures.ZONE)
+        val proposals = EventActivityLinker.propose(listOf(occurrence), listOf(activity), Fixtures.TZ)
 
         assertThat(proposals).hasSize(1)
         assertThat(proposals.single().confidence).isWithin(1e-9).of(1.0)
@@ -41,7 +41,7 @@ class EventActivityLinkerTest {
         val early = CalendarFixtures.activity(id = 1, startIso = "${day}T17:40:00Z", durationMin = 90)
         val late = CalendarFixtures.activity(id = 2, startIso = "${day}T18:20:00Z", durationMin = 90)
 
-        val proposals = EventActivityLinker.propose(listOf(occurrence), listOf(early, late), Fixtures.ZONE)
+        val proposals = EventActivityLinker.propose(listOf(occurrence), listOf(early, late), Fixtures.TZ)
 
         assertThat(proposals).hasSize(2)
         // Symmetric candidates tie above the auto threshold — a tie is never the unique best.
@@ -60,9 +60,9 @@ class EventActivityLinkerTest {
             sportType = SportType.RUN_OUTDOOR,
         )
 
-        assertThat(EventActivityLinker.confidence(occurrence, run, Fixtures.ZONE))
+        assertThat(EventActivityLinker.confidence(occurrence, run, Fixtures.TZ))
             .isWithin(1e-9).of(0.316667)
-        assertThat(EventActivityLinker.propose(listOf(occurrence), listOf(run), Fixtures.ZONE)).isEmpty()
+        assertThat(EventActivityLinker.propose(listOf(occurrence), listOf(run), Fixtures.TZ)).isEmpty()
 
         // Even a perfectly overlapping wrong-sport activity can never be auto-linked (0.7 < 0.80).
         val simultaneous = CalendarFixtures.activity(
@@ -71,7 +71,7 @@ class EventActivityLinkerTest {
             durationMin = 90,
             sportType = SportType.RUN_OUTDOOR,
         )
-        val proposals = EventActivityLinker.propose(listOf(occurrence), listOf(simultaneous), Fixtures.ZONE)
+        val proposals = EventActivityLinker.propose(listOf(occurrence), listOf(simultaneous), Fixtures.TZ)
         assertThat(proposals.single().confidence).isWithin(1e-9).of(0.7)
         assertThat(proposals.single().autoApply).isFalse()
     }
@@ -100,7 +100,7 @@ class EventActivityLinkerTest {
         val proposals = EventActivityLinker.propose(
             listOf(allDay),
             listOf(sameDay, otherDay),
-            Fixtures.ZONE,
+            Fixtures.TZ,
         )
 
         // overlapRatio = 1.0, sportScore = 1.0, startScore = 0.5 -> 0.5 + 0.3 + 0.1
@@ -119,7 +119,7 @@ class EventActivityLinkerTest {
         val proposals = EventActivityLinker.propose(
             listOf(linked, open),
             listOf(activity),
-            Fixtures.ZONE,
+            Fixtures.TZ,
         )
 
         assertThat(proposals).isEmpty()
@@ -130,19 +130,19 @@ class EventActivityLinkerTest {
         // overlapRatio 0.5, sportScore 1.0, startScore 0.0 -> exactly the propose threshold.
         val twoHourEvent = occurrence(startMinuteOfDay = 9 * 60, durationMin = 120)
         val onThreshold = CalendarFixtures.activity(id = 11, startIso = "${day}T10:30:00Z", durationMin = 60)
-        assertThat(EventActivityLinker.confidence(twoHourEvent, onThreshold, Fixtures.ZONE))
+        assertThat(EventActivityLinker.confidence(twoHourEvent, onThreshold, Fixtures.TZ))
             .isEqualTo(EventActivityLinker.PROPOSE_THRESHOLD)
         assertThat(propose(twoHourEvent, onThreshold)).hasSize(1)
 
         val justBelow = CalendarFixtures.activity(id = 12, startIso = "${day}T10:31:00Z", durationMin = 60)
-        assertThat(EventActivityLinker.confidence(twoHourEvent, justBelow, Fixtures.ZONE))
+        assertThat(EventActivityLinker.confidence(twoHourEvent, justBelow, Fixtures.TZ))
             .isLessThan(EventActivityLinker.PROPOSE_THRESHOLD)
         assertThat(propose(twoHourEvent, justBelow)).isEmpty()
 
         // overlapRatio 1.0, sportScore 1.0, startScore 0.0 -> exactly the auto-apply threshold.
         val longEvent = occurrence(startMinuteOfDay = 10 * 60, durationMin = 240)
         val onAuto = CalendarFixtures.activity(id = 13, startIso = "${day}T11:30:00Z", durationMin = 60)
-        assertThat(EventActivityLinker.confidence(longEvent, onAuto, Fixtures.ZONE))
+        assertThat(EventActivityLinker.confidence(longEvent, onAuto, Fixtures.TZ))
             .isEqualTo(EventActivityLinker.AUTO_APPLY_THRESHOLD)
         assertThat(propose(longEvent, onAuto).single().autoApply).isTrue()
 
@@ -153,7 +153,7 @@ class EventActivityLinkerTest {
             durationMin = 60,
             sportType = SportType.SOCCER_MATCH,
         )
-        assertThat(EventActivityLinker.confidence(longEvent, sameGroup, Fixtures.ZONE))
+        assertThat(EventActivityLinker.confidence(longEvent, sameGroup, Fixtures.TZ))
             .isWithin(1e-9).of(0.74)
         assertThat(propose(longEvent, sameGroup).single().autoApply).isFalse()
     }
@@ -161,7 +161,7 @@ class EventActivityLinkerTest {
     // ---- helpers ---------------------------------------------------------------------------
 
     private fun propose(occurrence: EventOccurrence, activity: ActivitySummary) =
-        EventActivityLinker.propose(listOf(occurrence), listOf(activity), Fixtures.ZONE)
+        EventActivityLinker.propose(listOf(occurrence), listOf(activity), Fixtures.TZ)
 
     private fun occurrence(
         startMinuteOfDay: Int?,

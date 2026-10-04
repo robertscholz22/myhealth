@@ -5,7 +5,7 @@ import com.myhealth.domain.model.EventOccurrence
 import com.myhealth.domain.model.EventType
 import com.myhealth.testutil.Fixtures
 import org.junit.Test
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
 
 /**
  * The named cases of PLAN P3.1. All arithmetic is on `LocalDate`, so the tests pin exact days —
@@ -227,5 +227,5 @@ class RecurrenceExpanderTest {
     )
 
     private fun List<EventOccurrence>.days(): List<String> =
-        map { LocalDate.ofEpochDay(it.occurrenceDay).toString() }
+        map { LocalDate.fromEpochDays(it.occurrenceDay).toString() }
 }

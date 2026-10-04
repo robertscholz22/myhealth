@@ -369,7 +369,7 @@ class ConstraintsTest {
             com.myhealth.domain.model.SportGroup.RUN, 3,
             com.myhealth.domain.model.SportGroup.STRENGTH, 2,
         )
-        assertThat(SportPreferences.longRunWeekdayOf(raw)).isEqualTo(java.time.DayOfWeek.SATURDAY)
+        assertThat(SportPreferences.longRunWeekdayOf(raw)).isEqualTo(kotlinx.datetime.DayOfWeek.SATURDAY)
         assertThat(SportPreferences.capsOf("not json")).isEmpty()
         assertThat(SportPreferences.longRunWeekdayOf("{}")).isNull()
     }

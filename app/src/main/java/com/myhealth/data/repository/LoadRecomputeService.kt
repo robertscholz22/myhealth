@@ -1,5 +1,7 @@
 package com.myhealth.data.repository
 
+import kotlinx.datetime.toKotlinTimeZone
+import kotlinx.datetime.toKotlinLocalDate
 import com.myhealth.data.db.dao.ActivityDao
 import com.myhealth.domain.engine.bike.BikeBestEngine
 import com.myhealth.domain.engine.bike.BikeDefaults
@@ -109,7 +111,7 @@ class LoadRecomputeService(
             .filter { it.day >= maxHrWindowStart }
             .mapNotNull { it.maxHr }
             .maxOrNull()
-        val bounds = HrBounds.compute(profile, LocalDate.ofEpochDay(today), restingHr7d, observedMaxHr)
+        val bounds = HrBounds.compute(profile, LocalDate.ofEpochDay(today).toKotlinLocalDate(), restingHr7d, observedMaxHr)
 
         val includeTreadmill = settingsRepo.settings.first().includeTreadmillInPrs
         val sessions = allSessions.filter { it.day in windowStart..today }
@@ -155,7 +157,7 @@ class LoadRecomputeService(
         val sessions = plans.getSessions(fromDay, today).filter { it.status == PlannedStatus.PLANNED }
         if (sessions.isEmpty()) return
         val activities = activityRepo.observeRange(fromDay, today).first()
-        PlannedAutoCompleter.complete(sessions, activities, clock.zone).forEach { completion ->
+        PlannedAutoCompleter.complete(sessions, activities, clock.zone.toKotlinTimeZone()).forEach { completion ->
             plans.linkActivity(completion.sessionId, completion.activityId)
             plans.setSessionStatus(completion.sessionId, PlannedStatus.COMPLETED)
         }

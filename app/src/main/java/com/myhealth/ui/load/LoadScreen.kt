@@ -244,7 +244,7 @@ private fun RecoveryCard(recovery: RecoveryState?) {
             return@SectionCard
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(stringResource(R.string.load_recovery_score_label, recovery.score), style = MaterialTheme.typography.headlineMedium)
+            Text(stringResource(R.string.load_recovery_score_label, recovery.score!!), style = MaterialTheme.typography.headlineMedium)
             Column {
                 Text(recoveryBandLabel(recovery.band), style = MaterialTheme.typography.titleMedium)
                 Text(confidencePercentLabel(recovery.confidence), style = MaterialTheme.typography.bodySmall)

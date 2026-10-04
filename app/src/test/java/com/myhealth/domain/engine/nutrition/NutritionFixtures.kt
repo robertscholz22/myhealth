@@ -19,7 +19,10 @@ import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.Sex
 import com.myhealth.domain.model.SportType
 import com.myhealth.testutil.Fixtures
-import java.time.LocalDate
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.minus
+import kotlinx.datetime.minus
 
 /**
  * Builders for the nutrition target tests (PLAN §3.1.8). "Today" is fixed at 2026-09-12 and the
@@ -34,7 +37,7 @@ internal object NutritionFixtures {
     val TODAY: LocalDate = LocalDate.parse("2026-09-12")
 
     /** A birthday that makes the person exactly [age] years old on [TODAY]. */
-    fun birthdayFor(age: Int): Long = TODAY.minusYears(age.toLong()).toEpochDay()
+    fun birthdayFor(age: Int): Long = TODAY.minus(age, kotlinx.datetime.DateTimeUnit.YEAR).toEpochDays()
 
     fun profile(
         sex: Sex = Sex.MALE,
@@ -60,8 +63,8 @@ internal object NutritionFixtures {
     fun weight(weightKg: Double = 80.0, bodyFatPercent: Double? = null, day: LocalDate = TODAY) =
         BodyMeasurement(
             id = 1L,
-            measuredAtMillis = day.atStartOfDay(Fixtures.ZONE).toInstant().toEpochMilli(),
-            day = day.toEpochDay(),
+            measuredAtMillis = day.atStartOfDayIn(Fixtures.TZ).toEpochMilliseconds(),
+            day = day.toEpochDays(),
             weightKg = weightKg,
             bodyFatPercent = bodyFatPercent,
             muscleMassKg = null,
@@ -75,7 +78,7 @@ internal object NutritionFixtures {
         totalEnergyKcal: Double? = null,
         activeEnergyKcal: Double? = null,
     ) = DailyHealthSummary(
-        day = day.toEpochDay(),
+        day = day.toEpochDays(),
         steps = null,
         totalEnergyKcal = totalEnergyKcal,
         activeEnergyKcal = activeEnergyKcal,
@@ -105,13 +108,13 @@ internal object NutritionFixtures {
         trimp: Double? = null,
         avgPowerW: Int? = null,
     ): ActivitySummary {
-        val start = day.atStartOfDay(Fixtures.ZONE).toInstant().toEpochMilli() +
+        val start = day.atStartOfDayIn(Fixtures.TZ).toEpochMilliseconds() +
             startMinuteOfDay * 60_000L
         return ActivitySummary(
             id = id,
             startAtMillis = start,
             endAtMillis = start + durationMin * 60_000L,
-            day = day.toEpochDay(),
+            day = day.toEpochDays(),
             sportType = sportType,
             sportGroup = sportType.group,
             title = null,
@@ -152,7 +155,7 @@ internal object NutritionFixtures {
     ): PlannedSession = PlannedSession(
         id = id,
         planId = null,
-        day = day.toEpochDay(),
+        day = day.toEpochDays(),
         startMinuteOfDay = startMinuteOfDay,
         sportType = sportType,
         sessionType = sessionType,
@@ -178,7 +181,7 @@ internal object NutritionFixtures {
         targetDistanceMeters: Double? = null,
     ): EventOccurrence = EventOccurrence(
         eventId = eventId,
-        occurrenceDay = day.toEpochDay(),
+        occurrenceDay = day.toEpochDays(),
         type = type,
         effectiveTitle = type.name,
         effectiveStartMinuteOfDay = 19 * 60,
@@ -222,11 +225,11 @@ internal object NutritionFixtures {
      */
     fun cycleStatus(offset: Long): CycleStatus = checkNotNull(
         CycleEngine.statusFor(
-            day = TODAY.toEpochDay(),
+            day = TODAY.toEpochDays(),
             entries = listOf(
                 CycleEntry(
                     id = 1L,
-                    periodStartDay = TODAY.toEpochDay() - offset,
+                    periodStartDay = TODAY.toEpochDays() - offset,
                     createdAtMillis = NOW_MILLIS,
                     updatedAtMillis = NOW_MILLIS,
                 ),
@@ -235,5 +238,5 @@ internal object NutritionFixtures {
     )
 
     /** The engine under test, pinned to the UTC test zone. */
-    fun engine(): NutritionTargetEngine = NutritionTargetEngine(Fixtures.ZONE)
+    fun engine(): NutritionTargetEngine = NutritionTargetEngine(Fixtures.TZ)
 }

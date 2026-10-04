@@ -1,5 +1,6 @@
 package com.myhealth.data.repository
 
+import kotlinx.datetime.toKotlinLocalDate
 import com.myhealth.domain.engine.bike.BikeDefaults
 import com.myhealth.domain.engine.bike.FtpEstimator
 import com.myhealth.domain.engine.load.HrBounds
@@ -104,7 +105,7 @@ class SuggestionPaceResolver(
             .orEmpty()
         val bounds = HrBounds.compute(
             profile = profile,
-            on = LocalDate.ofEpochDay(todayDay),
+            on = LocalDate.ofEpochDay(todayDay).toKotlinLocalDate(),
             restingHrLast7Days = restingHr,
             observedMaxHrLast365d = sessions.mapNotNull { it.maxHr }.maxOrNull(),
         )
