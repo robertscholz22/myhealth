@@ -2,7 +2,6 @@ package com.myhealth.ui.strength
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.myhealth.R
 import com.myhealth.domain.engine.strength.EquipmentSetCodec
 import com.myhealth.domain.engine.strength.ExerciseCatalog
 import com.myhealth.domain.model.Equipment
@@ -11,6 +10,7 @@ import com.myhealth.domain.model.StrengthWorkoutKind
 import com.myhealth.domain.repository.ProfileRepository
 import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -66,7 +66,7 @@ class WorkoutEditViewModel(
         viewModelScope.launch {
             val workout = strengthRepo.getById(id)
             if (workout == null) {
-                _state.update { it.copy(isLoading = false, loadError = UiMessage.of(R.string.workout_edit_load_error)) }
+                _state.update { it.copy(isLoading = false, loadError = UiMessage.of(Res.string.workout_edit_load_error)) }
             } else {
                 _state.update { it.copy(isLoading = false, draft = fillMissingLoads(workoutEditDraftOf(workout))) }
             }
@@ -148,7 +148,7 @@ class WorkoutEditViewModel(
             when (strengthRepo.upsertWorkout(draft.toStrengthWorkout(clock))) {
                 is Outcome.Ok -> _state.update { it.copy(isSaving = false, saved = true) }
                 is Outcome.Err -> _state.update {
-                    it.copy(isSaving = false, saveError = UiMessage.of(R.string.workout_edit_save_error))
+                    it.copy(isSaving = false, saveError = UiMessage.of(Res.string.workout_edit_save_error))
                 }
             }
         }

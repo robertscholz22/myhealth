@@ -27,11 +27,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.HcStatus
 import com.myhealth.di.appGraph
 import com.myhealth.di.rememberVm
@@ -118,25 +118,25 @@ private fun IntegrationsContent(
 
 @Composable
 private fun StatusSection(status: HcStatus, onOpenPlayStore: () -> Unit) {
-    SectionCard(title = stringResource(R.string.integrations_health_connect_title)) {
+    SectionCard(title = stringResource(Res.string.integrations_health_connect_title)) {
         when (status) {
             HcStatus.AVAILABLE -> Text(
-                stringResource(R.string.integrations_status_available),
+                stringResource(Res.string.integrations_status_available),
                 style = MaterialTheme.typography.bodyMedium,
             )
             HcStatus.UPDATE_REQUIRED -> {
                 Text(
-                    stringResource(R.string.integrations_status_update_required),
+                    stringResource(Res.string.integrations_status_update_required),
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                Button(onClick = onOpenPlayStore) { Text(stringResource(R.string.integrations_action_update_play_store)) }
+                Button(onClick = onOpenPlayStore) { Text(stringResource(Res.string.integrations_action_update_play_store)) }
             }
             HcStatus.UNAVAILABLE -> {
                 Text(
-                    stringResource(R.string.integrations_status_not_installed),
+                    stringResource(Res.string.integrations_status_not_installed),
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                Button(onClick = onOpenPlayStore) { Text(stringResource(R.string.integrations_action_install_play_store)) }
+                Button(onClick = onOpenPlayStore) { Text(stringResource(Res.string.integrations_action_install_play_store)) }
             }
         }
     }
@@ -148,14 +148,14 @@ private fun PermissionsSection(
     onGrantPermissions: () -> Unit,
     onOpenHcSettings: () -> Unit,
 ) {
-    SectionCard(title = stringResource(R.string.integrations_permissions_title)) {
+    SectionCard(title = stringResource(Res.string.integrations_permissions_title)) {
         permissions.forEach { row -> PermissionLine(row) }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Button(onClick = onGrantPermissions) { Text(stringResource(R.string.integrations_action_grant_permissions)) }
-            OutlinedButton(onClick = onOpenHcSettings) { Text(stringResource(R.string.integrations_action_open_hc_settings)) }
+            Button(onClick = onGrantPermissions) { Text(stringResource(Res.string.integrations_action_grant_permissions)) }
+            OutlinedButton(onClick = onOpenHcSettings) { Text(stringResource(Res.string.integrations_action_open_hc_settings)) }
         }
     }
 }
@@ -169,14 +169,14 @@ private fun PermissionLine(row: PermissionRow) {
         if (row.granted) {
             Icon(
                 Icons.Filled.CheckCircle,
-                contentDescription = stringResource(R.string.integrations_cd_granted),
+                contentDescription = stringResource(Res.string.integrations_cd_granted),
                 tint = Color(0xFF2E7D32),
                 modifier = Modifier.size(20.dp),
             )
         } else {
             Icon(
                 Icons.Filled.Cancel,
-                contentDescription = stringResource(R.string.integrations_cd_not_granted),
+                contentDescription = stringResource(Res.string.integrations_cd_not_granted),
                 tint = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.size(20.dp),
             )
@@ -187,12 +187,12 @@ private fun PermissionLine(row: PermissionRow) {
 
 @Composable
 private fun SyncSection(isSyncing: Boolean, channels: List<SyncChannelRow>, onSyncNow: () -> Unit) {
-    SectionCard(title = stringResource(R.string.integrations_sync_title)) {
+    SectionCard(title = stringResource(Res.string.integrations_sync_title)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Button(onClick = onSyncNow, enabled = !isSyncing) { Text(stringResource(R.string.integrations_action_sync_now)) }
+            Button(onClick = onSyncNow, enabled = !isSyncing) { Text(stringResource(Res.string.integrations_action_sync_now)) }
             if (isSyncing) CircularProgressIndicator(modifier = Modifier.size(24.dp))
         }
         channels.forEach { channel -> SyncChannelLine(channel) }
@@ -202,14 +202,14 @@ private fun SyncSection(isSyncing: Boolean, channels: List<SyncChannelRow>, onSy
 @Composable
 private fun SyncChannelLine(channel: SyncChannelRow) {
     val lastSync = channel.lastSuccessAtMillis?.let { formatInstant(it) }
-        ?: stringResource(R.string.integrations_sync_never)
+        ?: stringResource(Res.string.integrations_sync_never)
     Text(
-        stringResource(R.string.integrations_sync_status_format, channel.label, lastSync),
+        stringResource(Res.string.integrations_sync_status_format, channel.label, lastSync),
         style = MaterialTheme.typography.bodyMedium,
     )
     channel.lastError?.let { error ->
         Text(
-            stringResource(R.string.integrations_sync_last_error_format, error),
+            stringResource(Res.string.integrations_sync_last_error_format, error),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.error,
         )
@@ -224,13 +224,13 @@ private fun BackfillSection(
     onStartDayChange: (Long) -> Unit,
     onStartBackfill: () -> Unit,
 ) {
-    SectionCard(title = stringResource(R.string.integrations_backfill_title)) {
+    SectionCard(title = stringResource(Res.string.integrations_backfill_title)) {
         Text(
-            stringResource(R.string.integrations_backfill_requires_history),
+            stringResource(Res.string.integrations_backfill_requires_history),
             style = MaterialTheme.typography.bodySmall,
         )
         DatePickerField(
-            label = stringResource(R.string.integrations_backfill_from_label),
+            label = stringResource(Res.string.integrations_backfill_from_label),
             value = LocalDate.ofEpochDay(startDay),
             onValueChange = { onStartDayChange(it.toEpochDay()) },
         )
@@ -238,12 +238,12 @@ private fun BackfillSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Button(onClick = onStartBackfill, enabled = !isRunning) { Text(stringResource(R.string.integrations_action_start_backfill)) }
+            Button(onClick = onStartBackfill, enabled = !isRunning) { Text(stringResource(Res.string.integrations_action_start_backfill)) }
             if (isRunning) CircularProgressIndicator(modifier = Modifier.size(24.dp))
         }
         val progressText = completeDay?.let {
-            stringResource(R.string.integrations_backfill_progress_format, LocalDate.ofEpochDay(it).toString())
-        } ?: stringResource(R.string.integrations_backfill_none_yet)
+            stringResource(Res.string.integrations_backfill_progress_format, LocalDate.ofEpochDay(it).toString())
+        } ?: stringResource(Res.string.integrations_backfill_none_yet)
         Text(progressText, style = MaterialTheme.typography.bodyMedium)
     }
 }

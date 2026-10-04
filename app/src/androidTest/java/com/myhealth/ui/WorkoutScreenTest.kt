@@ -14,7 +14,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.myhealth.MainActivity
-import com.myhealth.R
+import com.myhealth.resources.*
 import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.PlannedStatus
@@ -57,9 +57,9 @@ class WorkoutScreenTest {
         val newName = "Upper A (edited)"
 
         // ---- More -> Strength workouts (seeds the six built-in templates) ----------------
-        composeTestRule.onNodeWithText(activity.getString(R.string.nav_more)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.more_entry_workouts))
-        composeTestRule.onNodeWithText(activity.getString(R.string.more_entry_workouts)).performClick()
+        composeTestRule.onNodeWithText(str(Res.string.nav_more)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.more_entry_workouts))
+        composeTestRule.onNodeWithText(str(Res.string.more_entry_workouts)).performClick()
         composeTestRule.waitUntilTextExists("Core A")
         // Sorted by name, "Upper A" is the last card — below the fold since P19's checkbox row.
         composeTestRule.verticalScroller().performScrollToNode(hasText("Upper A"))
@@ -68,16 +68,16 @@ class WorkoutScreenTest {
         composeTestRule.onNodeWithText("Upper A").performClick()
         composeTestRule.waitUntilTextExists("Barbell bench press")
 
-        val moveDownDesc = activity.getString(R.string.workout_edit_move_down)
+        val moveDownDesc = str(Res.string.workout_edit_move_down)
         composeTestRule.onAllNodesWithContentDescription(moveDownDesc)[0].performClick()
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNodeWithText(activity.getString(R.string.workout_edit_name_label))
+        composeTestRule.onNodeWithText(str(Res.string.workout_edit_name_label))
             .performTextReplacement(newName)
         composeTestRule.waitForIdle()
         // "Save" sits below all six exercise rows — scroll the list to it rather than assume it
         // is already composed (same LazyColumn-virtualization idiom used throughout this suite).
-        val saveLabel = activity.getString(R.string.action_save)
+        val saveLabel = str(Res.string.action_save)
         composeTestRule.verticalScroller().performScrollToNode(hasText(saveLabel))
         composeTestRule.onNodeWithText(saveLabel).performClick()
 
@@ -117,18 +117,18 @@ class WorkoutScreenTest {
         runBlocking { require(graph.strengthRepo.observeAll().first().any { it.name == newName }) }
 
         // ---- Training tab: edit the session, attach the workout, save ---------------------
-        composeTestRule.onNodeWithText(activity.getString(R.string.nav_training)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.training_this_block_title))
+        composeTestRule.onNodeWithText(str(Res.string.nav_training)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.training_this_block_title))
         // The session's day row is a LazyColumn item — not necessarily composed until scrolled
         // into view (same idiom as MuscleLoadCardTest / SettingsPersistenceTest.openSettings).
-        val overflowDesc = activity.getString(R.string.daydetail_overflow_more_actions_desc)
+        val overflowDesc = str(Res.string.daydetail_overflow_more_actions_desc)
         composeTestRule.verticalScroller().performScrollToNode(hasContentDescription(overflowDesc))
         composeTestRule.onNodeWithContentDescription(overflowDesc).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.training_edit))
-        composeTestRule.onNodeWithText(activity.getString(R.string.training_edit)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.training_edit))
+        composeTestRule.onNodeWithText(str(Res.string.training_edit)).performClick()
 
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.session_edit_title))
-        composeTestRule.onNodeWithText(activity.getString(R.string.session_workout_label)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.session_edit_title))
+        composeTestRule.onNodeWithText(str(Res.string.session_workout_label)).performClick()
         composeTestRule.waitUntilTextExists(newName)
         composeTestRule.onNodeWithText(newName).performClick()
         composeTestRule.waitForIdle()
@@ -136,20 +136,20 @@ class WorkoutScreenTest {
         composeTestRule.onNodeWithText(saveLabel).performClick()
 
         // ---- Back on Training: the session card shows the workout name --------------------
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.session_workout_format, newName))
+        composeTestRule.waitUntilTextExists(str(Res.string.session_workout_format, newName))
     }
 
     /** P19: the "Use in suggestions" checkbox on a workout card persists to the row. */
     @Test
     fun workouts_useInSuggestions_checkbox_persists() {
         val activity = composeTestRule.activity
-        composeTestRule.onNodeWithText(activity.getString(R.string.nav_more)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.more_entry_workouts))
-        composeTestRule.onNodeWithText(activity.getString(R.string.more_entry_workouts)).performClick()
+        composeTestRule.onNodeWithText(str(Res.string.nav_more)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.more_entry_workouts))
+        composeTestRule.onNodeWithText(str(Res.string.more_entry_workouts)).performClick()
         // Sorted by name, "Core A" is the first card.
         composeTestRule.waitUntilTextExists("Core A")
 
-        val label = activity.getString(R.string.workouts_use_in_suggestions)
+        val label = str(Res.string.workouts_use_in_suggestions)
         composeTestRule.onAllNodesWithText(label)[0].assertIsOn().performClick()
         composeTestRule.waitForIdle()
 

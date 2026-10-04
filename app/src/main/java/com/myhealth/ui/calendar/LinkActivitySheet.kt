@@ -17,10 +17,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.engine.calendar.LinkProposal
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.EventOccurrence
@@ -123,7 +123,7 @@ fun LinkActivitySheet(
         LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
             item {
                 Text(
-                    text = stringResource(R.string.linksheet_title, occurrence.effectiveTitle),
+                    text = stringResource(Res.string.linksheet_title, occurrence.effectiveTitle),
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -138,7 +138,7 @@ fun LinkActivitySheet(
                             .clickable(onClick = onUnlink)
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                     ) {
-                        Text(stringResource(R.string.linksheet_unlink_action), color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(Res.string.linksheet_unlink_action), color = MaterialTheme.colorScheme.error)
                     }
                     HorizontalDivider()
                 }
@@ -146,7 +146,7 @@ fun LinkActivitySheet(
             if (candidates.isEmpty()) {
                 item {
                     Text(
-                        stringResource(R.string.linksheet_empty_message),
+                        stringResource(Res.string.linksheet_empty_message),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(16.dp),
@@ -154,13 +154,13 @@ fun LinkActivitySheet(
                 }
             }
             if (suggestedCount > 0) {
-                item { SheetSectionLabel(stringResource(R.string.linksheet_section_suggested)) }
+                item { SheetSectionLabel(stringResource(Res.string.linksheet_section_suggested)) }
                 items(candidates.take(suggestedCount), key = { "suggested-${it.activityId}" }) { candidate ->
                     LinkCandidateRow(candidate, onClick = { onSelectSuggested(candidate.activityId) })
                 }
             }
             if (fallback.isNotEmpty()) {
-                item { SheetSectionLabel(stringResource(R.string.linksheet_section_more)) }
+                item { SheetSectionLabel(stringResource(Res.string.linksheet_section_more)) }
                 items(fallback, key = { "manual-${it.activityId}" }) { candidate ->
                     LinkCandidateRow(candidate, onClick = { onSelectManual(candidate.activityId) })
                 }

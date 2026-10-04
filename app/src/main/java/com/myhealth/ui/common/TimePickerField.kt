@@ -23,11 +23,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.myhealth.R
 import com.myhealth.ui.theme.MyHealthTheme
 import java.util.Locale
 
@@ -77,11 +77,11 @@ fun TimePickerField(
                 Column(modifier = Modifier.padding(24.dp)) {
                     TimePicker(state = state)
                     Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                        TextButton(onClick = { showDialog = false }) { Text(stringResource(R.string.action_cancel)) }
+                        TextButton(onClick = { showDialog = false }) { Text(stringResource(Res.string.action_cancel)) }
                         TextButton(onClick = {
                             onValueChange(state.hour * MINUTES_PER_HOUR + state.minute)
                             showDialog = false
-                        }) { Text(stringResource(R.string.common_ok)) }
+                        }) { Text(stringResource(Res.string.common_ok)) }
                     }
                 }
             }

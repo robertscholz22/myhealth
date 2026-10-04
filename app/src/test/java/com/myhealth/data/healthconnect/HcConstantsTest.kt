@@ -13,7 +13,7 @@ import org.junit.Test
 class HcConstantsTest {
 
     private fun check(shared: Any, library: Class<*>, prefix: String) {
-        val fields = shared::class.java.declaredFields.filter { it.type == Int::class.javaPrimitiveType && it.name != "INSTANCE" }
+        val fields = shared::class.java.declaredFields.filter { it.type == Int::class.javaPrimitiveType && it.name != "INSTANCE" && !it.name.endsWith("\$stable") }
         assertWithMessage("no constants found in ${shared::class.simpleName}").that(fields).isNotEmpty()
         for (field in fields) {
             field.isAccessible = true

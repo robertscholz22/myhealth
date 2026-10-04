@@ -44,11 +44,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.model.StrengthWorkoutExercise
@@ -83,7 +83,7 @@ fun WorkoutsScreen(
 
     LaunchedEffect(state.message) {
         state.message?.let {
-            snackbar.showSnackbar(it.resolve(context))
+            snackbar.showSnackbar(it.resolveText())
             vm.consumeMessage()
         }
     }
@@ -92,10 +92,10 @@ fun WorkoutsScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.workouts_title)) },
+                title = { Text(stringResource(Res.string.workouts_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 },
             )
@@ -103,7 +103,7 @@ fun WorkoutsScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             FloatingActionButton(onClick = onNewWorkout) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.workouts_new_content_description))
+                Icon(Icons.Filled.Add, contentDescription = stringResource(Res.string.workouts_new_content_description))
             }
         },
     ) { innerPadding ->
@@ -121,10 +121,10 @@ fun WorkoutsScreen(
     state.pendingDeleteId?.let {
         AlertDialog(
             onDismissRequest = vm::cancelDelete,
-            title = { Text(stringResource(R.string.workouts_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.workouts_delete_confirm_message)) },
-            confirmButton = { TextButton(onClick = vm::confirmDelete) { Text(stringResource(R.string.action_delete)) } },
-            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text(stringResource(R.string.action_cancel)) } },
+            title = { Text(stringResource(Res.string.workouts_delete_confirm_title)) },
+            text = { Text(stringResource(Res.string.workouts_delete_confirm_message)) },
+            confirmButton = { TextButton(onClick = vm::confirmDelete) { Text(stringResource(Res.string.action_delete)) } },
+            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text(stringResource(Res.string.action_cancel)) } },
         )
     }
 
@@ -148,8 +148,8 @@ internal fun WorkoutsContent(
 ) {
     if (!state.isLoading && state.workouts.isEmpty()) {
         EmptyState(
-            title = stringResource(R.string.workouts_empty_title),
-            message = stringResource(R.string.workouts_empty_message),
+            title = stringResource(Res.string.workouts_empty_title),
+            message = stringResource(Res.string.workouts_empty_message),
             modifier = modifier,
         )
         return
@@ -192,7 +192,7 @@ private fun WorkoutRow(
                 AssistChip(onClick = {}, enabled = false, label = { Text(workout.kind.label()) })
                 Text(
                     text = stringResource(
-                        R.string.workouts_row_subtitle_format,
+                        Res.string.workouts_row_subtitle_format,
                         workout.exercises.size,
                         workout.estimatedMinutes,
                     ),
@@ -224,7 +224,7 @@ private fun WorkoutRow(
         ) {
             Checkbox(checked = workout.useInSuggestions, onCheckedChange = null)
             Text(
-                text = stringResource(R.string.workouts_use_in_suggestions),
+                text = stringResource(Res.string.workouts_use_in_suggestions),
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
@@ -236,19 +236,19 @@ private fun WorkoutOverflowMenu(onDuplicate: () -> Unit, onDelete: () -> Unit, o
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }) {
-            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.workouts_overflow_desc))
+            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(Res.string.workouts_overflow_desc))
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.workouts_action_plan_for_day)) },
+                text = { Text(stringResource(Res.string.workouts_action_plan_for_day)) },
                 onClick = { expanded = false; onPlanForDay() },
             )
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.workouts_action_duplicate)) },
+                text = { Text(stringResource(Res.string.workouts_action_duplicate)) },
                 onClick = { expanded = false; onDuplicate() },
             )
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.action_delete)) },
+                text = { Text(stringResource(Res.string.action_delete)) },
                 onClick = { expanded = false; onDelete() },
             )
         }
@@ -268,9 +268,9 @@ private fun PlanForDayDialog(onConfirm: (LocalDate) -> Unit, onDismiss: () -> Un
                 state.selectedDateMillis?.let { millis ->
                     onConfirm(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
                 }
-            }) { Text(stringResource(R.string.common_ok)) }
+            }) { Text(stringResource(Res.string.common_ok)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) } },
     ) {
         DatePicker(state = state)
     }

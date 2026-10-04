@@ -2,7 +2,6 @@ package com.myhealth.ui.training
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.myhealth.R
 import com.myhealth.domain.engine.strength.ExerciseCatalog
 import com.myhealth.domain.engine.suggest.GoalRules
 import com.myhealth.domain.engine.suggest.Periodization
@@ -25,6 +24,7 @@ import com.myhealth.domain.repository.SettingsRepository
 import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.strength.SetLogRow
 import com.myhealth.ui.strength.nextTimeDetails
@@ -183,7 +183,7 @@ class TrainingViewModel(
                     is Outcome.Ok -> it.copy(isGenerating = false, reviewReady = true)
                     is Outcome.Err -> it.copy(
                         isGenerating = false,
-                        message = UiMessage.of(R.string.training_generate_error),
+                        message = UiMessage.of(Res.string.training_generate_error),
                     )
                 }
             }
@@ -191,10 +191,10 @@ class TrainingViewModel(
     }
 
     fun setLocked(sessionId: Long, locked: Boolean) = run(
-        if (locked) UiMessage.of(R.string.training_session_locked) else UiMessage.of(R.string.training_session_unlocked),
+        if (locked) UiMessage.of(Res.string.training_session_locked) else UiMessage.of(Res.string.training_session_unlocked),
     ) { planRepo.setSessionLocked(sessionId, locked) }
 
-    fun markDone(sessionId: Long) = run(UiMessage.of(R.string.training_session_marked_done)) {
+    fun markDone(sessionId: Long) = run(UiMessage.of(Res.string.training_session_marked_done)) {
         planRepo.setSessionStatus(sessionId, PlannedStatus.COMPLETED)
     }
 
@@ -223,7 +223,7 @@ class TrainingViewModel(
      */
     fun completeStrengthSession(session: PlannedSession, rows: List<SetLogRow>, feedback: Map<String, Feedback>) {
         viewModelScope.launch {
-            var message = UiMessage.of(R.string.training_session_marked_done)
+            var message = UiMessage.of(Res.string.training_session_marked_done)
             if (rows.isNotEmpty()) {
                 val now = clock.millis()
                 val logs = rows.map { it.toStrengthSetLog(session.day, session.id, now, feedback[it.exerciseId]) }
@@ -232,7 +232,7 @@ class TrainingViewModel(
                     is Outcome.Err -> emptyMap()
                 }
                 if (newStates.isNotEmpty()) {
-                    message = UiMessage.of(R.string.training_next_time_format, nextTimeDetails(rows, newStates))
+                    message = UiMessage.of(Res.string.training_next_time_format, nextTimeDetails(rows, newStates))
                 }
             }
             planRepo.setSessionStatus(session.id, PlannedStatus.COMPLETED)
@@ -240,15 +240,15 @@ class TrainingViewModel(
         }
     }
 
-    fun skip(sessionId: Long) = run(UiMessage.of(R.string.training_session_skipped)) {
+    fun skip(sessionId: Long) = run(UiMessage.of(Res.string.training_session_skipped)) {
         planRepo.setSessionStatus(sessionId, PlannedStatus.SKIPPED)
     }
 
-    fun reopen(sessionId: Long) = run(UiMessage.of(R.string.training_session_reopened)) {
+    fun reopen(sessionId: Long) = run(UiMessage.of(Res.string.training_session_reopened)) {
         planRepo.setSessionStatus(sessionId, PlannedStatus.PLANNED)
     }
 
-    fun delete(sessionId: Long) = run(UiMessage.of(R.string.training_session_deleted)) {
+    fun delete(sessionId: Long) = run(UiMessage.of(Res.string.training_session_deleted)) {
         planRepo.deleteSession(sessionId)
     }
 
@@ -260,7 +260,7 @@ class TrainingViewModel(
         viewModelScope.launch {
             val message = when (block()) {
                 is Outcome.Ok -> success
-                is Outcome.Err -> UiMessage.of(R.string.training_update_error)
+                is Outcome.Err -> UiMessage.of(Res.string.training_update_error)
             }
             action.update { it.copy(message = message) }
         }

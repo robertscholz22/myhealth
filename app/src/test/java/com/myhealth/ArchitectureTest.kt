@@ -86,8 +86,14 @@ class ArchitectureTest {
         val FORBIDDEN_IN_DOMAIN =
             Regex("""^import (android|androidx|kotlinx\.coroutines\.android|com\.myhealth\.(data|ui|di))\.""")
 
-        /** Room, SQLite and DataStore are Kotlin Multiplatform libraries (P20.2); most of androidx is not. */
-        val JVM_ONLY = Regex("""^import (java\.|javax\.|android\.|androidx\.(?!room\.|sqlite\.|datastore\.core\.|datastore\.preferences\.core\.))""")
+        /**
+         * Room, SQLite and DataStore (P20.2) and Compose, lifecycle and navigation (P20.3, the
+         * JetBrains multiplatform builds keep the androidx packages) are Kotlin Multiplatform
+         * libraries; the rest of androidx is not.
+         */
+        val JVM_ONLY = Regex(
+            """^import (java\.|javax\.|android\.|androidx\.(?!room\.|sqlite\.|datastore\.core\.|datastore\.preferences\.core\.|compose\.(runtime|foundation|ui|material3|material\.icons|animation)\.|lifecycle\.(ViewModel|viewModelScope|compose|viewmodel|SavedStateHandle)|navigation\.))""",
+        )
 
         /** `shared/src/commonMain/kotlin/com/myhealth` (P20.1). */
         val sharedRoot: File by lazy { File(sourceRoot, "../../../../../../shared/src/commonMain/kotlin/com/myhealth").normalize() }

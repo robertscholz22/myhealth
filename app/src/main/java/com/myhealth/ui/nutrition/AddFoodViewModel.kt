@@ -2,7 +2,6 @@ package com.myhealth.ui.nutrition
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.myhealth.R
 import com.myhealth.domain.model.Ingredient
 import com.myhealth.domain.model.MealSlot
 import com.myhealth.domain.model.MealTemplate
@@ -11,6 +10,7 @@ import com.myhealth.domain.repository.IngredientRepository
 import com.myhealth.domain.repository.MealItemInput
 import com.myhealth.domain.repository.MealRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -131,7 +131,7 @@ class AddFoodViewModel(
         val ingredient = current.selected ?: return
         val quantity = current.quantity
         if (quantity == null || quantity <= 0.0) {
-            editor.update { it.copy(message = UiMessage.of(R.string.quantity_error_zero)) }
+            editor.update { it.copy(message = UiMessage.of(Res.string.quantity_error_zero)) }
             return
         }
         viewModelScope.launch {
@@ -145,7 +145,7 @@ class AddFoodViewModel(
             editor.update {
                 when (result) {
                     is Outcome.Ok -> it.copy(isSaving = false, added = true)
-                    is Outcome.Err -> it.copy(isSaving = false, message = UiMessage.of(R.string.addfood_error_add_failed))
+                    is Outcome.Err -> it.copy(isSaving = false, message = UiMessage.of(Res.string.addfood_error_add_failed))
                 }
             }
         }
@@ -160,7 +160,7 @@ class AddFoodViewModel(
                 when (result) {
                     is Outcome.Ok -> it.copy(isSaving = false, added = true)
                     is Outcome.Err ->
-                        it.copy(isSaving = false, message = UiMessage.of(R.string.addfood_error_log_template_failed))
+                        it.copy(isSaving = false, message = UiMessage.of(Res.string.addfood_error_log_template_failed))
                 }
             }
         }

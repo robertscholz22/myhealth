@@ -1,6 +1,5 @@
 package com.myhealth.ui.nav
 
-import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -14,26 +13,27 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.myhealth.R
 import kotlin.reflect.KClass
+import org.jetbrains.compose.resources.StringResource
 
 /** The five bottom-navigation destinations (§4.1). */
 enum class BottomDestination(
     val route: Any,
     val routeClass: KClass<*>,
-    @param:StringRes val labelRes: Int,
+    val labelRes: StringResource,
     val icon: ImageVector,
 ) {
-    TODAY(TodayRoute, TodayRoute::class, R.string.nav_today, Icons.Filled.Today),
-    CALENDAR(CalendarRoute, CalendarRoute::class, R.string.nav_calendar, Icons.Filled.CalendarMonth),
-    NUTRITION(NutritionRoute, NutritionRoute::class, R.string.nav_nutrition, Icons.Filled.Restaurant),
-    TRAINING(TrainingRoute, TrainingRoute::class, R.string.nav_training, Icons.Filled.FitnessCenter),
-    MORE(MoreRoute, MoreRoute::class, R.string.nav_more, Icons.Filled.MoreHoriz),
+    TODAY(TodayRoute, TodayRoute::class, Res.string.nav_today, Icons.Filled.Today),
+    CALENDAR(CalendarRoute, CalendarRoute::class, Res.string.nav_calendar, Icons.Filled.CalendarMonth),
+    NUTRITION(NutritionRoute, NutritionRoute::class, Res.string.nav_nutrition, Icons.Filled.Restaurant),
+    TRAINING(TrainingRoute, TrainingRoute::class, Res.string.nav_training, Icons.Filled.FitnessCenter),
+    MORE(MoreRoute, MoreRoute::class, Res.string.nav_more, Icons.Filled.MoreHoriz),
 }
 
 @Composable

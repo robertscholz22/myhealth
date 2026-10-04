@@ -36,11 +36,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import org.jetbrains.compose.resources.StringResource
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.CycleForecast
 import com.myhealth.domain.model.CycleStatus
@@ -68,7 +69,7 @@ fun CycleScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
     LaunchedEffect(state.message) {
         state.message?.let {
-            snackbar.showSnackbar(it.resolve(context))
+            snackbar.showSnackbar(it.resolveText())
             vm.consumeMessage()
         }
     }
@@ -85,7 +86,7 @@ fun CycleScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
     if (state.showLogStartDialog) {
         CycleDatePickerDialog(
-            titleRes = R.string.cycle_dialog_log_period_start_title,
+            titleRes = Res.string.cycle_dialog_log_period_start_title,
             initialDay = state.today,
             onDismiss = vm::dismissLogStartDialog,
             onConfirm = vm::logPeriodStart,
@@ -93,7 +94,7 @@ fun CycleScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     }
     if (state.showPeriodEndedDialog) {
         CycleDatePickerDialog(
-            titleRes = R.string.cycle_dialog_period_ended_title,
+            titleRes = Res.string.cycle_dialog_period_ended_title,
             initialDay = state.today,
             onDismiss = vm::dismissPeriodEndedDialog,
             onConfirm = vm::logPeriodEnded,
@@ -102,10 +103,10 @@ fun CycleScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     state.pendingDeleteId?.let {
         AlertDialog(
             onDismissRequest = vm::cancelDelete,
-            title = { Text(stringResource(R.string.cycle_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.cycle_delete_confirm_message)) },
-            confirmButton = { TextButton(onClick = vm::confirmDelete) { Text(stringResource(R.string.action_delete)) } },
-            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text(stringResource(R.string.action_cancel)) } },
+            title = { Text(stringResource(Res.string.cycle_delete_confirm_title)) },
+            text = { Text(stringResource(Res.string.cycle_delete_confirm_message)) },
+            confirmButton = { TextButton(onClick = vm::confirmDelete) { Text(stringResource(Res.string.action_delete)) } },
+            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text(stringResource(Res.string.action_cancel)) } },
         )
     }
 }
@@ -126,10 +127,10 @@ private fun CycleContent(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.cycle_title)) },
+                title = { Text(stringResource(Res.string.cycle_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 },
             )
@@ -137,10 +138,10 @@ private fun CycleContent(
     ) { innerPadding ->
         if (!state.isLoading && !state.hasEntries) {
             EmptyState(
-                title = stringResource(R.string.cycle_empty_title),
-                message = stringResource(R.string.cycle_empty_message),
+                title = stringResource(Res.string.cycle_empty_title),
+                message = stringResource(Res.string.cycle_empty_message),
                 icon = Icons.Filled.Favorite,
-                actionLabel = stringResource(R.string.cycle_action_log_period_start),
+                actionLabel = stringResource(Res.string.cycle_action_log_period_start),
                 onAction = onLogStartClick,
                 modifier = Modifier.padding(innerPadding).fillMaxSize(),
             )
@@ -172,15 +173,15 @@ private fun CycleContent(
 
 @Composable
 private fun StatusCard(status: CycleStatus?, confidenceMessage: UiMessage?) {
-    SectionCard(title = stringResource(R.string.cycle_status_title)) {
+    SectionCard(title = stringResource(Res.string.cycle_status_title)) {
         if (status == null) {
-            Text(stringResource(R.string.cycle_empty_message), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(Res.string.cycle_empty_message), style = MaterialTheme.typography.bodyMedium)
             return@SectionCard
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             AssistChip(onClick = {}, enabled = false, label = { Text(stringResource(phaseLabelRes(status.phase))) })
             if (status.isLateLuteal) {
-                AssistChip(onClick = {}, enabled = false, label = { Text(stringResource(R.string.cycle_late_luteal_chip)) })
+                AssistChip(onClick = {}, enabled = false, label = { Text(stringResource(Res.string.cycle_late_luteal_chip)) })
             }
         }
         Text(
@@ -204,10 +205,10 @@ private fun StatusCard(status: CycleStatus?, confidenceMessage: UiMessage?) {
 private fun ActionsRow(canMarkEnded: Boolean, onLogStartClick: () -> Unit, onPeriodEndedClick: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Button(onClick = onLogStartClick, modifier = Modifier.weight(1f)) {
-            Text(stringResource(R.string.cycle_action_log_period_start))
+            Text(stringResource(Res.string.cycle_action_log_period_start))
         }
         OutlinedButton(onClick = onPeriodEndedClick, enabled = canMarkEnded, modifier = Modifier.weight(1f)) {
-            Text(stringResource(R.string.cycle_action_period_ended))
+            Text(stringResource(Res.string.cycle_action_period_ended))
         }
     }
 }
@@ -216,9 +217,9 @@ private val ROW_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d 
 
 @Composable
 private fun ForecastSection(forecast: CycleForecast) {
-    SectionCard(title = stringResource(R.string.cycle_forecast_title)) {
+    SectionCard(title = stringResource(Res.string.cycle_forecast_title)) {
         if (forecast.isEmpty) {
-            Text(stringResource(R.string.cycle_forecast_empty), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(Res.string.cycle_forecast_empty), style = MaterialTheme.typography.bodyMedium)
             return@SectionCard
         }
         forecast.cycles.forEach { cycle ->
@@ -229,7 +230,7 @@ private fun ForecastSection(forecast: CycleForecast) {
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 Text(
-                    text = stringResource(R.string.cycle_forecast_ovulation_format, cycle.ovulationDay.toLocalDate().format(ROW_DATE_FORMAT)),
+                    text = stringResource(Res.string.cycle_forecast_ovulation_format, cycle.ovulationDay.toLocalDate().format(ROW_DATE_FORMAT)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -240,9 +241,9 @@ private fun ForecastSection(forecast: CycleForecast) {
 
 @Composable
 private fun HistorySection(rows: List<CycleHistoryRow>, onDelete: (Long) -> Unit) {
-    SectionCard(title = stringResource(R.string.cycle_history_title)) {
+    SectionCard(title = stringResource(Res.string.cycle_history_title)) {
         if (rows.isEmpty()) {
-            Text(stringResource(R.string.cycle_history_empty), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(Res.string.cycle_history_empty), style = MaterialTheme.typography.bodyMedium)
             return@SectionCard
         }
         rows.forEach { row -> HistoryRow(row, onDelete) }
@@ -261,16 +262,16 @@ private fun HistoryRow(row: CycleHistoryRow, onDelete: (Long) -> Unit) {
             Text(entry.periodStartDay.toLocalDate().format(ROW_DATE_FORMAT), style = MaterialTheme.typography.bodyLarge)
             Text(
                 text = listOfNotNull(
-                    entry.periodLengthDays?.let { stringResource(R.string.cycle_history_period_days_format, it) }
-                        ?: stringResource(R.string.cycle_history_ongoing),
-                    row.cycleLengthDays?.let { stringResource(R.string.cycle_history_cycle_length_format, it) },
+                    entry.periodLengthDays?.let { stringResource(Res.string.cycle_history_period_days_format, it) }
+                        ?: stringResource(Res.string.cycle_history_ongoing),
+                    row.cycleLengthDays?.let { stringResource(Res.string.cycle_history_cycle_length_format, it) },
                 ).joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         IconButton(onClick = { onDelete(entry.id) }) {
-            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
+            Icon(Icons.Filled.Delete, contentDescription = stringResource(Res.string.action_delete))
         }
     }
 }
@@ -280,7 +281,7 @@ private fun HistoryRow(row: CycleHistoryRow, onDelete: (Long) -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CycleDatePickerDialog(
-    titleRes: Int,
+    titleRes: StringResource,
     initialDay: Long,
     onDismiss: () -> Unit,
     onConfirm: (Long) -> Unit,
@@ -295,9 +296,9 @@ private fun CycleDatePickerDialog(
                 pickerState.selectedDateMillis?.let { millis ->
                     onConfirm(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toEpochDay())
                 }
-            }) { Text(stringResource(R.string.action_save)) }
+            }) { Text(stringResource(Res.string.action_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) } },
     ) {
         Column {
             Text(

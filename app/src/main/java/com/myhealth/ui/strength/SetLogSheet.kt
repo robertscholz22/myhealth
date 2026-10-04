@@ -27,9 +27,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.engine.strength.ExerciseAnimations
 import com.myhealth.domain.engine.strength.ExerciseCatalog
 import com.myhealth.domain.model.ExercisePrescription
@@ -70,7 +70,7 @@ fun SetLogSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, modifier = modifier) {
         Text(
-            text = stringResource(R.string.set_log_title_format, workout.name),
+            text = stringResource(Res.string.set_log_title_format, workout.name),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(horizontal = 16.dp),
         )
@@ -102,13 +102,13 @@ fun SetLogSheet(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             OutlinedButton(onClick = onSkip, modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.set_log_skip))
+                Text(stringResource(Res.string.set_log_skip))
             }
             TextButton(
                 onClick = { onSave(rows.filterNot { it.skipped }, feedbackByExercise) },
                 modifier = Modifier.weight(1f),
             ) {
-                Text(stringResource(R.string.action_save))
+                Text(stringResource(Res.string.action_save))
             }
         }
     }
@@ -153,13 +153,13 @@ private fun SetLogRowItem(row: SetLogRow, onChange: (SetLogRow) -> Unit) {
         Checkbox(checked = !row.skipped, onCheckedChange = { checked -> onChange(row.copy(skipped = !checked)) })
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = stringResource(R.string.set_log_row_format, row.exerciseName, row.setIndex + 1),
+                text = stringResource(Res.string.set_log_row_format, row.exerciseName, row.setIndex + 1),
                 style = MaterialTheme.typography.bodyMedium,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (row.seconds != null) {
                     NumberField(
-                        label = stringResource(R.string.workout_edit_seconds_label),
+                        label = stringResource(Res.string.workout_edit_seconds_label),
                         value = row.seconds.toDouble(),
                         onValueChange = { v -> onChange(row.copy(seconds = v?.toInt())) },
                         decimals = 0,
@@ -168,7 +168,7 @@ private fun SetLogRowItem(row: SetLogRow, onChange: (SetLogRow) -> Unit) {
                     )
                 } else {
                     NumberField(
-                        label = stringResource(R.string.workout_edit_reps_label),
+                        label = stringResource(Res.string.workout_edit_reps_label),
                         value = row.reps?.toDouble(),
                         onValueChange = { v -> onChange(row.copy(reps = v?.toInt())) },
                         decimals = 0,
@@ -177,7 +177,7 @@ private fun SetLogRowItem(row: SetLogRow, onChange: (SetLogRow) -> Unit) {
                     )
                 }
                 NumberField(
-                    label = stringResource(R.string.workout_edit_load_label),
+                    label = stringResource(Res.string.workout_edit_load_label),
                     value = row.loadKg,
                     onValueChange = { v -> onChange(row.copy(loadKg = v)) },
                     suffix = "kg",

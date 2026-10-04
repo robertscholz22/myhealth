@@ -2,9 +2,9 @@ package com.myhealth.ui.common
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import com.myhealth.R
 import com.myhealth.ui.theme.MyHealthTheme
 
 /**
@@ -16,7 +16,7 @@ fun DurationField(
     value: Int?,
     onValueChange: (Int?) -> Unit,
     modifier: Modifier = Modifier,
-    label: String = stringResource(R.string.common_duration_label),
+    label: String = stringResource(Res.string.common_duration_label),
     isError: Boolean = false,
     supportingText: String? = null,
 ) {
@@ -25,7 +25,7 @@ fun DurationField(
         value = value?.toDouble(),
         onValueChange = { d -> onValueChange(d?.toInt()) },
         modifier = modifier,
-        suffix = stringResource(R.string.common_duration_suffix),
+        suffix = stringResource(Res.string.common_duration_suffix),
         decimals = 0,
         isError = isError,
         supportingText = supportingText,

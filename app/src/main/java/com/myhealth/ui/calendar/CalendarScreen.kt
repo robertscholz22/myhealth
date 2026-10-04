@@ -26,11 +26,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVmWithSavedState
 import com.myhealth.ui.theme.MyHealthTheme
 import java.time.LocalDate
@@ -85,14 +85,14 @@ private fun CalendarContent(
                 title = { Text(state.title) },
                 actions = {
                     IconButton(onClick = onToday) {
-                        Icon(Icons.Filled.Today, contentDescription = stringResource(R.string.calendar_action_today_desc))
+                        Icon(Icons.Filled.Today, contentDescription = stringResource(Res.string.calendar_action_today_desc))
                     }
                 },
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { onAddEvent(state.selectedDay) }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.calendar_action_new_event_desc))
+                Icon(Icons.Filled.Add, contentDescription = stringResource(Res.string.calendar_action_new_event_desc))
             }
         },
     ) { innerPadding ->
@@ -133,9 +133,9 @@ private fun ModeChips(mode: CalendarMode, onModeChange: (CalendarMode) -> Unit) 
                 label = {
                     Text(
                         if (entry == CalendarMode.MONTH) {
-                            stringResource(R.string.calendar_mode_month)
+                            stringResource(Res.string.calendar_mode_month)
                         } else {
-                            stringResource(R.string.calendar_mode_week)
+                            stringResource(Res.string.calendar_mode_week)
                         },
                     )
                 },

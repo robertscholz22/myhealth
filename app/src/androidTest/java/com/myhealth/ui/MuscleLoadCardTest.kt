@@ -7,7 +7,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.myhealth.MainActivity
-import com.myhealth.R
+import com.myhealth.resources.*
 import com.myhealth.domain.model.ActivitySession
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.SportGroup
@@ -90,21 +90,21 @@ class MuscleLoadCardTest {
         val activity = composeTestRule.activity
 
         // ---- More -> Load & Recovery -------------------------------------------------------
-        composeTestRule.onNodeWithText(activity.getString(R.string.nav_more)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.more_entry_load_recovery))
-        composeTestRule.onNodeWithText(activity.getString(R.string.more_entry_load_recovery)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.load_range_28d))
+        composeTestRule.onNodeWithText(str(Res.string.nav_more)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.more_entry_load_recovery))
+        composeTestRule.onNodeWithText(str(Res.string.more_entry_load_recovery)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.load_range_28d))
 
         // ---- Scroll to the "Muscle load" card (the LazyColumn's last item — not composed
         // until scrolled into view, so it cannot be waited on before telling the list to scroll
         // to it; same idiom as SettingsPersistenceTest.openSettings) --------------------------
-        val muscleLoadTitle = activity.getString(R.string.load_muscle_title)
+        val muscleLoadTitle = str(Res.string.load_muscle_title)
         composeTestRule.verticalScroller().performScrollToNode(hasText(muscleLoadTitle))
         composeTestRule.waitUntilTextExists(muscleLoadTitle)
         composeTestRule.onNodeWithText(muscleLoadTitle).assertExists()
 
         // ---- "Legs are loaded — an upper-body day fits today" -------------------------------
-        val hint = activity.getString(R.string.load_muscle_hint_upper)
+        val hint = str(Res.string.load_muscle_hint_upper)
         composeTestRule.waitUntilTextExists(hint)
         composeTestRule.onNodeWithText(hint).assertExists()
     }

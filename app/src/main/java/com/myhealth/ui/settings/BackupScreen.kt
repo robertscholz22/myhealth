@@ -20,11 +20,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.repository.BackupMode
 import com.myhealth.domain.repository.BackupSummary
@@ -89,9 +89,9 @@ internal fun BackupContent(
             item("progress") { LinearProgressIndicator(modifier = Modifier.fillMaxWidth()) }
         }
         item("export") {
-            SectionCard(title = stringResource(R.string.backup_section_export_title)) {
+            SectionCard(title = stringResource(Res.string.backup_section_export_title)) {
                 Text(
-                    text = stringResource(R.string.backup_export_description),
+                    text = stringResource(Res.string.backup_export_description),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Button(
@@ -99,16 +99,16 @@ internal fun BackupContent(
                     enabled = state.canStart,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(stringResource(R.string.backup_action_export))
+                    Text(stringResource(Res.string.backup_action_export))
                 }
             }
         }
         item("import") {
-            SectionCard(title = stringResource(R.string.backup_section_import_title)) {
+            SectionCard(title = stringResource(Res.string.backup_section_import_title)) {
                 Text(
                     text = when (state.importMode) {
-                        BackupMode.MERGE -> stringResource(R.string.backup_import_mode_merge_description)
-                        BackupMode.REPLACE -> stringResource(R.string.backup_import_mode_replace_description)
+                        BackupMode.MERGE -> stringResource(Res.string.backup_import_mode_merge_description)
+                        BackupMode.REPLACE -> stringResource(Res.string.backup_import_mode_replace_description)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -120,9 +120,9 @@ internal fun BackupContent(
                             label = {
                                 Text(
                                     if (mode == BackupMode.MERGE) {
-                                        stringResource(R.string.backup_mode_label_merge)
+                                        stringResource(Res.string.backup_mode_label_merge)
                                     } else {
-                                        stringResource(R.string.backup_mode_label_replace)
+                                        stringResource(Res.string.backup_mode_label_replace)
                                     },
                                 )
                             },
@@ -134,7 +134,7 @@ internal fun BackupContent(
                     enabled = state.canStart,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(stringResource(R.string.backup_action_import))
+                    Text(stringResource(Res.string.backup_action_import))
                 }
             }
         }
@@ -142,9 +142,9 @@ internal fun BackupContent(
             item("result") {
                 SectionCard(
                     title = if (result.isImport) {
-                        stringResource(R.string.backup_result_import_title)
+                        stringResource(Res.string.backup_result_import_title)
                     } else {
-                        stringResource(R.string.backup_result_export_title)
+                        stringResource(Res.string.backup_result_export_title)
                     },
                 ) {
                     Text(resultHeadline(result), style = MaterialTheme.typography.bodyLarge)
@@ -155,7 +155,7 @@ internal fun BackupContent(
                     )
                     result.summary.rowsPerTable.forEach { (table, rows) ->
                         Text(
-                            stringResource(R.string.backup_row_count_format, table, rows),
+                            stringResource(Res.string.backup_row_count_format, table, rows),
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
@@ -169,19 +169,19 @@ internal fun BackupContent(
 @Composable
 internal fun resultHeadline(result: BackupResult): String {
     val scope = stringResource(
-        R.string.backup_result_scope_format,
+        Res.string.backup_result_scope_format,
         result.summary.totalRows,
         result.summary.tableCount,
     )
     return if (result.isImport) {
         val mode = if (result.mode == BackupMode.REPLACE) {
-            stringResource(R.string.backup_result_mode_replaced)
+            stringResource(Res.string.backup_result_mode_replaced)
         } else {
-            stringResource(R.string.backup_result_mode_merged)
+            stringResource(Res.string.backup_result_mode_merged)
         }
-        stringResource(R.string.backup_result_import_summary_format, scope, result.summary.rowsWritten, mode)
+        stringResource(Res.string.backup_result_import_summary_format, scope, result.summary.rowsWritten, mode)
     } else {
-        stringResource(R.string.backup_result_export_summary_format, scope)
+        stringResource(Res.string.backup_result_export_summary_format, scope)
     }
 }
 
@@ -191,10 +191,10 @@ internal fun backupOriginLine(summary: BackupSummary, zone: ZoneId = ZoneId.syst
     val stamp = if (summary.exportedAtMillis > 0L) {
         BACKUP_TIMESTAMP.format(Instant.ofEpochMilli(summary.exportedAtMillis).atZone(zone))
     } else {
-        stringResource(R.string.backup_unknown_date)
+        stringResource(Res.string.backup_unknown_date)
     }
-    val app = summary.appVersion.ifBlank { stringResource(R.string.backup_unknown_build) }
-    return stringResource(R.string.backup_origin_format, summary.schemaVersion, app, stamp)
+    val app = summary.appVersion.ifBlank { stringResource(Res.string.backup_unknown_build) }
+    return stringResource(Res.string.backup_origin_format, summary.schemaVersion, app, stamp)
 }
 
 /** `myhealth-backup-2026-09-12.json` — the name the document picker opens with. */

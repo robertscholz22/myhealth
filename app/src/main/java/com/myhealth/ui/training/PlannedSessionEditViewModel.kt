@@ -2,12 +2,12 @@ package com.myhealth.ui.training
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.myhealth.R
 import com.myhealth.domain.engine.load.HrZoneModel
 import com.myhealth.domain.model.SessionType
 import com.myhealth.domain.model.SportType
 import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.repository.PlanRepository
+import com.myhealth.resources.*
 import kotlinx.coroutines.flow.map
 import com.myhealth.ui.zones.resolveHrZoneModel
 import com.myhealth.domain.repository.ActivityRepository
@@ -115,7 +115,7 @@ class PlannedSessionEditViewModel(
             val session = planRepo.getSession(id)
             if (session == null) {
                 _state.update {
-                    it.copy(isLoading = false, loadError = UiMessage.of(R.string.session_not_found))
+                    it.copy(isLoading = false, loadError = UiMessage.of(Res.string.session_not_found))
                 }
             } else {
                 _state.update {
@@ -175,7 +175,7 @@ class PlannedSessionEditViewModel(
             when (planRepo.upsertSession(draft.toPlannedSession(clock))) {
                 is Outcome.Ok -> _state.update { it.copy(isSaving = false, saved = true) }
                 is Outcome.Err -> _state.update {
-                    it.copy(isSaving = false, saveError = UiMessage.of(R.string.session_save_error))
+                    it.copy(isSaving = false, saveError = UiMessage.of(Res.string.session_save_error))
                 }
             }
         }
@@ -191,7 +191,7 @@ class PlannedSessionEditViewModel(
             when (planRepo.deleteSession(id)) {
                 is Outcome.Ok -> _state.update { it.copy(deleted = true) }
                 is Outcome.Err -> _state.update {
-                    it.copy(saveError = UiMessage.of(R.string.session_delete_error))
+                    it.copy(saveError = UiMessage.of(Res.string.session_delete_error))
                 }
             }
         }

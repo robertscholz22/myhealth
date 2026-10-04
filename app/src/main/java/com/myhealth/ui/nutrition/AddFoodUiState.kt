@@ -1,8 +1,8 @@
 package com.myhealth.ui.nutrition
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
-import com.myhealth.R
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import com.myhealth.domain.engine.nutrition.MealMath
 import com.myhealth.domain.engine.nutrition.MealQuantity
 import com.myhealth.domain.model.Ingredient
@@ -19,11 +19,11 @@ enum class AddFoodTab { RECENTS, FAVORITES, SEARCH, TEMPLATES, SCAN }
 
 @Composable
 fun AddFoodTab.label(): String = when (this) {
-    AddFoodTab.RECENTS -> stringResource(R.string.addfood_tab_recents)
-    AddFoodTab.FAVORITES -> stringResource(R.string.addfood_tab_favorites)
-    AddFoodTab.SEARCH -> stringResource(R.string.addfood_tab_search)
-    AddFoodTab.TEMPLATES -> stringResource(R.string.addfood_tab_templates)
-    AddFoodTab.SCAN -> stringResource(R.string.addfood_tab_scan)
+    AddFoodTab.RECENTS -> stringResource(Res.string.addfood_tab_recents)
+    AddFoodTab.FAVORITES -> stringResource(Res.string.addfood_tab_favorites)
+    AddFoodTab.SEARCH -> stringResource(Res.string.addfood_tab_search)
+    AddFoodTab.TEMPLATES -> stringResource(Res.string.addfood_tab_templates)
+    AddFoodTab.SCAN -> stringResource(Res.string.addfood_tab_scan)
 }
 
 /** Display label for a logged quantity's unit (§2.1 `QuantityUnit`). */

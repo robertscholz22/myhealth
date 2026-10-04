@@ -2,13 +2,13 @@ package com.myhealth.ui.meals
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.myhealth.R
 import com.myhealth.domain.model.Ingredient
 import com.myhealth.domain.model.MealSlot
 import com.myhealth.domain.model.QuantityUnit
 import com.myhealth.domain.repository.IngredientRepository
 import com.myhealth.domain.repository.MealRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -60,7 +60,7 @@ class MealTemplateEditViewModel(
         viewModelScope.launch {
             val template = mealRepo.getTemplate(id)
             if (template == null) {
-                _state.update { it.copy(isLoading = false, loadError = UiMessage.of(R.string.mealtpl_error_not_found)) }
+                _state.update { it.copy(isLoading = false, loadError = UiMessage.of(Res.string.mealtpl_error_not_found)) }
                 return@launch
             }
             val ingredients = ingredientRepo
@@ -132,7 +132,7 @@ class MealTemplateEditViewModel(
             when (mealRepo.upsertTemplate(current.toMealTemplate(clock))) {
                 is Outcome.Ok -> _state.update { it.copy(isSaving = false, saved = true) }
                 is Outcome.Err -> _state.update {
-                    it.copy(isSaving = false, saveError = UiMessage.of(R.string.mealtpl_error_save_failed))
+                    it.copy(isSaving = false, saveError = UiMessage.of(Res.string.mealtpl_error_save_failed))
                 }
             }
         }
@@ -152,7 +152,7 @@ class MealTemplateEditViewModel(
             when (mealRepo.deleteTemplate(id)) {
                 is Outcome.Ok -> _state.update { it.copy(deleted = true) }
                 is Outcome.Err -> _state.update {
-                    it.copy(saveError = UiMessage.of(R.string.mealtpl_error_delete_failed))
+                    it.copy(saveError = UiMessage.of(Res.string.mealtpl_error_delete_failed))
                 }
             }
         }

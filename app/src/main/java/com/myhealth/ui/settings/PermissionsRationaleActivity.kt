@@ -15,10 +15,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.ui.theme.MyHealthTheme
 
 /**
@@ -54,23 +54,23 @@ private fun PermissionsRationaleContent(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            text = stringResource(R.string.hc_rationale_title),
+            text = stringResource(Res.string.hc_rationale_title),
             style = MaterialTheme.typography.headlineSmall,
         )
         Text(
-            text = stringResource(R.string.hc_rationale_what_we_read),
+            text = stringResource(Res.string.hc_rationale_what_we_read),
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(
-            text = stringResource(R.string.hc_rationale_why),
+            text = stringResource(Res.string.hc_rationale_why),
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(
-            text = stringResource(R.string.hc_rationale_on_device),
+            text = stringResource(Res.string.hc_rationale_on_device),
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(
-            text = stringResource(R.string.hc_rationale_revoke),
+            text = stringResource(Res.string.hc_rationale_revoke),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

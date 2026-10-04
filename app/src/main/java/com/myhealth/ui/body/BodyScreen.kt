@@ -33,10 +33,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.BodyMeasurement
@@ -87,7 +87,7 @@ private fun BodyContent(
         modifier = modifier.fillMaxSize(),
         floatingActionButton = {
             FloatingActionButton(onClick = onLogWeightClick) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.body_log_weight_title))
+                Icon(Icons.Filled.Add, contentDescription = stringResource(Res.string.body_log_weight_title))
             }
         },
     ) { innerPadding ->
@@ -106,7 +106,7 @@ private fun BodyContent(
             item { SleepChartCard(state) }
             item {
                 Text(
-                    text = stringResource(R.string.body_history_title, state.range.days),
+                    text = stringResource(Res.string.body_history_title, state.range.days),
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
@@ -116,10 +116,10 @@ private fun BodyContent(
                 // P8.6: the same icon + title + message + action shape as every other list screen.
                 item {
                     EmptyState(
-                        title = stringResource(R.string.body_empty_title),
-                        message = stringResource(R.string.body_empty_history, state.range.days),
+                        title = stringResource(Res.string.body_empty_title),
+                        message = stringResource(Res.string.body_empty_history, state.range.days),
                         icon = Icons.Filled.MonitorWeight,
-                        actionLabel = stringResource(R.string.body_log_weight_title),
+                        actionLabel = stringResource(Res.string.body_log_weight_title),
                         onAction = onLogWeightClick,
                     )
                 }
@@ -155,13 +155,13 @@ private fun RangeSelector(selected: BodyRange, onSelect: (BodyRange) -> Unit) {
 private fun WeightChartCard(state: BodyUiState) {
     val daily = weightPoints(state.measurements, state.fromDay, state.today)
     LineChartCard(
-        title = stringResource(R.string.body_chart_weight_title),
+        title = stringResource(Res.string.body_chart_weight_title),
         series = listOf(
             // The average is computed on the daily grid, then both lines drop the un-weighed days
             // so an every-third-day routine still reads as one trend rather than a dot cloud.
-            ChartSeries(name = stringResource(R.string.body_chart_weight_series), points = daily.dropGaps()),
+            ChartSeries(name = stringResource(Res.string.body_chart_weight_series), points = daily.dropGaps()),
             ChartSeries(
-                name = stringResource(R.string.body_chart_weight_avg_series),
+                name = stringResource(Res.string.body_chart_weight_avg_series),
                 points = movingAveragePoints(daily).dropGaps(),
                 dashed = true,
             ),
@@ -169,39 +169,39 @@ private fun WeightChartCard(state: BodyUiState) {
         xLabels = dayAxisLabels(state.fromDay, state.today),
         yFormatter = { fmtDecimal(it, 1) },
         goalLine = state.goalWeightKg,
-        emptyMessage = stringResource(R.string.body_chart_weight_empty),
+        emptyMessage = stringResource(Res.string.body_chart_weight_empty),
     )
 }
 
 @Composable
 private fun BodyFatChartCard(state: BodyUiState) {
     LineChartCard(
-        title = stringResource(R.string.body_chart_body_fat_title),
+        title = stringResource(Res.string.body_chart_body_fat_title),
         series = listOf(
             ChartSeries(
-                name = stringResource(R.string.body_chart_body_fat_series),
+                name = stringResource(Res.string.body_chart_body_fat_series),
                 points = bodyFatPoints(state.measurements, state.fromDay, state.today).dropGaps(),
             ),
         ),
         xLabels = dayAxisLabels(state.fromDay, state.today),
         yFormatter = { fmtDecimal(it, 1) },
-        emptyMessage = stringResource(R.string.body_chart_body_fat_empty),
+        emptyMessage = stringResource(Res.string.body_chart_body_fat_empty),
     )
 }
 
 @Composable
 private fun RestingHrChartCard(state: BodyUiState) {
     LineChartCard(
-        title = stringResource(R.string.body_chart_resting_hr_title),
+        title = stringResource(Res.string.body_chart_resting_hr_title),
         series = listOf(
             ChartSeries(
-                name = stringResource(R.string.body_chart_resting_hr_series),
+                name = stringResource(Res.string.body_chart_resting_hr_series),
                 points = restingHrPoints(state.health, state.fromDay, state.today),
             ),
         ),
         xLabels = dayAxisLabels(state.fromDay, state.today),
         yFormatter = { fmtDecimal(it, 0) },
-        emptyMessage = stringResource(R.string.body_chart_resting_hr_empty),
+        emptyMessage = stringResource(Res.string.body_chart_resting_hr_empty),
     )
 }
 
@@ -209,20 +209,20 @@ private fun RestingHrChartCard(state: BodyUiState) {
 private fun SleepChartCard(state: BodyUiState) {
     val hours = sleepHoursBars(state.sleep, state.sleepFromNight, state.today)
     BarChartCard(
-        title = stringResource(R.string.body_chart_sleep_title, SLEEP_BAR_NIGHTS),
+        title = stringResource(Res.string.body_chart_sleep_title, SLEEP_BAR_NIGHTS),
         values = if (hours.all { it == 0.0 }) emptyList() else hours,
         xLabels = nightAxisLabels(state.sleepFromNight, state.today),
         yFormatter = { fmtDecimal(it, 1) },
         highlightIndex = hours.lastIndex.takeIf { it >= 0 },
-        emptyMessage = stringResource(R.string.body_chart_sleep_empty, SLEEP_BAR_NIGHTS),
+        emptyMessage = stringResource(Res.string.body_chart_sleep_empty, SLEEP_BAR_NIGHTS),
     )
 }
 
 @Composable
 private fun CurrentWeightCard(latest: BodyMeasurement?, goalWeightKg: Double?, deltaToGoalKg: Double?) {
-    SectionCard(title = stringResource(R.string.body_current_weight_title)) {
+    SectionCard(title = stringResource(Res.string.body_current_weight_title)) {
         if (latest?.weightKg == null) {
-            Text(stringResource(R.string.body_no_weight_yet))
+            Text(stringResource(Res.string.body_no_weight_yet))
         } else {
             Text(
                 text = fmtKg(latest.weightKg!!),
@@ -231,9 +231,9 @@ private fun CurrentWeightCard(latest: BodyMeasurement?, goalWeightKg: Double?, d
             if (goalWeightKg != null && deltaToGoalKg != null) {
                 val delta = fmtDecimal(kotlin.math.abs(deltaToGoalKg), 1)
                 val message = when {
-                    kotlin.math.abs(deltaToGoalKg) < 0.05 -> stringResource(R.string.body_goal_reached_message)
-                    deltaToGoalKg > 0 -> stringResource(R.string.body_above_goal_message, delta, goalWeightKg)
-                    else -> stringResource(R.string.body_below_goal_message, delta, goalWeightKg)
+                    kotlin.math.abs(deltaToGoalKg) < 0.05 -> stringResource(Res.string.body_goal_reached_message)
+                    deltaToGoalKg > 0 -> stringResource(Res.string.body_above_goal_message, delta, goalWeightKg)
+                    else -> stringResource(Res.string.body_below_goal_message, delta, goalWeightKg)
                 }
                 Text(text = message, style = MaterialTheme.typography.bodyMedium)
             }
@@ -255,7 +255,7 @@ private fun MeasurementRow(measurement: BodyMeasurement, onDelete: () -> Unit) {
             )
         }
         IconButton(onClick = onDelete) {
-            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.action_delete))
+            Icon(Icons.Filled.Delete, contentDescription = stringResource(Res.string.action_delete))
         }
     }
 }
@@ -267,18 +267,18 @@ private fun LogWeightDialog(onDismiss: () -> Unit, onSave: (Double, Double?) -> 
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.body_log_weight_title)) },
+        title = { Text(stringResource(Res.string.body_log_weight_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 NumberField(
-                    label = stringResource(R.string.body_weight_field),
+                    label = stringResource(Res.string.body_weight_field),
                     value = weightKg,
                     onValueChange = { weightKg = it },
                     suffix = "kg",
                     decimals = 1,
                 )
                 NumberField(
-                    label = stringResource(R.string.body_body_fat_field),
+                    label = stringResource(Res.string.body_body_fat_field),
                     value = bodyFatPercent,
                     onValueChange = { bodyFatPercent = it },
                     suffix = "%",
@@ -290,9 +290,9 @@ private fun LogWeightDialog(onDismiss: () -> Unit, onSave: (Double, Double?) -> 
             Button(
                 onClick = { weightKg?.let { onSave(it, bodyFatPercent) } },
                 enabled = weightKg != null && weightKg!! in 30.0..250.0,
-            ) { Text(stringResource(R.string.action_save)) }
+            ) { Text(stringResource(Res.string.action_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) } },
     )
 }
 

@@ -14,7 +14,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.myhealth.MainActivity
-import com.myhealth.R
+import com.myhealth.resources.*
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -57,7 +57,7 @@ class SettingsPersistenceTest {
         // preferences the block above already scrolled past, so the profile item (and "Sleep
         // target" within it) is no longer guaranteed to still be composed here — scroll the list
         // to it explicitly instead of assuming `performScrollTo()` finds an already-live node.
-        val sleepTargetLabel = activity.getString(R.string.settings_profile_sleep_target_label)
+        val sleepTargetLabel = str(Res.string.settings_profile_sleep_target_label)
         composeTestRule.verticalScroller().performScrollToNode(hasText(sleepTargetLabel))
         composeTestRule.onNodeWithText(sleepTargetLabel).performTextReplacement("9.5")
         composeTestRule.waitForIdle()
@@ -93,10 +93,10 @@ class SettingsPersistenceTest {
      * scroll to it (`performScrollToNode`), the same way a real user would swipe down to it.
      */
     private fun openSettings(activity: MainActivity) {
-        composeTestRule.onNodeWithText(activity.getString(R.string.nav_more)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.settings_title))
-        composeTestRule.onNodeWithText(activity.getString(R.string.settings_title)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.settings_section_profile))
+        composeTestRule.onNodeWithText(str(Res.string.nav_more)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.settings_title))
+        composeTestRule.onNodeWithText(str(Res.string.settings_title)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.settings_section_profile))
         composeTestRule.verticalScroller().performScrollToNode(hasTestTag(dynamicColorSwitchTag))
     }
 }

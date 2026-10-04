@@ -5,9 +5,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import com.myhealth.R
 import com.myhealth.domain.model.CycleConfidence
 import com.myhealth.domain.model.CyclePhase
 import com.myhealth.domain.model.CycleStatus
@@ -25,11 +25,11 @@ import com.myhealth.ui.theme.MyHealthTheme
 @Composable
 fun TodayCycleCard(status: CycleStatus?, onOpenCycle: () -> Unit) {
     SectionCard(
-        title = stringResource(R.string.today_cycle_title),
+        title = stringResource(Res.string.today_cycle_title),
         modifier = Modifier.clickable(onClick = onOpenCycle),
     ) {
         if (status == null) {
-            Text(stringResource(R.string.today_cycle_empty), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(Res.string.today_cycle_empty), style = MaterialTheme.typography.bodyMedium)
         } else {
             Text(stringResource(phaseLabelRes(status.phase)), style = MaterialTheme.typography.titleMedium)
             Text(dayOfCycleLabel(status.dayOfCycle, status.cycleLengthDays), style = MaterialTheme.typography.bodyMedium)

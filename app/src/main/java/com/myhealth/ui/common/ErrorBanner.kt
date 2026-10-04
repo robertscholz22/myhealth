@@ -12,10 +12,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.ui.theme.MyHealthTheme
 
 /** Inline error strip with an optional retry action (§4.3). */
@@ -38,7 +38,7 @@ fun ErrorBanner(message: String, modifier: Modifier = Modifier, onRetry: (() -> 
                 modifier = Modifier.weight(1f),
             )
             if (onRetry != null) {
-                TextButton(onClick = onRetry) { Text(stringResource(R.string.common_retry)) }
+                TextButton(onClick = onRetry) { Text(stringResource(Res.string.common_retry)) }
             }
         }
     }

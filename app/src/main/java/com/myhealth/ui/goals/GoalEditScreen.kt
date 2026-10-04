@@ -28,11 +28,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.goal.GoalProgress
 import com.myhealth.domain.engine.running.CanonicalDistances
@@ -63,16 +63,16 @@ fun GoalEditScreen(id: Long, onBack: () -> Unit, modifier: Modifier = Modifier) 
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(if (state.isNew) R.string.goal_edit_title_new else R.string.goal_edit_title_edit)) },
+                title = { Text(stringResource(if (state.isNew) Res.string.goal_edit_title_new else Res.string.goal_edit_title_edit)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 },
                 actions = {
                     if (!state.isNew) {
                         IconButton(onClick = vm::requestDelete) {
-                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.goal_edit_delete_content_description))
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(Res.string.goal_edit_delete_content_description))
                         }
                     }
                 },
@@ -92,10 +92,10 @@ fun GoalEditScreen(id: Long, onBack: () -> Unit, modifier: Modifier = Modifier) 
     if (state.pendingDelete) {
         AlertDialog(
             onDismissRequest = vm::cancelDelete,
-            title = { Text(stringResource(R.string.goal_edit_delete_dialog_title)) },
-            text = { Text(stringResource(R.string.goal_edit_delete_dialog_message)) },
-            confirmButton = { TextButton(onClick = vm::confirmDelete) { Text(stringResource(R.string.action_delete)) } },
-            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text(stringResource(R.string.action_cancel)) } },
+            title = { Text(stringResource(Res.string.goal_edit_delete_dialog_title)) },
+            text = { Text(stringResource(Res.string.goal_edit_delete_dialog_message)) },
+            confirmButton = { TextButton(onClick = vm::confirmDelete) { Text(stringResource(Res.string.action_delete)) } },
+            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text(stringResource(Res.string.action_cancel)) } },
         )
     }
 }
@@ -122,9 +122,9 @@ internal fun GoalEditContent(
             item("loadError") { ErrorBanner(message = message.resolve()) }
         }
         item {
-            SectionCard(title = stringResource(R.string.goal_edit_section_goal)) {
+            SectionCard(title = stringResource(Res.string.goal_edit_section_goal)) {
                 DropdownField(
-                    label = stringResource(R.string.goal_edit_type_label),
+                    label = stringResource(Res.string.goal_edit_type_label),
                     options = GoalType.entries,
                     selected = draft.type,
                     optionLabel = ::goalTypeLabel,
@@ -133,7 +133,7 @@ internal fun GoalEditContent(
                 OutlinedTextField(
                     value = draft.title,
                     onValueChange = { value -> onChange { it.copy(title = value) } },
-                    label = { Text(stringResource(R.string.goal_edit_title_label)) },
+                    label = { Text(stringResource(Res.string.goal_edit_title_label)) },
                     isError = state.errors.containsKey(GoalField.TITLE),
                     supportingText = state.errors[GoalField.TITLE]?.let { { Text(it.resolve()) } },
                     singleLine = true,
@@ -141,7 +141,7 @@ internal fun GoalEditContent(
                 )
                 TypeFields(state = state, onChange = onChange, onLinkRace = onLinkRace)
                 DatePickerField(
-                    label = stringResource(R.string.goal_edit_target_date_label),
+                    label = stringResource(Res.string.goal_edit_target_date_label),
                     value = draft.targetDay,
                     onValueChange = { date -> onChange { it.copy(targetDay = date) } },
                 )
@@ -152,10 +152,10 @@ internal fun GoalEditContent(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(stringResource(R.string.goal_edit_race_day_label))
+                            Text(stringResource(Res.string.goal_edit_race_day_label))
                             Text(
                                 text = stringResource(
-                                    if (draft.isRace) R.string.goal_edit_race_day_on else R.string.goal_edit_race_day_off,
+                                    if (draft.isRace) Res.string.goal_edit_race_day_on else Res.string.goal_edit_race_day_off,
                                 ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -172,7 +172,7 @@ internal fun GoalEditContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(R.string.goal_edit_primary_label))
+                    Text(stringResource(Res.string.goal_edit_primary_label))
                     Switch(
                         checked = draft.isPrimary,
                         onCheckedChange = { value -> onChange { it.copy(isPrimary = value) } },
@@ -181,29 +181,29 @@ internal fun GoalEditContent(
                 OutlinedTextField(
                     value = draft.notes,
                     onValueChange = { value -> onChange { it.copy(notes = value) } },
-                    label = { Text(stringResource(R.string.goal_edit_notes_label)) },
+                    label = { Text(stringResource(Res.string.goal_edit_notes_label)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
         item {
             Button(onClick = onSave, enabled = !state.isSaving, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(if (state.isNew) R.string.goal_edit_create_action else R.string.goal_edit_save_action))
+                Text(stringResource(if (state.isNew) Res.string.goal_edit_create_action else Res.string.goal_edit_save_action))
             }
         }
         if (!state.isNew) {
             item {
-                SectionCard(title = stringResource(R.string.goal_edit_section_status)) {
-                    Text(stringResource(R.string.goal_edit_current_status, goalStatusLabel(draft.status)))
+                SectionCard(title = stringResource(Res.string.goal_edit_section_status)) {
+                    Text(stringResource(Res.string.goal_edit_current_status, goalStatusLabel(draft.status)))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TextButton(onClick = { onStatus(GoalStatus.ACHIEVED) }) {
-                            Text(stringResource(R.string.goals_action_achieved))
+                            Text(stringResource(Res.string.goals_action_achieved))
                         }
                         TextButton(onClick = { onStatus(GoalStatus.ABANDONED) }) {
-                            Text(stringResource(R.string.goal_edit_status_abandoned))
+                            Text(stringResource(Res.string.goal_edit_status_abandoned))
                         }
                         TextButton(onClick = { onStatus(GoalStatus.ACTIVE) }) {
-                            Text(stringResource(R.string.goal_edit_status_active))
+                            Text(stringResource(Res.string.goal_edit_status_active))
                         }
                     }
                 }
@@ -222,7 +222,7 @@ private fun TypeFields(
     when (draft.type) {
         GoalType.RACE_TIME -> {
             DropdownField(
-                label = stringResource(R.string.goal_edit_distance_label),
+                label = stringResource(Res.string.goal_edit_distance_label),
                 options = CanonicalDistances.ALL,
                 selected = draft.targetDistanceMeters ?: CanonicalDistances.FIVE_KM,
                 optionLabel = { GoalProgress.distanceLabel(it) },
@@ -243,7 +243,7 @@ private fun TypeFields(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 NumberField(
-                    label = stringResource(R.string.goal_edit_target_min_label),
+                    label = stringResource(Res.string.goal_edit_target_min_label),
                     value = draft.targetMinutes?.toDouble(),
                     onValueChange = { v -> onChange { it.copy(targetMinutes = v?.toInt()) } },
                     decimals = 0,
@@ -251,7 +251,7 @@ private fun TypeFields(
                     modifier = Modifier.weight(1f),
                 )
                 NumberField(
-                    label = stringResource(R.string.goal_edit_target_sec_label),
+                    label = stringResource(Res.string.goal_edit_target_sec_label),
                     value = draft.targetSeconds?.toDouble(),
                     onValueChange = { v -> onChange { it.copy(targetSeconds = v?.toInt()) } },
                     decimals = 0,
@@ -261,11 +261,11 @@ private fun TypeFields(
                 )
             }
             if (state.races.isNotEmpty()) {
-                val notLinkedLabel = stringResource(R.string.goal_edit_race_not_linked)
-                val raceOptionFormat = stringResource(R.string.goal_edit_race_option_with_date)
+                val notLinkedLabel = stringResource(Res.string.goal_edit_race_not_linked)
+                val raceOptionFormat = stringResource(Res.string.goal_edit_race_option_with_date)
                 val none = RaceOption(-1L, notLinkedLabel, 0L)
                 DropdownField(
-                    label = stringResource(R.string.goal_edit_linked_race_label),
+                    label = stringResource(Res.string.goal_edit_linked_race_label),
                     options = listOf(none) + state.races,
                     selected = state.races.firstOrNull { it.eventId == draft.linkedEventId } ?: none,
                     optionLabel = { option ->
@@ -280,16 +280,16 @@ private fun TypeFields(
             }
         }
         GoalType.BODY_WEIGHT -> NumberField(
-            label = stringResource(R.string.goal_edit_target_weight_label),
+            label = stringResource(Res.string.goal_edit_target_weight_label),
             value = draft.targetWeightKg,
             onValueChange = { v -> onChange { it.copy(targetWeightKg = v) } },
-            suffix = stringResource(R.string.goal_edit_kg_suffix),
+            suffix = stringResource(Res.string.goal_edit_kg_suffix),
             decimals = 1,
             isError = state.errors.containsKey(GoalField.WEIGHT),
             supportingText = state.errors[GoalField.WEIGHT]?.resolve(),
         )
         GoalType.CONSISTENCY -> NumberField(
-            label = stringResource(R.string.goal_edit_sessions_label),
+            label = stringResource(Res.string.goal_edit_sessions_label),
             value = draft.targetValue,
             onValueChange = { v -> onChange { it.copy(targetValue = v) } },
             decimals = 1,
@@ -301,10 +301,10 @@ private fun TypeFields(
             NumberField(
                 label = stringResource(
                     when (draft.type) {
-                        GoalType.STRENGTH_LIFT -> R.string.goal_edit_target_lift_label
-                        GoalType.BIKE_FTP -> R.string.goal_edit_target_ftp_label
-                        GoalType.BIKE_VOLUME -> R.string.goal_edit_target_ride_hours_label
-                        else -> R.string.goal_edit_target_matches_label
+                        GoalType.STRENGTH_LIFT -> Res.string.goal_edit_target_lift_label
+                        GoalType.BIKE_FTP -> Res.string.goal_edit_target_ftp_label
+                        GoalType.BIKE_VOLUME -> Res.string.goal_edit_target_ride_hours_label
+                        else -> Res.string.goal_edit_target_matches_label
                     },
                 ),
                 value = draft.targetValue,
@@ -318,7 +318,7 @@ private fun TypeFields(
         // "optional date".
         GoalType.BIKE_EVENT -> {
             DropdownField(
-                label = stringResource(R.string.goal_edit_distance_label),
+                label = stringResource(Res.string.goal_edit_distance_label),
                 options = BIKE_EVENT_DISTANCES,
                 selected = draft.targetDistanceMeters?.takeIf { it in BIKE_EVENT_DISTANCES }
                     ?: BIKE_EVENT_DEFAULT_DISTANCE_METERS,
@@ -333,20 +333,20 @@ private fun TypeFields(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-            Text(stringResource(R.string.goal_edit_bike_event_time_hint), style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(Res.string.goal_edit_bike_event_time_hint), style = MaterialTheme.typography.bodySmall)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 NumberField(
-                    label = stringResource(R.string.goal_edit_target_min_label),
+                    label = stringResource(Res.string.goal_edit_target_min_label),
                     value = draft.targetMinutes?.toDouble(),
                     onValueChange = { v -> onChange { it.copy(targetMinutes = v?.toInt()) } },
                     decimals = 0,
                     modifier = Modifier.weight(1f),
                 )
                 NumberField(
-                    label = stringResource(R.string.goal_edit_target_sec_label),
+                    label = stringResource(Res.string.goal_edit_target_sec_label),
                     value = draft.targetSeconds?.toDouble(),
                     onValueChange = { v -> onChange { it.copy(targetSeconds = v?.toInt()) } },
                     decimals = 0,

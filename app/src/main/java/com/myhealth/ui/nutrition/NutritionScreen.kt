@@ -31,11 +31,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVmWithSavedState
 import com.myhealth.domain.model.MealSlot
 import com.myhealth.domain.model.QuantityUnit
@@ -75,7 +75,7 @@ fun NutritionScreen(
 
     LaunchedEffect(state.message) {
         state.message?.let {
-            snackbar.showSnackbar(it.resolve(context))
+            snackbar.showSnackbar(it.resolveText())
             vm.consumeMessage()
         }
     }
@@ -84,17 +84,17 @@ fun NutritionScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.nav_nutrition)) },
+                title = { Text(stringResource(Res.string.nav_nutrition)) },
                 navigationIcon = {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                         }
                     }
                 },
                 actions = {
                     IconButton(onClick = vm::copyYesterday) {
-                        Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(R.string.nutrition_copy_yesterday_cd))
+                        Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(Res.string.nutrition_copy_yesterday_cd))
                     }
                 },
             )
@@ -192,7 +192,7 @@ private fun NutritionContent(
         if (!state.hasAnyMeal) {
             item {
                 TextButton(onClick = actions.onCopyYesterday) {
-                    Text(stringResource(R.string.nutrition_copy_yesterday_button))
+                    Text(stringResource(Res.string.nutrition_copy_yesterday_button))
                 }
             }
         }
@@ -218,14 +218,14 @@ private fun DayStrip(day: Long, onPrevious: () -> Unit, onNext: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onPrevious) {
-            Icon(Icons.Filled.ChevronLeft, contentDescription = stringResource(R.string.nutrition_previous_day_cd))
+            Icon(Icons.Filled.ChevronLeft, contentDescription = stringResource(Res.string.nutrition_previous_day_cd))
         }
         Text(
             text = fullDateTitle(LocalDate.ofEpochDay(day)),
             style = MaterialTheme.typography.titleMedium,
         )
         IconButton(onClick = onNext) {
-            Icon(Icons.Filled.ChevronRight, contentDescription = stringResource(R.string.nutrition_next_day_cd))
+            Icon(Icons.Filled.ChevronRight, contentDescription = stringResource(Res.string.nutrition_next_day_cd))
         }
     }
 }
@@ -244,13 +244,13 @@ private fun QuantityDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 NumberField(
-                    label = stringResource(R.string.quantity_label),
+                    label = stringResource(Res.string.quantity_label),
                     value = edit.quantity,
                     onValueChange = onQuantityChange,
                     decimals = 0,
                 )
                 DropdownField(
-                    label = stringResource(R.string.quantity_unit_label),
+                    label = stringResource(Res.string.quantity_unit_label),
                     options = edit.units,
                     selected = edit.unit,
                     optionLabel = { it.label() },
@@ -258,8 +258,8 @@ private fun QuantityDialog(
                 )
             }
         },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.action_save)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(Res.string.action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) } },
     )
 }
 

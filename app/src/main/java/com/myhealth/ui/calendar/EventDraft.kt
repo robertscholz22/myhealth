@@ -1,8 +1,8 @@
 package com.myhealth.ui.calendar
 
+import com.myhealth.resources.*
 import kotlinx.datetime.toJavaDayOfWeek
 import kotlinx.datetime.toKotlinDayOfWeek
-import com.myhealth.R
 import com.myhealth.domain.engine.calendar.RecurrenceFreq
 import com.myhealth.domain.engine.calendar.RecurrenceRule
 import com.myhealth.domain.model.CalendarEvent
@@ -73,32 +73,32 @@ fun validate(draft: EventDraft): Map<EventField, UiMessage> {
     val errors = mutableMapOf<EventField, UiMessage>()
 
     if (draft.title.isBlank()) {
-        errors[EventField.TITLE] = UiMessage.of(R.string.event_error_title_required)
+        errors[EventField.TITLE] = UiMessage.of(Res.string.event_error_title_required)
     }
     if (draft.date == null) {
-        errors[EventField.DATE] = UiMessage.of(R.string.event_error_date_required)
+        errors[EventField.DATE] = UiMessage.of(Res.string.event_error_date_required)
     }
 
     val duration = draft.durationMin
     if (duration != null && duration <= 0) {
-        errors[EventField.DURATION] = UiMessage.of(R.string.event_error_duration_positive)
+        errors[EventField.DURATION] = UiMessage.of(Res.string.event_error_duration_positive)
     }
 
     val until = draft.recurrenceUntil
     val start = draft.date
     if (until != null && start != null && until.isBefore(start)) {
-        errors[EventField.RECURRENCE_UNTIL] = UiMessage.of(R.string.event_error_recurrence_until_before_start)
+        errors[EventField.RECURRENCE_UNTIL] = UiMessage.of(Res.string.event_error_recurrence_until_before_start)
     }
 
     if (draft.type == EventType.RACE) {
         val distance = draft.targetDistanceKm
         if (distance == null || distance <= 0.0) {
-            errors[EventField.DISTANCE] = UiMessage.of(R.string.event_error_distance_required)
+            errors[EventField.DISTANCE] = UiMessage.of(Res.string.event_error_distance_required)
         }
     }
 
     if (draft.recurrenceMode == RecurrenceMode.WEEKLY && draft.recurrenceWeekdays.isEmpty()) {
-        errors[EventField.RECURRENCE_WEEKDAYS] = UiMessage.of(R.string.event_error_recurrence_weekday_required)
+        errors[EventField.RECURRENCE_WEEKDAYS] = UiMessage.of(Res.string.event_error_recurrence_weekday_required)
     }
 
     return errors

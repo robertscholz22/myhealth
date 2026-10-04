@@ -24,11 +24,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.engine.load.HrZoneModel
 import com.myhealth.domain.engine.load.TrimpDefaults
 import com.myhealth.domain.engine.suggest.IntervalStructures
@@ -106,13 +106,13 @@ fun PlannedSessionCard(
                 )
             }
             Text(
-                text = plannedSessionSubtitle(session, linkedLabel = stringResource(R.string.training_session_linked)),
+                text = plannedSessionSubtitle(session, linkedLabel = stringResource(Res.string.training_session_linked)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             TargetZoneChip(session.sessionType, hrZoneModel)
             workoutName?.let {
-                val format = if (isMobilityWorkout) R.string.session_routine_format else R.string.session_workout_format
+                val format = if (isMobilityWorkout) Res.string.session_routine_format else Res.string.session_workout_format
                 Text(
                     text = stringResource(format, it),
                     style = MaterialTheme.typography.bodySmall,
@@ -134,9 +134,9 @@ fun PlannedSessionCard(
             Icon(
                 imageVector = if (session.locked) Icons.Filled.Lock else Icons.Filled.LockOpen,
                 contentDescription = if (session.locked) {
-                    stringResource(R.string.session_unlock_desc)
+                    stringResource(Res.string.session_unlock_desc)
                 } else {
-                    stringResource(R.string.session_lock_desc)
+                    stringResource(Res.string.session_lock_desc)
                 },
                 tint = if (session.locked) {
                     MaterialTheme.colorScheme.primary
@@ -149,11 +149,11 @@ fun PlannedSessionCard(
             sessionMenu(
                 session = session,
                 actions = actions,
-                markDoneLabel = stringResource(R.string.training_mark_done),
-                skipLabel = stringResource(R.string.training_skip),
-                reopenLabel = stringResource(R.string.training_reopen),
-                editLabel = stringResource(R.string.training_edit),
-                deleteLabel = stringResource(R.string.action_delete),
+                markDoneLabel = stringResource(Res.string.training_mark_done),
+                skipLabel = stringResource(Res.string.training_skip),
+                reopenLabel = stringResource(Res.string.training_reopen),
+                editLabel = stringResource(Res.string.training_edit),
+                deleteLabel = stringResource(Res.string.action_delete),
             ),
         )
     }
@@ -209,9 +209,9 @@ fun WorkoutStructureSection(structureJson: String?, modifier: Modifier = Modifie
     val structure = remember(structureJson) { WorkoutStructureCodec.decode(structureJson) } ?: return
     val summary = remember(structure) { IntervalStructures.summary(structure) } ?: return
     var expanded by remember(structureJson) { mutableStateOf(false) }
-    val warmupPrefix = stringResource(R.string.session_structure_warmup_prefix)
-    val recoveryPrefix = stringResource(R.string.session_structure_recovery_prefix)
-    val cooldownPrefix = stringResource(R.string.session_structure_cooldown_prefix)
+    val warmupPrefix = stringResource(Res.string.session_structure_warmup_prefix)
+    val recoveryPrefix = stringResource(Res.string.session_structure_recovery_prefix)
+    val cooldownPrefix = stringResource(Res.string.session_structure_cooldown_prefix)
 
     Column(modifier = modifier.fillMaxWidth().padding(top = 4.dp)) {
         Row(
@@ -230,7 +230,7 @@ fun WorkoutStructureSection(structureJson: String?, modifier: Modifier = Modifie
             Icon(
                 imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
                 contentDescription = stringResource(
-                    if (expanded) R.string.session_structure_collapse else R.string.session_structure_expand,
+                    if (expanded) Res.string.session_structure_collapse else Res.string.session_structure_expand,
                 ),
                 modifier = Modifier.size(20.dp),
             )

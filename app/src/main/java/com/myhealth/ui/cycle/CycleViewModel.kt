@@ -2,10 +2,10 @@ package com.myhealth.ui.cycle
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.myhealth.R
 import com.myhealth.domain.model.CycleEntry
 import com.myhealth.domain.repository.CycleRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -105,7 +105,7 @@ class CycleViewModel(
             val duplicate = state.value.history.any { it.periodStartDay == day }
             if (duplicate) {
                 extras.update {
-                    it.copy(showLogStart = false, message = UiMessage.of(R.string.cycle_error_duplicate_start))
+                    it.copy(showLogStart = false, message = UiMessage.of(Res.string.cycle_error_duplicate_start))
                 }
                 return@launch
             }
@@ -116,8 +116,8 @@ class CycleViewModel(
                 it.copy(
                     showLogStart = false,
                     message = when (result) {
-                        is Outcome.Ok -> UiMessage.of(R.string.cycle_msg_period_logged)
-                        is Outcome.Err -> UiMessage.of(R.string.cycle_error_save_failed)
+                        is Outcome.Ok -> UiMessage.of(Res.string.cycle_msg_period_logged)
+                        is Outcome.Err -> UiMessage.of(Res.string.cycle_error_save_failed)
                     },
                 )
             }
@@ -130,7 +130,7 @@ class CycleViewModel(
             val latest = state.value.latestEntry
             if (latest == null) {
                 extras.update {
-                    it.copy(showPeriodEnded = false, message = UiMessage.of(R.string.cycle_error_no_period_to_end))
+                    it.copy(showPeriodEnded = false, message = UiMessage.of(Res.string.cycle_error_no_period_to_end))
                 }
                 return@launch
             }
@@ -139,8 +139,8 @@ class CycleViewModel(
                 it.copy(
                     showPeriodEnded = false,
                     message = when (result) {
-                        is Outcome.Ok -> UiMessage.of(R.string.cycle_msg_period_ended)
-                        is Outcome.Err -> UiMessage.of(R.string.cycle_error_period_end_before_start)
+                        is Outcome.Ok -> UiMessage.of(Res.string.cycle_msg_period_ended)
+                        is Outcome.Err -> UiMessage.of(Res.string.cycle_error_period_end_before_start)
                     },
                 )
             }

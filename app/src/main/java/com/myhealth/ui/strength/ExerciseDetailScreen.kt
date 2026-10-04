@@ -34,11 +34,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.strength.ExerciseAnimations
 import com.myhealth.domain.engine.strength.ExerciseCatalog
@@ -81,7 +81,7 @@ fun ExerciseDetailScreen(exerciseId: String, onBack: () -> Unit, modifier: Modif
     var showPicker by remember { mutableStateOf(false) }
     var confirmedWorkout by remember { mutableStateOf<String?>(null) }
     val snackbar = remember { SnackbarHostState() }
-    val addedToMessage = confirmedWorkout?.let { stringResource(R.string.exercise_detail_added_to_format, it) }
+    val addedToMessage = confirmedWorkout?.let { stringResource(Res.string.exercise_detail_added_to_format, it) }
 
     LaunchedEffect(exerciseId) { vm.loadProgressionCard(exerciseId) }
 
@@ -96,10 +96,10 @@ fun ExerciseDetailScreen(exerciseId: String, onBack: () -> Unit, modifier: Modif
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(exercise?.name ?: stringResource(R.string.exercise_detail_title)) },
+                title = { Text(exercise?.name ?: stringResource(Res.string.exercise_detail_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 },
             )
@@ -108,15 +108,15 @@ fun ExerciseDetailScreen(exerciseId: String, onBack: () -> Unit, modifier: Modif
         floatingActionButton = {
             if (exercise != null) {
                 FloatingActionButton(onClick = { showPicker = true }) {
-                    Text(stringResource(R.string.exercise_detail_add_to_workout))
+                    Text(stringResource(Res.string.exercise_detail_add_to_workout))
                 }
             }
         },
     ) { innerPadding ->
         if (exercise == null) {
             EmptyState(
-                title = stringResource(R.string.exercise_detail_not_found_title),
-                message = stringResource(R.string.exercise_detail_not_found_message),
+                title = stringResource(Res.string.exercise_detail_not_found_title),
+                message = stringResource(Res.string.exercise_detail_not_found_message),
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
             )
         } else {
@@ -155,7 +155,7 @@ internal fun ExerciseDetailContent(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = stringResource(R.string.exercise_detail_section_animation),
+                    text = stringResource(Res.string.exercise_detail_section_animation),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -175,19 +175,19 @@ internal fun ExerciseDetailContent(
             item { ProgressionCard(prescription = prescription, card = progressionCard) }
         }
         item {
-            SectionCard(title = stringResource(R.string.exercise_detail_section_details)) {
-                DetailRow(stringResource(R.string.exercise_detail_equipment_label), exercise.equipment.label())
-                DetailRow(stringResource(R.string.exercise_detail_pattern_label), exercise.pattern.label())
+            SectionCard(title = stringResource(Res.string.exercise_detail_section_details)) {
+                DetailRow(stringResource(Res.string.exercise_detail_equipment_label), exercise.equipment.label())
+                DetailRow(stringResource(Res.string.exercise_detail_pattern_label), exercise.pattern.label())
                 if (exercise.unilateral) {
-                    AssistChip(onClick = {}, enabled = false, label = { Text(stringResource(R.string.exercise_detail_unilateral_flag)) })
+                    AssistChip(onClick = {}, enabled = false, label = { Text(stringResource(Res.string.exercise_detail_unilateral_flag)) })
                 }
                 if (exercise.isTimed) {
-                    AssistChip(onClick = {}, enabled = false, label = { Text(stringResource(R.string.exercise_detail_timed_flag)) })
+                    AssistChip(onClick = {}, enabled = false, label = { Text(stringResource(Res.string.exercise_detail_timed_flag)) })
                 }
             }
         }
         item {
-            SectionCard(title = stringResource(R.string.exercise_detail_section_cue)) {
+            SectionCard(title = stringResource(Res.string.exercise_detail_section_cue)) {
                 Text(exercise.cue, style = MaterialTheme.typography.bodyMedium)
             }
         }
@@ -205,12 +205,12 @@ private fun DetailRow(label: String, value: String) {
  */
 @Composable
 private fun ProgressionCard(prescription: ExercisePrescription, card: ProgressionCardState) {
-    SectionCard(title = stringResource(R.string.exercise_detail_section_progression)) {
+    SectionCard(title = stringResource(Res.string.exercise_detail_section_progression)) {
         Text(prescriptionOnlyLabel(prescription), style = MaterialTheme.typography.titleMedium)
         val feedbackText = prescription.lastFeedback?.let { feedback ->
             val date = card.updatedDay?.let { formatUpdatedDay(it) }
             if (date != null) {
-                stringResource(R.string.exercise_detail_last_feedback_format, feedback.label(), date)
+                stringResource(Res.string.exercise_detail_last_feedback_format, feedback.label(), date)
             } else {
                 feedback.label()
             }
@@ -220,7 +220,7 @@ private fun ProgressionCard(prescription: ExercisePrescription, card: Progressio
         }
         if (card.sessions.isEmpty()) {
             Text(
-                text = stringResource(R.string.exercise_detail_no_sessions),
+                text = stringResource(Res.string.exercise_detail_no_sessions),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -243,10 +243,10 @@ private fun WorkoutPickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.exercise_detail_pick_workout_title)) },
+        title = { Text(stringResource(Res.string.exercise_detail_pick_workout_title)) },
         text = {
             if (workouts.isEmpty()) {
-                Text(stringResource(R.string.exercise_detail_pick_workout_empty))
+                Text(stringResource(Res.string.exercise_detail_pick_workout_empty))
             } else {
                 LazyColumn {
                     items(workouts, key = { it.id }) { workout ->
@@ -263,7 +263,7 @@ private fun WorkoutPickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
         },
     )
 }

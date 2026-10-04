@@ -6,7 +6,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.myhealth.MainActivity
-import com.myhealth.R
+import com.myhealth.resources.*
 import com.myhealth.domain.model.ActivitySession
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ActivityStreams
@@ -105,10 +105,10 @@ class ZonesScreenTest {
         val activity = composeTestRule.activity
 
         // ---- More -> Zones & paces ---------------------------------------------------------
-        composeTestRule.onNodeWithText(activity.getString(R.string.nav_more)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.more_entry_zones))
-        composeTestRule.onNodeWithText(activity.getString(R.string.more_entry_zones)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.zones_section_zones_title))
+        composeTestRule.onNodeWithText(str(Res.string.nav_more)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.more_entry_zones))
+        composeTestRule.onNodeWithText(str(Res.string.more_entry_zones)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.zones_section_zones_title))
 
         // ---- Five zone rows, Z1..Z5, each with its named zone -------------------------------
         val zoneRowPrefixes = listOf(

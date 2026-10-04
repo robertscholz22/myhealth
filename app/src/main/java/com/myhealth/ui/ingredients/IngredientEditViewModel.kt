@@ -2,13 +2,13 @@ package com.myhealth.ui.ingredients
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.myhealth.R
 import com.myhealth.di.OffLookup
 import com.myhealth.di.ScanMessages
 import com.myhealth.domain.engine.nutrition.NutritionValidator
 import com.myhealth.domain.repository.IngredientRepository
 import com.myhealth.domain.util.EngineWarning
 import com.myhealth.domain.util.Outcome
+import com.myhealth.resources.*
 import com.myhealth.ui.camera.DraftStore
 import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -78,7 +78,7 @@ class IngredientEditViewModel(
                         draft = draft,
                         errors = validate(draft),
                         warnings = warningsFor(draft),
-                        lookupNote = UiMessage.of(R.string.ingredient_lookup_note_filled),
+                        lookupNote = UiMessage.of(Res.string.ingredient_lookup_note_filled),
                     )
                 }
                 is Outcome.Err -> _state.update {
@@ -92,7 +92,7 @@ class IngredientEditViewModel(
         viewModelScope.launch {
             val ingredient = ingredientRepo.getById(id)
             if (ingredient == null) {
-                _state.update { it.copy(isLoading = false, loadError = UiMessage.of(R.string.ingredient_edit_load_error)) }
+                _state.update { it.copy(isLoading = false, loadError = UiMessage.of(Res.string.ingredient_edit_load_error)) }
                 return@launch
             }
             val draft = fromIngredient(ingredient)
@@ -119,7 +119,7 @@ class IngredientEditViewModel(
             when (ingredientRepo.upsert(current.draft.toIngredient(clock))) {
                 is Outcome.Ok -> _state.update { it.copy(isSaving = false, saved = true) }
                 is Outcome.Err -> _state.update {
-                    it.copy(isSaving = false, saveError = UiMessage.of(R.string.ingredient_edit_save_error))
+                    it.copy(isSaving = false, saveError = UiMessage.of(Res.string.ingredient_edit_save_error))
                 }
             }
         }
@@ -138,7 +138,7 @@ class IngredientEditViewModel(
         viewModelScope.launch {
             when (ingredientRepo.deleteOrArchive(id)) {
                 is Outcome.Ok -> _state.update { it.copy(deleted = true) }
-                is Outcome.Err -> _state.update { it.copy(saveError = UiMessage.of(R.string.ingredient_edit_delete_error)) }
+                is Outcome.Err -> _state.update { it.copy(saveError = UiMessage.of(Res.string.ingredient_edit_delete_error)) }
             }
         }
     }

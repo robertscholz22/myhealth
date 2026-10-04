@@ -1,10 +1,5 @@
 package com.myhealth.ui.common
 
-import java.math.RoundingMode
-import java.text.DecimalFormat
-import java.text.NumberFormat
-import java.util.Locale
-
 /**
  * The one number-formatting convention for the UI (POLISH-12). Before this file, some screens
  * formatted decimals with `"%.1f".format(...)` / `String.format(...)` using the *default* locale
@@ -17,31 +12,23 @@ import java.util.Locale
  * [fmtDecimal] and the unit helpers built on it never group by thousands — that matches the
  * `"%.Nf"`-style output they replace. [fmtInt] does group, since it replaces whole-number display
  * (session counts, calorie/macro targets) that read naturally with thousands separators.
+ *
+ * P20.3: both depend on the device locale and are platform functions (`java.text` on Android, as
+ * before; `NSNumberFormatter` on iOS).
  */
 
 /**
- * [value] with exactly [digits] fraction digits, using [Locale.getDefault]'s decimal separator and
- * half-up rounding, no grouping. E.g. `fmtDecimal(8.8, 1)` is `"8.8"` under [Locale.US] and `"8,8"`
- * under [Locale.GERMANY].
+ * [value] with exactly [digits] fraction digits, using the device locale's decimal separator and
+ * half-up rounding, no grouping. E.g. `fmtDecimal(8.8, 1)` is `"8.8"` under `Locale.US` and `"8,8"`
+ * under `Locale.GERMANY`.
  */
-fun fmtDecimal(value: Double, digits: Int): String {
-    val format = NumberFormat.getNumberInstance(Locale.getDefault()) as DecimalFormat
-    format.minimumFractionDigits = digits
-    format.maximumFractionDigits = digits
-    format.isGroupingUsed = false
-    format.roundingMode = RoundingMode.HALF_UP
-    return format.format(value)
-}
+expect fun fmtDecimal(value: Double, digits: Int): String
 
 /**
- * [value] as a whole number with [Locale.getDefault]'s grouping separator, e.g. `fmtInt(1234)` is
- * `"1,234"` under [Locale.US] and `"1.234"` under [Locale.GERMANY].
+ * [value] as a whole number with the device locale's grouping separator, e.g. `fmtInt(1234)` is
+ * `"1,234"` under `Locale.US` and `"1.234"` under `Locale.GERMANY`.
  */
-fun fmtInt(value: Number): String {
-    val format = NumberFormat.getIntegerInstance(Locale.getDefault())
-    format.isGroupingUsed = true
-    return format.format(value.toDouble())
-}
+expect fun fmtInt(value: Number): String
 
 /** [value] in kilograms, e.g. `"77.0 kg"`. */
 fun fmtKg(value: Double, digits: Int = 1): String = "${fmtDecimal(value, digits)} kg"
@@ -58,7 +45,7 @@ fun fmtPercent(value: Double, digits: Int = 1): String = "${fmtDecimal(value, di
  * body/onboarding drafts) routes through this so a German keyboard's "," is accepted, not just a
  * dot. Deliberately not locale-restricted to a single separator: a text field never contains a
  * grouping separator, so accepting both marks is simpler and more forgiving than switching on
- * [Locale.getDefault]. Blank or unparsable text (including a lone "-" or ".") returns `null`.
+ * the device locale. Blank or unparsable text (including a lone "-" or ".") returns `null`.
  */
 fun parseDecimal(text: String): Double? {
     val normalized = text.trim().replace(',', '.')

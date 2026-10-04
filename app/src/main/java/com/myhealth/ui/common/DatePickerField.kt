@@ -19,9 +19,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import com.myhealth.R
 import com.myhealth.ui.theme.MyHealthTheme
 import java.time.Instant
 import java.time.LocalDate
@@ -76,9 +76,9 @@ fun DatePickerField(
                         onValueChange(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
                     }
                     showDialog = false
-                }) { Text(stringResource(R.string.common_ok)) }
+                }) { Text(stringResource(Res.string.common_ok)) }
             },
-            dismissButton = { TextButton(onClick = { showDialog = false }) { Text(stringResource(R.string.action_cancel)) } },
+            dismissButton = { TextButton(onClick = { showDialog = false }) { Text(stringResource(Res.string.action_cancel)) } },
         ) {
             DatePicker(state = state)
         }

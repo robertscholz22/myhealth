@@ -28,11 +28,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.MeasureBasis
 import com.myhealth.domain.util.EngineWarning
@@ -75,16 +75,16 @@ fun IngredientEditScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(if (state.isNew) R.string.ingredient_edit_title_new else R.string.ingredient_edit_title_edit)) },
+                title = { Text(stringResource(if (state.isNew) Res.string.ingredient_edit_title_new else Res.string.ingredient_edit_title_edit)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 },
                 actions = {
                     if (!state.isNew) {
                         IconButton(onClick = vm::requestDelete) {
-                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.ingredient_edit_delete_content_description))
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(Res.string.ingredient_edit_delete_content_description))
                         }
                     }
                 },
@@ -104,10 +104,10 @@ fun IngredientEditScreen(
     if (state.pendingDelete) {
         AlertDialog(
             onDismissRequest = vm::cancelDelete,
-            title = { Text(stringResource(R.string.ingredient_edit_delete_dialog_title)) },
-            text = { Text(stringResource(R.string.ingredient_edit_delete_dialog_message)) },
-            confirmButton = { TextButton(onClick = vm::confirmDelete) { Text(stringResource(R.string.action_delete)) } },
-            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text(stringResource(R.string.action_cancel)) } },
+            title = { Text(stringResource(Res.string.ingredient_edit_delete_dialog_title)) },
+            text = { Text(stringResource(Res.string.ingredient_edit_delete_dialog_message)) },
+            confirmButton = { TextButton(onClick = vm::confirmDelete) { Text(stringResource(Res.string.action_delete)) } },
+            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text(stringResource(Res.string.action_cancel)) } },
         )
     }
 }
@@ -162,7 +162,7 @@ private fun IngredientEditBody(
             }
         }
         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.End) {
-            Button(onClick = onSave, enabled = !state.isSaving) { Text(stringResource(R.string.action_save)) }
+            Button(onClick = onSave, enabled = !state.isSaving) { Text(stringResource(Res.string.action_save)) }
         }
     }
 }

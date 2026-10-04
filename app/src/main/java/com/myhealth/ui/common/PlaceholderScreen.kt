@@ -10,10 +10,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.ui.theme.MyHealthTheme
 
 /**
@@ -33,7 +33,7 @@ fun PlaceholderScreen(
         ) {
             Text(text = title, style = MaterialTheme.typography.headlineSmall)
             Text(
-                text = detail ?: stringResource(R.string.placeholder_coming_soon),
+                text = detail ?: stringResource(Res.string.placeholder_coming_soon),
                 style = MaterialTheme.typography.bodyMedium,
             )
         }

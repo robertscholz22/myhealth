@@ -11,10 +11,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.ui.theme.MyHealthTheme
 
 /** Which set of swatches [BodyFigureLegend] shows (§3.12.2 / §4.2 "Load & recovery", P14.8). */
@@ -31,19 +31,19 @@ fun BodyFigureLegend(kind: BodyFigureLegendKind, modifier: Modifier = Modifier) 
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         when (kind) {
             BodyFigureLegendKind.PRIMARY_SECONDARY -> {
-                LegendItem(MaterialTheme.colorScheme.primary, stringResource(R.string.body_figure_legend_primary))
+                LegendItem(MaterialTheme.colorScheme.primary, stringResource(Res.string.body_figure_legend_primary))
                 LegendItem(
                     MaterialTheme.colorScheme.primary.copy(alpha = SECONDARY_ALPHA),
-                    stringResource(R.string.body_figure_legend_secondary),
+                    stringResource(Res.string.body_figure_legend_secondary),
                 )
             }
             BodyFigureLegendKind.LOAD_BAND -> {
-                LegendItem(MaterialTheme.colorScheme.surfaceVariant, stringResource(R.string.body_figure_legend_fresh))
+                LegendItem(MaterialTheme.colorScheme.surfaceVariant, stringResource(Res.string.body_figure_legend_fresh))
                 LegendItem(
                     MaterialTheme.colorScheme.primary.copy(alpha = LOADED_ALPHA),
-                    stringResource(R.string.body_figure_legend_loaded),
+                    stringResource(Res.string.body_figure_legend_loaded),
                 )
-                LegendItem(MaterialTheme.colorScheme.primary, stringResource(R.string.body_figure_legend_fatigued))
+                LegendItem(MaterialTheme.colorScheme.primary, stringResource(Res.string.body_figure_legend_fatigued))
             }
         }
     }

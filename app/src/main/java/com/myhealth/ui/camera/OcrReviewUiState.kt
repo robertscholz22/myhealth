@@ -1,27 +1,27 @@
 package com.myhealth.ui.camera
 
-import androidx.annotation.StringRes
-import com.myhealth.R
 import com.myhealth.domain.model.MeasureBasis
 import com.myhealth.domain.model.NutritionFacts
 import com.myhealth.domain.model.NutritionFactsDraft
 import com.myhealth.domain.model.ParsedValue
 import com.myhealth.domain.util.EngineWarning
+import com.myhealth.resources.*
 import com.myhealth.ui.common.ConfidenceLevel
 import com.myhealth.ui.common.confidenceLevelOf
 import com.myhealth.ui.common.fmtDecimal
+import org.jetbrains.compose.resources.StringResource
 
 /** The nine editable rows of the review form, in the order a label prints them (§3.6). */
-enum class OcrField(@StringRes val labelRes: Int, @StringRes val suffixRes: Int, val decimals: Int) {
-    KCAL(R.string.ocr_field_calories, R.string.ocr_unit_kcal, 0),
-    FAT(R.string.ocr_field_fat, R.string.ocr_unit_grams, 1),
-    SAT_FAT(R.string.ocr_field_saturates, R.string.ocr_unit_grams, 1),
-    CARBS(R.string.ocr_field_carbs, R.string.ocr_unit_grams, 1),
-    SUGAR(R.string.ocr_field_sugars, R.string.ocr_unit_grams, 1),
-    FIBER(R.string.ocr_field_fiber, R.string.ocr_unit_grams, 1),
-    PROTEIN(R.string.ocr_field_protein, R.string.ocr_unit_grams, 1),
-    SALT(R.string.ocr_field_salt, R.string.ocr_unit_grams, 2),
-    KJ(R.string.ocr_field_energy, R.string.ocr_unit_kj, 0),
+enum class OcrField(val labelRes: StringResource, val suffixRes: StringResource, val decimals: Int) {
+    KCAL(Res.string.ocr_field_calories, Res.string.ocr_unit_kcal, 0),
+    FAT(Res.string.ocr_field_fat, Res.string.ocr_unit_grams, 1),
+    SAT_FAT(Res.string.ocr_field_saturates, Res.string.ocr_unit_grams, 1),
+    CARBS(Res.string.ocr_field_carbs, Res.string.ocr_unit_grams, 1),
+    SUGAR(Res.string.ocr_field_sugars, Res.string.ocr_unit_grams, 1),
+    FIBER(Res.string.ocr_field_fiber, Res.string.ocr_unit_grams, 1),
+    PROTEIN(Res.string.ocr_field_protein, Res.string.ocr_unit_grams, 1),
+    SALT(Res.string.ocr_field_salt, Res.string.ocr_unit_grams, 2),
+    KJ(Res.string.ocr_field_energy, Res.string.ocr_unit_kj, 0),
 }
 
 /** One row: what the parser read, how sure it was, and whether it was a `< x` upper bound. */

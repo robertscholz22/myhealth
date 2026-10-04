@@ -29,12 +29,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.strength.ExerciseKind
 import com.myhealth.domain.model.Equipment
@@ -65,10 +65,10 @@ fun ExercisesScreen(onBack: () -> Unit, onOpenExercise: (String) -> Unit, modifi
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.exercises_title)) },
+                title = { Text(stringResource(Res.string.exercises_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 },
             )
@@ -108,7 +108,7 @@ internal fun ExercisesContent(
             OutlinedTextField(
                 value = state.query,
                 onValueChange = onQueryChange,
-                label = { Text(stringResource(R.string.exercises_search_label)) },
+                label = { Text(stringResource(Res.string.exercises_search_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -129,7 +129,7 @@ internal fun ExercisesContent(
                     horizontalArrangement = Arrangement.End,
                 ) {
                     Text(
-                        text = stringResource(R.string.exercises_clear_filters),
+                        text = stringResource(Res.string.exercises_clear_filters),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -138,8 +138,8 @@ internal fun ExercisesContent(
         }
         if (state.items.isEmpty()) {
             EmptyState(
-                title = stringResource(R.string.exercises_empty_title),
-                message = stringResource(R.string.exercises_empty_message),
+                title = stringResource(Res.string.exercises_empty_title),
+                message = stringResource(Res.string.exercises_empty_message),
                 modifier = Modifier.padding(SCREEN_PADDING),
             )
         } else {
@@ -165,7 +165,7 @@ private fun OnlyMyEquipmentRow(checked: Boolean, onCheckedChange: (Boolean) -> U
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
-        Text(stringResource(R.string.exercises_only_my_equipment_label))
+        Text(stringResource(Res.string.exercises_only_my_equipment_label))
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
@@ -188,9 +188,9 @@ internal fun ExerciseKindFilterRow(selected: ExerciseKind?, onSelect: (ExerciseK
 
 @Composable
 internal fun ExerciseKind?.kindLabel(): String = when (this) {
-    null -> stringResource(R.string.exercises_kind_all)
-    ExerciseKind.STRENGTH -> stringResource(R.string.exercises_kind_strength)
-    ExerciseKind.MOBILITY -> stringResource(R.string.exercises_kind_mobility)
+    null -> stringResource(Res.string.exercises_kind_all)
+    ExerciseKind.STRENGTH -> stringResource(Res.string.exercises_kind_strength)
+    ExerciseKind.MOBILITY -> stringResource(Res.string.exercises_kind_mobility)
 }
 
 @Composable
@@ -228,7 +228,7 @@ private fun ExerciseRow(exercise: Exercise, onClick: () -> Unit) {
 internal fun exerciseRowSubtitle(exercise: Exercise): String {
     val muscles = exercise.primary.joinToString(", ") { it.label() }
     return if (exercise.isMobility) {
-        stringResource(R.string.exercises_row_subtitle_mobility_format, muscles)
+        stringResource(Res.string.exercises_row_subtitle_mobility_format, muscles)
     } else {
         "${exercise.equipment.label()} · $muscles"
     }

@@ -7,6 +7,7 @@ import com.myhealth.domain.model.MuscleGroup
 import com.myhealth.domain.model.StrengthWorkout
 import com.myhealth.domain.model.StrengthWorkoutExercise
 import com.myhealth.domain.model.StrengthWorkoutKind
+import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.common.body.highlightFor
 import java.time.Clock
@@ -97,8 +98,8 @@ fun validateWorkoutDraft(draft: WorkoutEditDraft): WorkoutValidation {
         val counted = row.reps != null
         val held = row.seconds != null
         val error = when {
-            row.sets < 1 -> UiMessage.of(com.myhealth.R.string.workout_edit_error_sets)
-            counted == held -> UiMessage.of(com.myhealth.R.string.workout_edit_error_reps_xor_seconds)
+            row.sets < 1 -> UiMessage.of(Res.string.workout_edit_error_sets)
+            counted == held -> UiMessage.of(Res.string.workout_edit_error_reps_xor_seconds)
             else -> null
         }
         if (error != null) rowErrors[index] = error

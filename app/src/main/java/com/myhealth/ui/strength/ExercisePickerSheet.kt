@@ -24,10 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.engine.strength.ExerciseAnimations
 import com.myhealth.domain.engine.strength.ExerciseCatalog
 import com.myhealth.domain.engine.strength.ExerciseKind
@@ -68,11 +68,11 @@ fun ExercisePickerSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, modifier = modifier) {
         Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-            Text(stringResource(R.string.exercise_picker_title), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(Res.string.exercise_picker_title), style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
-                label = { Text(stringResource(R.string.exercises_search_label)) },
+                label = { Text(stringResource(Res.string.exercises_search_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             )
@@ -83,7 +83,7 @@ fun ExercisePickerSheet(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(R.string.exercise_picker_show_all_label))
+                    Text(stringResource(Res.string.exercise_picker_show_all_label))
                     Switch(checked = showAll, onCheckedChange = { showAll = it })
                 }
             }

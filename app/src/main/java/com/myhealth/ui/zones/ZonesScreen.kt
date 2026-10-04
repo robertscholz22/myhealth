@@ -27,11 +27,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.load.HrBounds
 import com.myhealth.domain.engine.load.HrZone
@@ -70,10 +70,10 @@ fun ZonesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.zones_title)) },
+                title = { Text(stringResource(Res.string.zones_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 },
             )
@@ -87,8 +87,8 @@ fun ZonesScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
 internal fun ZonesContent(state: ZonesUiState, modifier: Modifier = Modifier) {
     if (state.isEmpty) {
         EmptyState(
-            title = stringResource(R.string.zones_empty_title),
-            message = stringResource(R.string.zones_empty_message),
+            title = stringResource(Res.string.zones_empty_title),
+            message = stringResource(Res.string.zones_empty_message),
             modifier = modifier,
         )
         return
@@ -100,9 +100,9 @@ internal fun ZonesContent(state: ZonesUiState, modifier: Modifier = Modifier) {
     ) {
         val model = state.model
         if (model != null) {
-            item { SectionCard(title = stringResource(R.string.zones_section_zones_title)) { ZoneTable(model) } }
+            item { SectionCard(title = stringResource(Res.string.zones_section_zones_title)) { ZoneTable(model) } }
             item {
-                SectionCard(title = stringResource(R.string.zones_section_paces_title)) {
+                SectionCard(title = stringResource(Res.string.zones_section_paces_title)) {
                     state.bands.forEach { band -> PaceBandRow(band) }
                 }
             }
@@ -119,9 +119,9 @@ internal fun ZonesContent(state: ZonesUiState, modifier: Modifier = Modifier) {
 
 @Composable
 private fun DanielsPacesCard(vdot: Double?, paces: Map<DanielsPace, Int>) {
-    SectionCard(title = stringResource(R.string.zones_section_daniels_title)) {
+    SectionCard(title = stringResource(Res.string.zones_section_daniels_title)) {
         if (vdot == null) {
-            Text(stringResource(R.string.zones_confidence_not_enough_data), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(Res.string.zones_confidence_not_enough_data), style = MaterialTheme.typography.bodyMedium)
         } else {
             DanielsPace.entries.forEach { pace ->
                 val secPerKm = paces[pace] ?: return@forEach
@@ -136,20 +136,20 @@ private fun DanielsPacesCard(vdot: Double?, paces: Map<DanielsPace, Int>) {
 
 @Composable
 private fun DanielsPace.label(): String = when (this) {
-    DanielsPace.EASY -> stringResource(R.string.zones_daniels_easy)
-    DanielsPace.MARATHON -> stringResource(R.string.zones_daniels_marathon)
-    DanielsPace.THRESHOLD -> stringResource(R.string.zones_daniels_threshold)
-    DanielsPace.INTERVAL -> stringResource(R.string.zones_daniels_interval)
-    DanielsPace.REPETITION -> stringResource(R.string.zones_daniels_repetition)
+    DanielsPace.EASY -> stringResource(Res.string.zones_daniels_easy)
+    DanielsPace.MARATHON -> stringResource(Res.string.zones_daniels_marathon)
+    DanielsPace.THRESHOLD -> stringResource(Res.string.zones_daniels_threshold)
+    DanielsPace.INTERVAL -> stringResource(Res.string.zones_daniels_interval)
+    DanielsPace.REPETITION -> stringResource(Res.string.zones_daniels_repetition)
 }
 
 @Composable
 private fun PolarisationCard(split: PolarisationSplit) {
-    SectionCard(title = stringResource(R.string.zones_section_polarisation_title)) {
+    SectionCard(title = stringResource(Res.string.zones_section_polarisation_title)) {
         PolarisationBar(split)
         Text(
             text = stringResource(
-                R.string.zones_polarisation_summary_format,
+                Res.string.zones_polarisation_summary_format,
                 easyPercent(split),
                 moderatePercent(split),
                 hardPercent(split),
@@ -158,7 +158,7 @@ private fun PolarisationCard(split: PolarisationSplit) {
         )
         if (showsPolarisationHint(split)) {
             Text(
-                text = stringResource(R.string.zones_polarisation_hint),
+                text = stringResource(Res.string.zones_polarisation_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
@@ -187,8 +187,8 @@ private fun PolarisationBar(split: PolarisationSplit, modifier: Modifier = Modif
 
 @Composable
 private fun SessionTargetsCard(rows: List<SessionZoneRow>) {
-    SectionCard(title = stringResource(R.string.zones_section_sessions_title)) {
-        val naText = stringResource(R.string.zones_table_na)
+    SectionCard(title = stringResource(Res.string.zones_section_sessions_title)) {
+        val naText = stringResource(Res.string.zones_table_na)
         rows.forEach { row ->
             Row(
                 modifier = Modifier.fillMaxWidth(),

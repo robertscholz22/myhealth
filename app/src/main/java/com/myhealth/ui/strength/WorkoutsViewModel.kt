@@ -2,7 +2,6 @@ package com.myhealth.ui.strength
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.myhealth.R
 import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.PlannedStatus
@@ -12,6 +11,7 @@ import com.myhealth.domain.model.StrengthWorkoutKind
 import com.myhealth.domain.repository.PlanRepository
 import com.myhealth.domain.repository.StrengthRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -137,8 +137,8 @@ class WorkoutsViewModel(
             action.set {
                 it.copy(
                     message = when (result) {
-                        is Outcome.Ok -> UiMessage.of(R.string.workouts_planned_message)
-                        is Outcome.Err -> UiMessage.of(R.string.workouts_plan_error)
+                        is Outcome.Ok -> UiMessage.of(Res.string.workouts_planned_message)
+                        is Outcome.Err -> UiMessage.of(Res.string.workouts_plan_error)
                     },
                 )
             }

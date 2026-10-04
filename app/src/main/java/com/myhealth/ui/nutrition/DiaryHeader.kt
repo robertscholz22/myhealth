@@ -11,10 +11,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.model.DayType
 import com.myhealth.domain.model.EngineWarningCode
 import com.myhealth.domain.model.MacroTotals
@@ -44,15 +44,15 @@ fun DiaryHeader(
     modifier: Modifier = Modifier,
 ) {
     val title = if (target == null) {
-        stringResource(R.string.diary_title_intake)
+        stringResource(Res.string.diary_title_intake)
     } else {
-        stringResource(R.string.diary_title_target_vs_intake)
+        stringResource(Res.string.diary_title_target_vs_intake)
     }
     SectionCard(title = title, modifier = modifier) {
         if (target == null) {
             Text(
                 text = stringResource(
-                    R.string.diary_intake_summary,
+                    Res.string.diary_intake_summary,
                     intake.kcal,
                     intake.proteinG,
                     intake.carbsG,
@@ -70,7 +70,7 @@ fun DiaryHeader(
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
-                text = stringResource(R.string.diary_kcal_over_target, roundHalfUp(intake.kcal), target.kcal),
+                text = stringResource(Res.string.diary_kcal_over_target, roundHalfUp(intake.kcal), target.kcal),
                 style = MaterialTheme.typography.titleLarge,
             )
             Text(
@@ -92,15 +92,15 @@ fun DiaryHeader(
         TextButton(onClick = onToggleExplanation) {
             Text(
                 if (explanationExpanded) {
-                    stringResource(R.string.diary_hide_explanation)
+                    stringResource(Res.string.diary_hide_explanation)
                 } else {
-                    stringResource(R.string.diary_why_target)
+                    stringResource(Res.string.diary_why_target)
                 },
             )
         }
         if (explanationExpanded) {
             Text(
-                text = target.explanation.ifBlank { stringResource(R.string.diary_no_explanation) },
+                text = target.explanation.ifBlank { stringResource(Res.string.diary_no_explanation) },
                 style = MaterialTheme.typography.bodySmall,
             )
             warningLines(target).forEach { line ->

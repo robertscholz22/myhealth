@@ -1,7 +1,5 @@
 package com.myhealth.ui.cycle
 
-import androidx.annotation.StringRes
-import com.myhealth.R
 import com.myhealth.domain.engine.cycle.CycleEngine
 import com.myhealth.domain.model.CycleConfidence
 import com.myhealth.domain.model.CycleEntry
@@ -9,10 +7,12 @@ import com.myhealth.domain.model.CycleForecast
 import com.myhealth.domain.model.CyclePhase
 import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.util.toLocalDate
+import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import org.jetbrains.compose.resources.StringResource
 
 /** ViewModel state for [CycleScreen] (PLAN §5 P11.3): the current status card, the "Log period
  * start" / "Period ended" dialogs, the history list and the six-cycle forecast. */
@@ -96,12 +96,11 @@ fun fertileWindowLabel(fertileWindow: ClosedRange<Long>): String {
 private fun dayWord(days: Long): String = if (days == 1L) "day" else "days"
 
 /** The phase badge text (PLAN §5 P11.3). Pure — unit-tested in `CycleUiStateTest`. */
-@StringRes
-fun phaseLabelRes(phase: CyclePhase): Int = when (phase) {
-    CyclePhase.MENSTRUAL -> R.string.cycle_phase_menstrual
-    CyclePhase.FOLLICULAR -> R.string.cycle_phase_follicular
-    CyclePhase.OVULATION -> R.string.cycle_phase_ovulation
-    CyclePhase.LUTEAL -> R.string.cycle_phase_luteal
+fun phaseLabelRes(phase: CyclePhase): StringResource = when (phase) {
+    CyclePhase.MENSTRUAL -> Res.string.cycle_phase_menstrual
+    CyclePhase.FOLLICULAR -> Res.string.cycle_phase_follicular
+    CyclePhase.OVULATION -> Res.string.cycle_phase_ovulation
+    CyclePhase.LUTEAL -> Res.string.cycle_phase_luteal
 }
 
 /**
@@ -111,10 +110,10 @@ fun phaseLabelRes(phase: CyclePhase): Int = when (phase) {
  */
 fun confidenceLine(confidence: CycleConfidence, entries: List<CycleEntry>): UiMessage =
     if (confidence == CycleConfidence.LOW) {
-        UiMessage.of(R.string.cycle_confidence_low)
+        UiMessage.of(Res.string.cycle_confidence_low)
     } else {
         val logged = CycleEngine.intervals(entries).size
-        if (logged == 1) UiMessage.of(R.string.cycle_confidence_based_on_one) else UiMessage.of(R.string.cycle_confidence_based_on_many, logged)
+        if (logged == 1) UiMessage.of(Res.string.cycle_confidence_based_on_one) else UiMessage.of(Res.string.cycle_confidence_based_on_many, logged)
     }
 
 /** A fully populated state used by the screen's `@Preview`s. */

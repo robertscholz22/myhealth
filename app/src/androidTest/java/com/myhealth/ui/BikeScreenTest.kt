@@ -15,7 +15,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.myhealth.MainActivity
-import com.myhealth.R
+import com.myhealth.resources.*
 import com.myhealth.domain.model.ActivitySession
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.RideBest
@@ -125,22 +125,22 @@ class BikeScreenTest {
         val activity = composeTestRule.activity
 
         // ---- More -> Bike & power --------------------------------------------------------
-        composeTestRule.onNodeWithText(activity.getString(R.string.nav_more)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.more_entry_bike))
-        composeTestRule.onNodeWithText(activity.getString(R.string.more_entry_bike)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.bike_ftp_title))
+        composeTestRule.onNodeWithText(str(Res.string.nav_more)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.more_entry_bike))
+        composeTestRule.onNodeWithText(str(Res.string.more_entry_bike)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.bike_ftp_title))
 
         // ---- FTP card: manual override wins, labelled "Manual" ---------------------------
         composeTestRule.waitUntilTextExists("250 W")
         composeTestRule.onNodeWithText("Manual", useUnmergedTree = true).assertExists()
 
         // ---- Power bests: the 20-minute effort ------------------------------------------
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.bike_power_bests_title))
+        composeTestRule.waitUntilTextExists(str(Res.string.bike_power_bests_title))
         composeTestRule.onNodeWithText("260 W", useUnmergedTree = true).assertExists()
 
         // ---- Time bests: the 40 km effort, marked estimated -------------------------------
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.bike_time_bests_title))
-        val estimatedSuffix = activity.getString(R.string.bike_estimated_suffix)
+        composeTestRule.waitUntilTextExists(str(Res.string.bike_time_bests_title))
+        val estimatedSuffix = str(Res.string.bike_estimated_suffix)
         composeTestRule.onNodeWithText("1:14:38$estimatedSuffix", useUnmergedTree = true).assertExists()
     }
 
@@ -176,39 +176,39 @@ class BikeScreenTest {
         val activity = composeTestRule.activity
 
         // ---- More -> Goals -> New goal ----------------------------------------------------
-        composeTestRule.onNodeWithText(activity.getString(R.string.nav_more)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.more_entry_goals))
-        composeTestRule.onNodeWithText(activity.getString(R.string.more_entry_goals)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.goals_title))
-        composeTestRule.onNodeWithContentDescription(activity.getString(R.string.goals_new_content_description)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.goal_edit_title_new))
+        composeTestRule.onNodeWithText(str(Res.string.nav_more)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.more_entry_goals))
+        composeTestRule.onNodeWithText(str(Res.string.more_entry_goals)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.goals_title))
+        composeTestRule.onNodeWithContentDescription(str(Res.string.goals_new_content_description)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.goal_edit_title_new))
 
         // ---- Type: Bike FTP ----------------------------------------------------------------
-        composeTestRule.onNodeWithText(activity.getString(R.string.goal_edit_type_label)).performClick()
+        composeTestRule.onNodeWithText(str(Res.string.goal_edit_type_label)).performClick()
         composeTestRule.waitUntilTextExists("Bike FTP")
         composeTestRule.onNodeWithText("Bike FTP").performClick()
         composeTestRule.waitForIdle()
 
         // ---- Title (required to save) + target watts --------------------------------------
-        composeTestRule.onNodeWithText(activity.getString(R.string.goal_edit_title_label))
+        composeTestRule.onNodeWithText(str(Res.string.goal_edit_title_label))
             .performTextInput("Bike FTP goal")
-        composeTestRule.onNodeWithText(activity.getString(R.string.goal_edit_target_ftp_label))
+        composeTestRule.onNodeWithText(str(Res.string.goal_edit_target_ftp_label))
             .performScrollTo()
             .performTextReplacement("300")
         composeTestRule.waitForIdle()
 
         // ---- Create --------------------------------------------------------------------------
-        composeTestRule.onNodeWithText(activity.getString(R.string.goal_edit_create_action)).performClick()
+        composeTestRule.onNodeWithText(str(Res.string.goal_edit_create_action)).performClick()
 
         // ---- Back on the Goals list: the headline reads "300 W FTP" ------------------------
         composeTestRule.waitUntilTextExists("300 W FTP")
     }
 
     private fun openSettings(activity: MainActivity) {
-        composeTestRule.onNodeWithText(activity.getString(R.string.nav_more)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.settings_title))
-        composeTestRule.onNodeWithText(activity.getString(R.string.settings_title)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.settings_section_profile))
+        composeTestRule.onNodeWithText(str(Res.string.nav_more)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.settings_title))
+        composeTestRule.onNodeWithText(str(Res.string.settings_title)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.settings_section_profile))
         composeTestRule.verticalScroller().performScrollToNode(hasTestTag("settings_indoor_trainer_switch"))
     }
 }

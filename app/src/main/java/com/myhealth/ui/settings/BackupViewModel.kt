@@ -2,12 +2,12 @@ package com.myhealth.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.myhealth.R
 import com.myhealth.domain.repository.BackupMode
 import com.myhealth.domain.repository.BackupRepository
 import com.myhealth.domain.repository.BackupSummary
 import com.myhealth.domain.util.AppError
 import com.myhealth.domain.util.Outcome
+import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -80,8 +80,8 @@ class BackupViewModel(private val backupRepo: BackupRepository) : ViewModel() {
 
 /** User-facing text for a backup failure; [AppError.Validation] already carries a written one. */
 fun backupErrorMessage(error: AppError): UiMessage = when (error) {
-    is AppError.Validation -> UiMessage.of(R.string.backup_error_dynamic_format, error.message)
-    is AppError.Parse -> UiMessage.of(R.string.backup_error_parse_format, error.detail)
-    is AppError.Storage -> UiMessage.of(R.string.backup_error_storage)
-    else -> UiMessage.of(R.string.backup_error_generic)
+    is AppError.Validation -> UiMessage.of(Res.string.backup_error_dynamic_format, error.message)
+    is AppError.Parse -> UiMessage.of(Res.string.backup_error_parse_format, error.detail)
+    is AppError.Storage -> UiMessage.of(Res.string.backup_error_storage)
+    else -> UiMessage.of(Res.string.backup_error_generic)
 }

@@ -1,6 +1,5 @@
 package com.myhealth.ui.calendar
 
-import com.myhealth.R
 import com.myhealth.domain.engine.calendar.LinkProposal
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ActivitySummary
@@ -25,6 +24,7 @@ import com.myhealth.domain.model.SleepRecord
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.domain.model.SportType
 import com.myhealth.domain.util.toLocalDate
+import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.common.displayName
 import com.myhealth.ui.common.fmtDecimal
@@ -109,11 +109,11 @@ fun linkedActivityLabel(
     zone: ZoneId = ZoneId.systemDefault(),
 ): UiMessage {
     val activity = activities.firstOrNull { it.id == activityId }
-        ?: return UiMessage.of(R.string.daydetail_linked_activity_fallback, activityId)
+        ?: return UiMessage.of(Res.string.daydetail_linked_activity_fallback, activityId)
     val name = activity.title?.trim()?.ifEmpty { null } ?: activity.sportType.displayName()
     val time = Instant.ofEpochMilli(activity.startAtMillis).atZone(zone).toLocalTime()
     val clock = "%02d:%02d".format(Locale.US, time.hour, time.minute)
-    return UiMessage.of(R.string.daydetail_linked_activity_label, name, clock, shortDuration(activity.durationSec))
+    return UiMessage.of(Res.string.daydetail_linked_activity_label, name, clock, shortDuration(activity.durationSec))
 }
 
 /** "1h 35m", or "54 min" below the hour. */

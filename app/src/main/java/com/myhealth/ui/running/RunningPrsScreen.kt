@@ -25,11 +25,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.running.CanonicalDistances
 import com.myhealth.domain.engine.running.RacePrediction
@@ -74,7 +74,7 @@ private fun RunningPrsContent(
         modifier = modifier.fillMaxSize(),
         floatingActionButton = {
             FloatingActionButton(onClick = onAddClick) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.running_add_manual_pr))
+                Icon(Icons.Filled.Add, contentDescription = stringResource(Res.string.running_add_manual_pr))
             }
         },
     ) { innerPadding ->
@@ -87,8 +87,8 @@ private fun RunningPrsContent(
             if (state.bests.isEmpty()) {
                 item {
                     EmptyState(
-                        title = stringResource(R.string.running_empty_title),
-                        message = stringResource(R.string.running_empty_message),
+                        title = stringResource(Res.string.running_empty_title),
+                        message = stringResource(Res.string.running_empty_message),
                     )
                 }
             } else {
@@ -110,18 +110,18 @@ private fun RunningPrsContent(
 @Composable
 private fun PrProgressionCard(progression: List<com.myhealth.ui.common.charts.ChartSeries>) {
     LineChartCard(
-        title = stringResource(R.string.running_chart_pr_progression_title),
+        title = stringResource(Res.string.running_chart_pr_progression_title),
         series = progression,
         xLabels = prAxisLabels(progression),
         yFormatter = { formatRaceTime(roundHalfUpToInt(it)) },
-        emptyMessage = stringResource(R.string.running_chart_pr_progression_empty),
+        emptyMessage = stringResource(Res.string.running_chart_pr_progression_empty),
         alwaysShowLegend = true,
     )
 }
 
 @Composable
 private fun PrTableCard(bests: List<RunningBest>, onOpenActivity: (Long) -> Unit) {
-    SectionCard(title = stringResource(R.string.running_pr_table_title)) {
+    SectionCard(title = stringResource(Res.string.running_pr_table_title)) {
         bests.forEach { best ->
             Row(
                 modifier = Modifier
@@ -140,7 +140,7 @@ private fun PrTableCard(bests: List<RunningBest>, onOpenActivity: (Long) -> Unit
                     )
                 }
                 Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
-                    val estimatedSuffix = if (best.isEstimated) stringResource(R.string.running_pr_estimated_suffix) else ""
+                    val estimatedSuffix = if (best.isEstimated) stringResource(Res.string.running_pr_estimated_suffix) else ""
                     Text(formatRaceTime(best.timeSec) + estimatedSuffix, style = MaterialTheme.typography.bodyLarge)
                     Text(formatPaceSecPerKm(best.paceSecPerKm), style = MaterialTheme.typography.bodySmall)
                 }
@@ -151,7 +151,7 @@ private fun PrTableCard(bests: List<RunningBest>, onOpenActivity: (Long) -> Unit
 
 @Composable
 private fun PredictionsCard(predictions: List<RacePrediction>) {
-    SectionCard(title = stringResource(R.string.running_predictions_title)) {
+    SectionCard(title = stringResource(Res.string.running_predictions_title)) {
         predictions.forEach { prediction ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(distanceLabel(prediction.distanceMeters), style = MaterialTheme.typography.bodyMedium)
@@ -177,11 +177,11 @@ private fun AddManualPrDialog(onDismiss: () -> Unit, onSave: (Double, Int, Long)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.running_add_manual_pr)) },
+        title = { Text(stringResource(Res.string.running_add_manual_pr)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 DropdownField(
-                    label = stringResource(R.string.running_pr_distance_field),
+                    label = stringResource(Res.string.running_pr_distance_field),
                     options = CanonicalDistances.ALL,
                     selected = distance,
                     optionLabel = ::distanceLabel,
@@ -189,14 +189,14 @@ private fun AddManualPrDialog(onDismiss: () -> Unit, onSave: (Double, Int, Long)
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     NumberField(
-                        label = stringResource(R.string.running_pr_minutes_field),
+                        label = stringResource(Res.string.running_pr_minutes_field),
                         value = minutes,
                         onValueChange = { minutes = it },
                         decimals = 0,
                         modifier = Modifier.weight(1f),
                     )
                     NumberField(
-                        label = stringResource(R.string.running_pr_seconds_field),
+                        label = stringResource(Res.string.running_pr_seconds_field),
                         value = seconds,
                         onValueChange = { seconds = it },
                         decimals = 0,
@@ -204,7 +204,7 @@ private fun AddManualPrDialog(onDismiss: () -> Unit, onSave: (Double, Int, Long)
                     )
                 }
                 DatePickerField(
-                    label = stringResource(R.string.running_pr_date_field),
+                    label = stringResource(Res.string.running_pr_date_field),
                     value = date,
                     onValueChange = { date = it },
                 )
@@ -214,9 +214,9 @@ private fun AddManualPrDialog(onDismiss: () -> Unit, onSave: (Double, Int, Long)
             Button(
                 onClick = { date?.let { onSave(distance, timeSec, it.toEpochDay()) } },
                 enabled = canSave,
-            ) { Text(stringResource(R.string.action_save)) }
+            ) { Text(stringResource(Res.string.action_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) } },
     )
 }
 

@@ -17,11 +17,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.CalendarDay
 import com.myhealth.domain.model.EventType
@@ -76,14 +76,14 @@ fun AgendaList(
         if (isEmpty) {
             item(key = "agenda-empty") {
                 EmptyState(
-                    title = stringResource(R.string.agenda_empty_title),
-                    message = stringResource(R.string.agenda_empty_message),
+                    title = stringResource(Res.string.agenda_empty_title),
+                    message = stringResource(Res.string.agenda_empty_message),
                 )
             }
         }
         items(events, key = { "event-${it.eventId}-${it.occurrenceDay}" }) { occurrence ->
             AgendaRow(
-                lead = formatMinuteOfDay(occurrence.effectiveStartMinuteOfDay) ?: stringResource(R.string.agenda_all_day),
+                lead = formatMinuteOfDay(occurrence.effectiveStartMinuteOfDay) ?: stringResource(Res.string.agenda_all_day),
                 title = occurrence.effectiveTitle,
                 subtitle = occurrence.type.displayName(),
             )
@@ -95,9 +95,9 @@ fun AgendaList(
         if (meals.isNotEmpty()) {
             item(key = "meals") {
                 AgendaRow(
-                    lead = stringResource(R.string.agenda_meals_lead),
-                    title = stringResource(R.string.agenda_meals_logged_count, meals.size),
-                    subtitle = stringResource(R.string.agenda_meals_kcal, day?.intake?.kcal ?: 0.0),
+                    lead = stringResource(Res.string.agenda_meals_lead),
+                    title = stringResource(Res.string.agenda_meals_logged_count, meals.size),
+                    subtitle = stringResource(Res.string.agenda_meals_kcal, day?.intake?.kcal ?: 0.0),
                 )
             }
         }
@@ -112,14 +112,14 @@ private fun AgendaHeader(date: LocalDate, onOpenDay: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text = fullDateTitle(date), style = MaterialTheme.typography.titleMedium)
-        TextButton(onClick = onOpenDay) { Text(stringResource(R.string.agenda_day_detail_action)) }
+        TextButton(onClick = onOpenDay) { Text(stringResource(Res.string.agenda_day_detail_action)) }
     }
 }
 
 @Composable
 private fun PlannedAgendaRow(session: PlannedSession) {
     AgendaRow(
-        lead = formatMinuteOfDay(session.startMinuteOfDay) ?: stringResource(R.string.agenda_planned_lead),
+        lead = formatMinuteOfDay(session.startMinuteOfDay) ?: stringResource(Res.string.agenda_planned_lead),
         title = session.sessionType.displayName(),
         subtitle = "${session.sportType.displayName()} · ${session.status.displayName()}",
     )

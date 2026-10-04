@@ -19,12 +19,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.EventOccurrence
 import com.myhealth.domain.model.EventType
@@ -64,9 +64,9 @@ fun WeekDayRow(
             if (row.isToday || isSelected) {
                 Text(
                     text = if (row.isToday) {
-                        stringResource(R.string.training_today_badge)
+                        stringResource(Res.string.training_today_badge)
                     } else {
-                        stringResource(R.string.training_selected_badge)
+                        stringResource(Res.string.training_selected_badge)
                     },
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
@@ -88,13 +88,13 @@ fun WeekDayRow(
         row.activities.forEach { CompletedActivityRow(it, onOpenActivity) }
         if (row.isEmpty) {
             Text(
-                text = stringResource(R.string.training_rest_day),
+                text = stringResource(Res.string.training_rest_day),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         HorizontalDivider()
-        TextButton(onClick = { onAddSession(row.day) }) { Text(stringResource(R.string.training_add_session)) }
+        TextButton(onClick = { onAddSession(row.day) }) { Text(stringResource(Res.string.training_add_session)) }
     }
 }
 
@@ -122,7 +122,7 @@ private fun FixedEventRow(event: EventOccurrence) {
             Text(
                 text = listOfNotNull(
                     event.type.displayName(),
-                    formatMinuteOfDay(event.effectiveStartMinuteOfDay) ?: stringResource(R.string.training_all_day),
+                    formatMinuteOfDay(event.effectiveStartMinuteOfDay) ?: stringResource(Res.string.training_all_day),
                     event.effectiveDurationMin?.let { "$it min" },
                 ).joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,

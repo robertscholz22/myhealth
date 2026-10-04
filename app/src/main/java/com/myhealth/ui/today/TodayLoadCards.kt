@@ -10,8 +10,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import com.myhealth.R
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import com.myhealth.domain.engine.strength.MuscleLoadState
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.ui.common.SectionCard
@@ -33,11 +33,11 @@ import com.myhealth.ui.load.todayMuscleLoadHint
 @Composable
 internal fun RecoveryCard(load: DailyLoad?, topFlag: String?, onOpenLoad: () -> Unit) {
     SectionCard(
-        title = stringResource(R.string.today_recovery_title),
+        title = stringResource(Res.string.today_recovery_title),
         modifier = Modifier.clickable(onClick = onOpenLoad),
     ) {
         if (load?.recoveryScore == null) {
-            Text(stringResource(R.string.today_recovery_no_data), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(Res.string.today_recovery_no_data), style = MaterialTheme.typography.bodyMedium)
             return@SectionCard
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -46,7 +46,7 @@ internal fun RecoveryCard(load: DailyLoad?, topFlag: String?, onOpenLoad: () -> 
                 Text(recoveryBandLabel(load.recoveryBand), style = MaterialTheme.typography.titleMedium)
                 Text(
                     stringResource(
-                        R.string.today_confidence_label,
+                        Res.string.today_confidence_label,
                         fmtDecimal(load.recoveryConfidence * 100, 0),
                     ),
                     style = MaterialTheme.typography.bodySmall,
@@ -69,18 +69,18 @@ internal fun LoadCard(
     onOpenLoad: () -> Unit,
 ) {
     SectionCard(
-        title = stringResource(R.string.today_load_title),
+        title = stringResource(Res.string.today_load_title),
         modifier = Modifier.clickable(onClick = onOpenLoad),
     ) {
         if (load == null) {
-            Text(stringResource(R.string.today_load_no_data), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(Res.string.today_load_no_data), style = MaterialTheme.typography.bodyMedium)
             return@SectionCard
         }
         val zone = acwrZoneOf(load.acwr)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
                 Text(
-                    stringResource(R.string.today_acwr_label),
+                    stringResource(Res.string.today_acwr_label),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -90,10 +90,10 @@ internal fun LoadCard(
                     color = zone?.color() ?: MaterialTheme.colorScheme.onSurface,
                 )
             }
-            StatTile(label = stringResource(R.string.today_atl_label), value = fmtDecimal(load.atl, 0))
-            StatTile(label = stringResource(R.string.today_ctl_label), value = fmtDecimal(load.ctl, 0))
+            StatTile(label = stringResource(Res.string.today_atl_label), value = fmtDecimal(load.atl, 0))
+            StatTile(label = stringResource(Res.string.today_ctl_label), value = fmtDecimal(load.ctl, 0))
             StatTile(
-                label = stringResource(R.string.today_weekly_trimp_label),
+                label = stringResource(Res.string.today_weekly_trimp_label),
                 value = fmtDecimal(weeklyTrimp, 0),
             )
         }

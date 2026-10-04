@@ -38,11 +38,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.Ingredient
 import com.myhealth.domain.model.MealSlot
@@ -77,21 +77,21 @@ fun MealTemplateEditScreen(id: Long, onBack: () -> Unit, modifier: Modifier = Mo
                 title = {
                     Text(
                         if (state.isNew) {
-                            stringResource(R.string.mealtpl_title_new)
+                            stringResource(Res.string.mealtpl_title_new)
                         } else {
-                            stringResource(R.string.mealtpl_title_edit)
+                            stringResource(Res.string.mealtpl_title_edit)
                         },
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 },
                 actions = {
                     if (!state.isNew) {
                         IconButton(onClick = vm::requestDelete) {
-                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.mealtpl_delete_cd))
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(Res.string.mealtpl_delete_cd))
                         }
                     }
                 },
@@ -134,10 +134,10 @@ fun MealTemplateEditScreen(id: Long, onBack: () -> Unit, modifier: Modifier = Mo
     if (state.pendingDelete) {
         AlertDialog(
             onDismissRequest = vm::cancelDelete,
-            title = { Text(stringResource(R.string.mealtpl_delete_confirm_title)) },
-            text = { Text(stringResource(R.string.mealtpl_delete_confirm_message)) },
-            confirmButton = { TextButton(onClick = vm::confirmDelete) { Text(stringResource(R.string.action_delete)) } },
-            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text(stringResource(R.string.action_cancel)) } },
+            title = { Text(stringResource(Res.string.mealtpl_delete_confirm_title)) },
+            text = { Text(stringResource(Res.string.mealtpl_delete_confirm_message)) },
+            confirmButton = { TextButton(onClick = vm::confirmDelete) { Text(stringResource(Res.string.action_delete)) } },
+            dismissButton = { TextButton(onClick = vm::cancelDelete) { Text(stringResource(Res.string.action_cancel)) } },
         )
     }
 }
@@ -170,19 +170,19 @@ private fun MealTemplateEditContent(
         state.saveError?.let { item { ErrorBanner(message = it.resolve()) } }
 
         item {
-            SectionCard(title = stringResource(R.string.mealtpl_section_template)) {
+            SectionCard(title = stringResource(Res.string.mealtpl_section_template)) {
                 OutlinedTextField(
                     value = state.draft.name,
                     onValueChange = actions.onNameChange,
-                    label = { Text(stringResource(R.string.mealtpl_name_label)) },
+                    label = { Text(stringResource(Res.string.mealtpl_name_label)) },
                     singleLine = true,
                     isError = state.errors.containsKey(TemplateField.NAME),
                     supportingText = state.errors[TemplateField.NAME]?.let { { Text(it) } },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                val noDefaultSlotLabel = stringResource(R.string.mealtpl_no_default)
+                val noDefaultSlotLabel = stringResource(Res.string.mealtpl_no_default)
                 DropdownField(
-                    label = stringResource(R.string.mealtpl_default_slot_label),
+                    label = stringResource(Res.string.mealtpl_default_slot_label),
                     options = listOf(null) + MealSlot.entries.toList(),
                     selected = state.draft.defaultSlot,
                     optionLabel = { slot -> slot?.displayName() ?: noDefaultSlotLabel },
@@ -191,7 +191,7 @@ private fun MealTemplateEditContent(
                 OutlinedTextField(
                     value = state.draft.note,
                     onValueChange = actions.onNoteChange,
-                    label = { Text(stringResource(R.string.mealtpl_note_label)) },
+                    label = { Text(stringResource(Res.string.mealtpl_note_label)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(
@@ -199,7 +199,7 @@ private fun MealTemplateEditContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(stringResource(R.string.mealtpl_favorite_label), style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(Res.string.mealtpl_favorite_label), style = MaterialTheme.typography.bodyMedium)
                     Switch(checked = state.draft.isFavorite, onCheckedChange = actions.onFavoriteChange)
                 }
             }
@@ -207,16 +207,16 @@ private fun MealTemplateEditContent(
 
         item {
             SectionCard(
-                title = stringResource(R.string.mealtpl_section_ingredients),
+                title = stringResource(Res.string.mealtpl_section_ingredients),
                 action = {
                     IconButton(onClick = actions.onAddItemClick) {
-                        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.mealtpl_add_ingredient_cd))
+                        Icon(Icons.Filled.Add, contentDescription = stringResource(Res.string.mealtpl_add_ingredient_cd))
                     }
                 },
             ) {
                 if (state.draft.items.isEmpty()) {
                     Text(
-                        text = stringResource(R.string.mealtpl_empty_items),
+                        text = stringResource(Res.string.mealtpl_empty_items),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -236,7 +236,7 @@ private fun MealTemplateEditContent(
         }
 
         item {
-            SectionCard(title = stringResource(R.string.mealtpl_section_totals)) {
+            SectionCard(title = stringResource(Res.string.mealtpl_section_totals)) {
                 Text(text = macroSummary(state.totals), style = MaterialTheme.typography.bodyLarge)
             }
         }
@@ -246,7 +246,7 @@ private fun MealTemplateEditContent(
                 onClick = actions.onSave,
                 enabled = !state.isSaving,
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text(stringResource(R.string.mealtpl_save_button)) }
+            ) { Text(stringResource(Res.string.mealtpl_save_button)) }
         }
     }
 }
@@ -266,12 +266,12 @@ private fun TemplateItemRow(
         ) {
             Text(text = item.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
             IconButton(onClick = onRemove) {
-                Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.mealtpl_remove_item_cd, item.name))
+                Icon(Icons.Filled.Delete, contentDescription = stringResource(Res.string.mealtpl_remove_item_cd, item.name))
             }
         }
         if (item.ingredient == null) {
             Text(
-                text = stringResource(R.string.mealtpl_ingredient_missing),
+                text = stringResource(Res.string.mealtpl_ingredient_missing),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
@@ -282,7 +282,7 @@ private fun TemplateItemRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             NumberField(
-                label = stringResource(R.string.quantity_label),
+                label = stringResource(Res.string.quantity_label),
                 value = item.quantity,
                 onValueChange = onQuantityChange,
                 decimals = 0,
@@ -290,7 +290,7 @@ private fun TemplateItemRow(
             )
             val units = item.ingredient?.let { validUnitsFor(it.basis, it) } ?: listOf(item.unit)
             DropdownField(
-                label = stringResource(R.string.quantity_unit_label),
+                label = stringResource(Res.string.quantity_unit_label),
                 options = units,
                 selected = item.unit,
                 optionLabel = { it.label() },
@@ -317,13 +317,13 @@ private fun IngredientPickerSheet(
             OutlinedTextField(
                 value = query,
                 onValueChange = onQueryChange,
-                label = { Text(stringResource(R.string.addfood_search_label)) },
+                label = { Text(stringResource(Res.string.addfood_search_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             if (results.isEmpty()) {
                 Text(
-                    text = stringResource(R.string.mealtpl_picker_empty),
+                    text = stringResource(Res.string.mealtpl_picker_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(vertical = 16.dp),
                 )
@@ -341,7 +341,7 @@ private fun IngredientPickerSheet(
             OutlinedButton(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-            ) { Text(stringResource(R.string.mealtpl_close_button)) }
+            ) { Text(stringResource(Res.string.mealtpl_close_button)) }
         }
     }
 }

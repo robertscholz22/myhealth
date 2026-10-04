@@ -22,9 +22,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.engine.strength.EquipmentSetCodec
 import com.myhealth.domain.model.AppSettings
 import com.myhealth.domain.model.Equipment
@@ -42,16 +42,16 @@ import java.time.LocalDate
 /** The non-profile [AppSettings] keys (§4.2 Settings / P1.8). */
 @Composable
 internal fun AppPreferencesSection(settings: AppSettings, onSettingsChange: (AppSettings) -> Unit) {
-    SectionCard(title = stringResource(R.string.settings_section_app)) {
+    SectionCard(title = stringResource(Res.string.settings_section_app)) {
         DropdownField(
-            label = stringResource(R.string.settings_theme_label),
+            label = stringResource(Res.string.settings_theme_label),
             options = ThemeMode.entries,
             selected = settings.themeMode,
             optionLabel = { it.name.lowercase().replaceFirstChar(Char::uppercase) },
             onSelect = { onSettingsChange(settings.copy(themeMode = it)) },
         )
         SwitchRow(
-            label = stringResource(R.string.settings_dynamic_color_label),
+            label = stringResource(Res.string.settings_dynamic_color_label),
             checked = settings.useDynamicColor,
             onCheckedChange = { onSettingsChange(settings.copy(useDynamicColor = it)) },
             // Testing hook (PLAN P10.2): every SwitchRow's Switch is otherwise indistinguishable
@@ -59,28 +59,28 @@ internal fun AppPreferencesSection(settings: AppSettings, onSettingsChange: (App
             switchTestTag = "settings_dynamic_color_switch",
         )
         NumberField(
-            label = stringResource(R.string.settings_sync_interval_label),
+            label = stringResource(Res.string.settings_sync_interval_label),
             value = settings.syncIntervalHours.toDouble(),
             onValueChange = { it?.let { v -> onSettingsChange(settings.copy(syncIntervalHours = v.toInt().coerceAtLeast(1))) } },
-            suffix = stringResource(R.string.settings_unit_hours),
+            suffix = stringResource(Res.string.settings_unit_hours),
             decimals = 0,
         )
         NumberField(
-            label = stringResource(R.string.settings_suggestion_horizon_label),
+            label = stringResource(Res.string.settings_suggestion_horizon_label),
             value = settings.suggestionHorizonDays.toDouble(),
             onValueChange = { it?.let { v -> onSettingsChange(settings.copy(suggestionHorizonDays = v.toInt().coerceAtLeast(1))) } },
-            suffix = stringResource(R.string.settings_unit_days),
+            suffix = stringResource(Res.string.settings_unit_days),
             decimals = 0,
         )
         SwitchRow(
-            label = stringResource(R.string.settings_include_treadmill_prs_label),
+            label = stringResource(Res.string.settings_include_treadmill_prs_label),
             checked = settings.includeTreadmillInPrs,
             onCheckedChange = { onSettingsChange(settings.copy(includeTreadmillInPrs = it)) },
         )
         // P11.3: on by default for FEMALE profiles (P11.1's onboarding/settings hooks set this),
         // but anyone can opt in or out here regardless of `sex`.
         SwitchRow(
-            label = stringResource(R.string.cycle_track_switch_label),
+            label = stringResource(Res.string.cycle_track_switch_label),
             checked = settings.cycleTrackingEnabled,
             onCheckedChange = { onSettingsChange(settings.copy(cycleTrackingEnabled = it)) },
             switchTestTag = "settings_cycle_tracking_switch",
@@ -88,7 +88,7 @@ internal fun AppPreferencesSection(settings: AppSettings, onSettingsChange: (App
         OutlinedTextField(
             value = settings.offUserAgentContact,
             onValueChange = { onSettingsChange(settings.copy(offUserAgentContact = it)) },
-            label = { Text(stringResource(R.string.settings_off_contact_label)) },
+            label = { Text(stringResource(Res.string.settings_off_contact_label)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -105,14 +105,14 @@ internal fun AdvancedSection(
 ) {
     var confirmingCleanup by remember { mutableStateOf(false) }
 
-    SectionCard(title = stringResource(R.string.settings_section_advanced)) {
+    SectionCard(title = stringResource(Res.string.settings_section_advanced)) {
         SwitchRow(
-            label = stringResource(R.string.settings_garmin_direct_label),
+            label = stringResource(Res.string.settings_garmin_direct_label),
             checked = settings.garminDirectEnabled,
             onCheckedChange = { onSettingsChange(settings.copy(garminDirectEnabled = it)) },
         )
         SwitchRow(
-            label = stringResource(R.string.settings_allow_destructive_migration_label),
+            label = stringResource(Res.string.settings_allow_destructive_migration_label),
             checked = settings.allowDestructiveMigration,
             onCheckedChange = { onSettingsChange(settings.copy(allowDestructiveMigration = it)) },
         )
@@ -120,16 +120,16 @@ internal fun AdvancedSection(
             onClick = { confirmingCleanup = true },
             modifier = Modifier.padding(top = 8.dp),
         ) {
-            Text(stringResource(R.string.settings_orphan_cleanup_button))
+            Text(stringResource(Res.string.settings_orphan_cleanup_button))
         }
         OutlinedButton(
             onClick = onRecomputeTrainingLoad,
             modifier = Modifier.padding(top = 8.dp),
         ) {
-            Text(stringResource(R.string.settings_recompute_load_button))
+            Text(stringResource(Res.string.settings_recompute_load_button))
         }
         Text(
-            text = stringResource(R.string.settings_recompute_load_description),
+            text = stringResource(Res.string.settings_recompute_load_description),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -154,13 +154,13 @@ internal fun AdvancedSection(
 private fun OrphanCleanupDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_orphan_cleanup_dialog_title)) },
-        text = { Text(stringResource(R.string.settings_orphan_cleanup_dialog_message)) },
+        title = { Text(stringResource(Res.string.settings_orphan_cleanup_dialog_title)) },
+        text = { Text(stringResource(Res.string.settings_orphan_cleanup_dialog_message)) },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text(stringResource(R.string.settings_orphan_cleanup_button)) }
+            TextButton(onClick = onConfirm) { Text(stringResource(Res.string.settings_orphan_cleanup_button)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
         },
     )
 }
@@ -207,19 +207,19 @@ internal fun HeartRateZonesSection(profile: Profile, onProfileChange: (Profile) 
     val status = hrZoneBoundsStatus(slots)
     val previewModel = lightweightHrZoneModel(profile, LocalDate.now())
 
-    SectionCard(title = stringResource(R.string.settings_section_hr_zones)) {
+    SectionCard(title = stringResource(Res.string.settings_section_hr_zones)) {
         previewModel?.let {
             Text(
-                text = stringResource(R.string.settings_hr_scheme_format, it.scheme.schemeLabel()),
+                text = stringResource(Res.string.settings_hr_scheme_format, it.scheme.schemeLabel()),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         NumberField(
-            label = stringResource(R.string.settings_hr_lthr_label),
+            label = stringResource(Res.string.settings_hr_lthr_label),
             value = profile.lactateThresholdHrManual?.toDouble(),
             onValueChange = { onProfileChange(profile.copy(lactateThresholdHrManual = it?.toInt())) },
-            suffix = stringResource(R.string.settings_unit_bpm),
+            suffix = stringResource(Res.string.settings_unit_bpm),
             decimals = 0,
         )
         HR_ZONE_BOUND_LABELS.forEachIndexed { index, labelRes ->
@@ -230,20 +230,20 @@ internal fun HeartRateZonesSection(profile: Profile, onProfileChange: (Profile) 
                     val updated = slots.toMutableList().also { it[index] = v?.toInt() }
                     onProfileChange(profile.copy(hrZoneBoundsJson = encodeHrZoneBoundsSlots(updated)))
                 },
-                suffix = stringResource(R.string.settings_unit_bpm),
+                suffix = stringResource(Res.string.settings_unit_bpm),
                 decimals = 0,
             )
         }
         if (status == HrZoneBoundsStatus.INVALID) {
             Text(
-                text = stringResource(R.string.settings_hr_bounds_ascending_error),
+                text = stringResource(Res.string.settings_hr_bounds_ascending_error),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
         }
         previewModel?.let {
             Text(
-                text = stringResource(R.string.settings_hr_bounds_preview_title),
+                text = stringResource(Res.string.settings_hr_bounds_preview_title),
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier.padding(top = 4.dp),
             )
@@ -262,9 +262,9 @@ internal fun HeartRateZonesSection(profile: Profile, onProfileChange: (Profile) 
 @Composable
 internal fun StrengthEquipmentSection(profile: Profile, onProfileChange: (Profile) -> Unit) {
     val selected = EquipmentSetCodec.decode(profile.availableEquipmentJson) ?: Equipment.entries.toSet()
-    SectionCard(title = stringResource(R.string.settings_section_strength)) {
+    SectionCard(title = stringResource(Res.string.settings_section_strength)) {
         Text(
-            text = stringResource(R.string.settings_my_equipment_explanation),
+            text = stringResource(Res.string.settings_my_equipment_explanation),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -286,10 +286,10 @@ internal fun StrengthEquipmentSection(profile: Profile, onProfileChange: (Profil
 }
 
 private val HR_ZONE_BOUND_LABELS = listOf(
-    R.string.settings_hr_bound_z2_label,
-    R.string.settings_hr_bound_z3_label,
-    R.string.settings_hr_bound_z4_label,
-    R.string.settings_hr_bound_z5_label,
+    Res.string.settings_hr_bound_z2_label,
+    Res.string.settings_hr_bound_z3_label,
+    Res.string.settings_hr_bound_z4_label,
+    Res.string.settings_hr_bound_z5_label,
 )
 
 @Composable

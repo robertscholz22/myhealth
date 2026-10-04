@@ -33,11 +33,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.bike.FtpEstimate
 import com.myhealth.domain.model.ActivitySession
@@ -86,18 +86,18 @@ fun ActivityDetailScreen(id: Long, onBack: () -> Unit, modifier: Modifier = Modi
         topBar = {
             TopAppBar(
                 title = {
-                    val fallback = stringResource(R.string.activity_detail_title_fallback)
+                    val fallback = stringResource(Res.string.activity_detail_title_fallback)
                     Text(state.activity?.title ?: state.activity?.sportType?.displayName() ?: fallback)
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 },
                 actions = {
                     if (state.activity != null) {
                         IconButton(onClick = vm::requestDelete) {
-                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.activity_detail_delete_cd))
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(Res.string.activity_detail_delete_cd))
                         }
                     }
                 },
@@ -139,7 +139,7 @@ internal fun ActivityDetailBody(
     val activity = state.activity
     if (activity == null) {
         Row(modifier = modifier, horizontalArrangement = Arrangement.Center) {
-            if (!state.isLoading) Text(stringResource(R.string.activity_detail_not_found)) else CircularProgressIndicator()
+            if (!state.isLoading) Text(stringResource(Res.string.activity_detail_not_found)) else CircularProgressIndicator()
         }
         return
     }
@@ -177,19 +177,19 @@ internal fun ActivityDetailBody(
 
 @Composable
 private fun HeaderStatsCard(activity: ActivitySession) {
-    SectionCard(title = stringResource(R.string.activity_detail_overview_title)) {
+    SectionCard(title = stringResource(Res.string.activity_detail_overview_title)) {
         Text(formatStartAtFull(activity.startAtMillis), style = MaterialTheme.typography.bodyMedium)
-        StatLine(stringResource(R.string.activity_detail_duration_label), formatDuration(activity.durationSec))
-        StatLine(stringResource(R.string.activity_detail_elapsed_label), formatDuration(activity.elapsedSec))
-        formatDistanceKm(activity.distanceMeters)?.let { StatLine(stringResource(R.string.activity_detail_distance_label), it) }
-        activity.avgHr?.let { StatLine(stringResource(R.string.activity_detail_avg_hr_label), "$it bpm") }
-        activity.maxHr?.let { StatLine(stringResource(R.string.activity_detail_max_hr_label), "$it bpm") }
+        StatLine(stringResource(Res.string.activity_detail_duration_label), formatDuration(activity.durationSec))
+        StatLine(stringResource(Res.string.activity_detail_elapsed_label), formatDuration(activity.elapsedSec))
+        formatDistanceKm(activity.distanceMeters)?.let { StatLine(stringResource(Res.string.activity_detail_distance_label), it) }
+        activity.avgHr?.let { StatLine(stringResource(Res.string.activity_detail_avg_hr_label), "$it bpm") }
+        activity.maxHr?.let { StatLine(stringResource(Res.string.activity_detail_max_hr_label), "$it bpm") }
         if (activity.sportGroup == SportGroup.RUN) {
-            formatPaceMinPerKm(activity.avgSpeedMps)?.let { StatLine(stringResource(R.string.activity_detail_avg_pace_label), it) }
-            formatPaceMinPerKm(activity.maxSpeedMps)?.let { StatLine(stringResource(R.string.activity_detail_best_pace_label), it) }
+            formatPaceMinPerKm(activity.avgSpeedMps)?.let { StatLine(stringResource(Res.string.activity_detail_avg_pace_label), it) }
+            formatPaceMinPerKm(activity.maxSpeedMps)?.let { StatLine(stringResource(Res.string.activity_detail_best_pace_label), it) }
         } else {
-            val avgLabel = stringResource(R.string.activity_detail_avg_speed_label)
-            val maxLabel = stringResource(R.string.activity_detail_max_speed_label)
+            val avgLabel = stringResource(Res.string.activity_detail_avg_speed_label)
+            val maxLabel = stringResource(Res.string.activity_detail_max_speed_label)
             activity.avgSpeedMps?.let { StatLine(avgLabel, "${fmtDecimal(it * 3.6, 1)} km/h") }
             activity.maxSpeedMps?.let { StatLine(maxLabel, "${fmtDecimal(it * 3.6, 1)} km/h") }
         }
@@ -197,17 +197,17 @@ private fun HeaderStatsCard(activity: ActivitySession) {
         // label changes, the stored number does not.
         val cadenceUnit = if (activity.sportGroup == SportGroup.CYCLE) "rpm" else "spm"
         activity.avgCadenceSpm?.let {
-            StatLine(stringResource(R.string.activity_detail_cadence_label), "${fmtDecimal(it, 0)} $cadenceUnit")
+            StatLine(stringResource(Res.string.activity_detail_cadence_label), "${fmtDecimal(it, 0)} $cadenceUnit")
         }
-        val elevationLabel = stringResource(R.string.activity_detail_elevation_gain_label)
+        val elevationLabel = stringResource(Res.string.activity_detail_elevation_gain_label)
         activity.elevationGainM?.let { StatLine(elevationLabel, "${fmtDecimal(it, 0)} m") }
-        val activeCaloriesLabel = stringResource(R.string.activity_detail_active_calories_label)
+        val activeCaloriesLabel = stringResource(Res.string.activity_detail_active_calories_label)
         activity.activeEnergyKcal?.let { StatLine(activeCaloriesLabel, "${fmtDecimal(it, 0)} kcal") }
-        val totalCaloriesLabel = stringResource(R.string.activity_detail_total_calories_label)
+        val totalCaloriesLabel = stringResource(Res.string.activity_detail_total_calories_label)
         activity.totalEnergyKcal?.let { StatLine(totalCaloriesLabel, "${fmtDecimal(it, 0)} kcal") }
         activity.trimp?.let { trimp ->
             val method = activity.loadMethod?.let { " (${it.label()})" } ?: ""
-            StatLine(stringResource(R.string.activity_detail_trimp_label), "${fmtDecimal(trimp, 1)}$method")
+            StatLine(stringResource(Res.string.activity_detail_trimp_label), "${fmtDecimal(trimp, 1)}$method")
         }
     }
 }
@@ -222,16 +222,16 @@ private fun hasPowerFields(activity: ActivitySession): Boolean =
  */
 @Composable
 private fun PowerCard(activity: ActivitySession, ftp: FtpEstimate?) {
-    SectionCard(title = stringResource(R.string.activity_detail_power_title)) {
-        activity.avgPowerW?.let { StatLine(stringResource(R.string.activity_detail_avg_power_label), "$it W") }
-        activity.normalizedPowerW?.let { StatLine(stringResource(R.string.activity_detail_np_label), "$it W") }
-        activity.maxPowerW?.let { StatLine(stringResource(R.string.activity_detail_max_power_label), "$it W") }
+    SectionCard(title = stringResource(Res.string.activity_detail_power_title)) {
+        activity.avgPowerW?.let { StatLine(stringResource(Res.string.activity_detail_avg_power_label), "$it W") }
+        activity.normalizedPowerW?.let { StatLine(stringResource(Res.string.activity_detail_np_label), "$it W") }
+        activity.maxPowerW?.let { StatLine(stringResource(Res.string.activity_detail_max_power_label), "$it W") }
         val np = activity.normalizedPowerW ?: activity.avgPowerW
         if (np != null && ftp != null && ftp.watts > 0) {
             val intensityFactor = np.toDouble() / ftp.watts
-            StatLine(stringResource(R.string.activity_detail_if_label), fmtDecimal(intensityFactor, 2))
+            StatLine(stringResource(Res.string.activity_detail_if_label), fmtDecimal(intensityFactor, 2))
             val tss = trainingStressScore(activity.durationSec, np, ftp.watts)
-            tss?.let { StatLine(stringResource(R.string.activity_detail_tss_label), fmtDecimal(it, 0)) }
+            tss?.let { StatLine(stringResource(Res.string.activity_detail_tss_label), fmtDecimal(it, 0)) }
         }
     }
 }
@@ -253,49 +253,49 @@ private fun StatLine(label: String, value: String) {
 
 @Composable
 private fun LoadMethod.label(): String = when (this) {
-    LoadMethod.HR_SAMPLES -> stringResource(R.string.activity_detail_load_method_hr_samples)
-    LoadMethod.HR_AVERAGE -> stringResource(R.string.activity_detail_load_method_avg_hr)
-    LoadMethod.RPE_ESTIMATE -> stringResource(R.string.activity_detail_load_method_rpe_estimate)
-    LoadMethod.DURATION_ONLY -> stringResource(R.string.activity_detail_load_method_duration_only)
-    LoadMethod.POWER_TSS -> stringResource(R.string.activity_detail_load_method_power_tss)
+    LoadMethod.HR_SAMPLES -> stringResource(Res.string.activity_detail_load_method_hr_samples)
+    LoadMethod.HR_AVERAGE -> stringResource(Res.string.activity_detail_load_method_avg_hr)
+    LoadMethod.RPE_ESTIMATE -> stringResource(Res.string.activity_detail_load_method_rpe_estimate)
+    LoadMethod.DURATION_ONLY -> stringResource(Res.string.activity_detail_load_method_duration_only)
+    LoadMethod.POWER_TSS -> stringResource(Res.string.activity_detail_load_method_power_tss)
 }
 
 @Composable
 private fun TitleEditCard(title: String?, onSave: (String) -> Unit) {
     var text by remember(title) { mutableStateOf(title.orEmpty()) }
-    SectionCard(title = stringResource(R.string.activity_detail_title_card_title)) {
+    SectionCard(title = stringResource(Res.string.activity_detail_title_card_title)) {
         OutlinedTextField(
             value = text,
             onValueChange = { text = it },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
         )
-        Button(onClick = { onSave(text) }, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.action_save)) }
+        Button(onClick = { onSave(text) }, modifier = Modifier.align(Alignment.End)) { Text(stringResource(Res.string.action_save)) }
     }
 }
 
 @Composable
 private fun NoteEditCard(note: String?, onSave: (String) -> Unit) {
     var text by remember(note) { mutableStateOf(note.orEmpty()) }
-    SectionCard(title = stringResource(R.string.activity_detail_notes_title)) {
+    SectionCard(title = stringResource(Res.string.activity_detail_notes_title)) {
         OutlinedTextField(
             value = text,
             onValueChange = { text = it },
             modifier = Modifier.fillMaxWidth(),
             minLines = 2,
         )
-        Button(onClick = { onSave(text) }, modifier = Modifier.align(Alignment.End)) { Text(stringResource(R.string.action_save)) }
+        Button(onClick = { onSave(text) }, modifier = Modifier.align(Alignment.End)) { Text(stringResource(Res.string.action_save)) }
     }
 }
 
 @Composable
 private fun HrSummaryCard(state: ActivityDetailUiState) {
-    SectionCard(title = stringResource(R.string.activity_detail_hr_summary_title)) {
-        state.minHr?.let { StatLine(stringResource(R.string.activity_detail_hr_min_label), "$it bpm") }
-        state.avgHrFromStream?.let { StatLine(stringResource(R.string.activity_detail_hr_avg_label), "$it bpm") }
-        state.maxHrFromStream?.let { StatLine(stringResource(R.string.activity_detail_hr_max_label), "$it bpm") }
+    SectionCard(title = stringResource(Res.string.activity_detail_hr_summary_title)) {
+        state.minHr?.let { StatLine(stringResource(Res.string.activity_detail_hr_min_label), "$it bpm") }
+        state.avgHrFromStream?.let { StatLine(stringResource(Res.string.activity_detail_hr_avg_label), "$it bpm") }
+        state.maxHrFromStream?.let { StatLine(stringResource(Res.string.activity_detail_hr_max_label), "$it bpm") }
         Text(
-            stringResource(R.string.activity_detail_hr_time_in_zone_label),
+            stringResource(Res.string.activity_detail_hr_time_in_zone_label),
             style = MaterialTheme.typography.labelMedium,
             modifier = Modifier.padding(top = 8.dp),
         )
@@ -305,7 +305,7 @@ private fun HrSummaryCard(state: ActivityDetailUiState) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(
                     text = zoneRowLabel(zone, stringResource(zoneNameRes(zone.index))) +
-                        if (isTarget) " " + stringResource(R.string.activity_detail_target_zone_marker) else "",
+                        if (isTarget) " " + stringResource(Res.string.activity_detail_target_zone_marker) else "",
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (isTarget) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 )
@@ -317,12 +317,12 @@ private fun HrSummaryCard(state: ActivityDetailUiState) {
 
 @Composable
 private fun LapsCard(laps: List<Lap>) {
-    SectionCard(title = stringResource(R.string.activity_detail_laps_title)) {
+    SectionCard(title = stringResource(Res.string.activity_detail_laps_title)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(stringResource(R.string.activity_detail_laps_header_index), style = MaterialTheme.typography.labelMedium)
-            Text(stringResource(R.string.activity_detail_laps_header_time), style = MaterialTheme.typography.labelMedium)
-            Text(stringResource(R.string.activity_detail_laps_header_distance), style = MaterialTheme.typography.labelMedium)
-            Text(stringResource(R.string.activity_detail_laps_header_avg_hr), style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(Res.string.activity_detail_laps_header_index), style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(Res.string.activity_detail_laps_header_time), style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(Res.string.activity_detail_laps_header_distance), style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(Res.string.activity_detail_laps_header_avg_hr), style = MaterialTheme.typography.labelMedium)
         }
         laps.forEach { lap ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -342,9 +342,9 @@ private fun LapsCard(laps: List<Lap>) {
  */
 @Composable
 private fun RpeCard(rpe: Int?, loadMethod: LoadMethod?, onSaveRpe: (Int) -> Unit) {
-    SectionCard(title = stringResource(R.string.activity_detail_rpe_title)) {
+    SectionCard(title = stringResource(Res.string.activity_detail_rpe_title)) {
         FlowRowRpeSelector(selected = rpe, onSelect = onSaveRpe)
-        loadMethod?.let { StatLine(stringResource(R.string.activity_detail_trimp_method_label), it.label()) }
+        loadMethod?.let { StatLine(stringResource(Res.string.activity_detail_trimp_method_label), it.label()) }
     }
 }
 
@@ -368,10 +368,10 @@ private fun FlowRowRpeSelector(selected: Int?, onSelect: (Int) -> Unit) {
 private fun DeleteConfirmDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.activity_detail_delete_dialog_title)) },
-        text = { Text(stringResource(R.string.activity_detail_delete_dialog_text)) },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.action_delete)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        title = { Text(stringResource(Res.string.activity_detail_delete_dialog_title)) },
+        text = { Text(stringResource(Res.string.activity_detail_delete_dialog_text)) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(Res.string.action_delete)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) } },
     )
 }
 

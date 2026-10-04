@@ -13,11 +13,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.engine.load.HrZoneModel
 import com.myhealth.domain.model.Intensity
 import com.myhealth.domain.model.PlannedSession
@@ -61,9 +61,9 @@ fun TodayPlanCard(
     modifier: Modifier = Modifier,
 ) {
     SectionCard(
-        title = stringResource(R.string.today_plan_title),
+        title = stringResource(Res.string.today_plan_title),
         modifier = modifier,
-        action = { TextButton(onClick = onOpenTraining) { Text(stringResource(R.string.today_plan_action)) } },
+        action = { TextButton(onClick = onOpenTraining) { Text(stringResource(Res.string.today_plan_action)) } },
     ) {
         if (isStale) StaleSuggestionsHint(onRegenerate = onOpenTraining)
         when {
@@ -71,11 +71,11 @@ fun TodayPlanCard(
             suggested != null -> SuggestedRow(suggested, hrZoneModel, onReviewSuggestions)
             else -> {
                 Text(
-                    text = stringResource(R.string.today_plan_empty),
+                    text = stringResource(Res.string.today_plan_empty),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 TextButton(onClick = onOpenTraining) {
-                    Text(stringResource(R.string.training_generate_suggestions))
+                    Text(stringResource(Res.string.training_generate_suggestions))
                 }
             }
         }
@@ -104,7 +104,7 @@ private fun PlannedRow(session: PlannedSession, hrZoneModel: HrZoneModel?, onMar
                 AssistChip(onClick = {}, enabled = false, label = { Text(session.intensity.label()) })
             }
             Text(
-                text = plannedSessionSubtitle(session, linkedLabel = stringResource(R.string.training_session_linked)),
+                text = plannedSessionSubtitle(session, linkedLabel = stringResource(Res.string.training_session_linked)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -112,7 +112,7 @@ private fun PlannedRow(session: PlannedSession, hrZoneModel: HrZoneModel?, onMar
             WorkoutStructureSection(session.structureJson)
         }
         if (session.status == PlannedStatus.PLANNED) {
-            TextButton(onClick = { onMarkDone(session.id) }) { Text(stringResource(R.string.today_mark_done)) }
+            TextButton(onClick = { onMarkDone(session.id) }) { Text(stringResource(Res.string.today_mark_done)) }
         }
     }
 }
@@ -140,7 +140,7 @@ private fun SuggestedRow(session: SuggestedSession, hrZoneModel: HrZoneModel?, o
             }
             Text(
                 text = listOfNotNull(
-                    stringResource(R.string.today_suggested_label),
+                    stringResource(Res.string.today_suggested_label),
                     session.targetDurationMin?.let { "$it min" },
                     session.targetPaceSecPerKm?.let { formatPaceSecPerKm(it) },
                     "${Math.round(session.estimatedTrimp)} AU",
@@ -161,7 +161,7 @@ private fun SuggestedRow(session: SuggestedSession, hrZoneModel: HrZoneModel?, o
                 )
             }
         }
-        TextButton(onClick = onReviewSuggestions) { Text(stringResource(R.string.today_review_action)) }
+        TextButton(onClick = onReviewSuggestions) { Text(stringResource(Res.string.today_review_action)) }
     }
 }
 

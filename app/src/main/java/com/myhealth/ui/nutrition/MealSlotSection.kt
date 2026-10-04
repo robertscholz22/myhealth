@@ -23,11 +23,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.model.MacroTotals
 import com.myhealth.domain.model.MealLog
 import com.myhealth.domain.model.MealLogItem
@@ -54,11 +54,11 @@ fun MealSlotSection(
     SectionCard(
         title = section.slot.displayName(),
         modifier = modifier,
-        action = { TextButton(onClick = onAdd) { Text(stringResource(R.string.mealslot_add_button)) } },
+        action = { TextButton(onClick = onAdd) { Text(stringResource(Res.string.mealslot_add_button)) } },
     ) {
         if (section.isEmpty) {
             Text(
-                text = stringResource(R.string.mealslot_empty_slot),
+                text = stringResource(Res.string.mealslot_empty_slot),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -95,8 +95,8 @@ private fun MealLogBlock(
         ) {
             Text(text = name, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
             ItemOverflow(
-                actions = listOf(stringResource(R.string.mealslot_remove_meal) to { onDeleteLog(log.id) }),
-                contentDescription = stringResource(R.string.mealslot_meal_actions_cd),
+                actions = listOf(stringResource(Res.string.mealslot_remove_meal) to { onDeleteLog(log.id) }),
+                contentDescription = stringResource(Res.string.mealslot_meal_actions_cd),
             )
         }
     }
@@ -129,12 +129,12 @@ private fun ItemRow(item: MealLogItem, onClick: () -> Unit, onDelete: () -> Unit
             )
         }
         Text(
-            text = stringResource(R.string.mealslot_item_kcal_protein, roundHalfUp(item.kcal), item.proteinG),
+            text = stringResource(Res.string.mealslot_item_kcal_protein, roundHalfUp(item.kcal), item.proteinG),
             style = MaterialTheme.typography.bodySmall,
         )
         ItemOverflow(
-            actions = listOf(stringResource(R.string.action_delete) to onDelete),
-            contentDescription = stringResource(R.string.mealslot_item_actions_cd),
+            actions = listOf(stringResource(Res.string.action_delete) to onDelete),
+            contentDescription = stringResource(Res.string.mealslot_item_actions_cd),
         )
     }
 }
@@ -163,7 +163,7 @@ private fun ItemOverflow(actions: List<Pair<String, () -> Unit>>, contentDescrip
 
 @Composable
 internal fun slotTotalsLabel(totals: MacroTotals): String = stringResource(
-    R.string.mealslot_totals_summary,
+    Res.string.mealslot_totals_summary,
     roundHalfUp(totals.kcal),
     totals.proteinG,
     totals.carbsG,

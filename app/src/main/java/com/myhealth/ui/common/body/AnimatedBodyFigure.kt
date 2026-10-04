@@ -18,7 +18,8 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -26,7 +27,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.engine.strength.AnimationClip
 import com.myhealth.domain.engine.strength.AnimationClips
 import com.myhealth.domain.model.BodyFace
@@ -79,7 +79,7 @@ fun AnimatedBodyFigure(
 
     val pose = if (reducedMotion) remember(clip) { midpointPose(clip) } else poseAt(clip, elapsedMs)
     val toggleDescription = stringResource(
-        if (userPlaying) R.string.exercise_animation_pause_cd else R.string.exercise_animation_play_cd,
+        if (userPlaying) Res.string.exercise_animation_pause_cd else Res.string.exercise_animation_play_cd,
     )
     val tapModifier = if (reducedMotion) {
         Modifier

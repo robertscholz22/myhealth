@@ -13,7 +13,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.myhealth.MainActivity
-import com.myhealth.R
+import com.myhealth.resources.*
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,10 +36,10 @@ class OnboardingFlowTest {
         val activity = composeTestRule.activity
 
         // ---- Step 1: About you ------------------------------------------------------------
-        composeTestRule.onNodeWithText(activity.getString(R.string.onboarding_name_label))
+        composeTestRule.onNodeWithText(str(Res.string.onboarding_name_label))
             .performTextInput("Robin Test")
 
-        composeTestRule.onNodeWithText(activity.getString(R.string.onboarding_birth_date_label))
+        composeTestRule.onNodeWithText(str(Res.string.onboarding_birth_date_label))
             .performClick()
         // The M3 DatePicker opens in calendar mode; switch to its text-input mode and type a
         // plain 8-digit date (en-US device locale => MM/dd/yyyy, auto-delimited as you type) so
@@ -49,27 +49,27 @@ class OnboardingFlowTest {
         // SetText semantics action, so a bare hasSetTextAction() matches both it and the
         // DatePickerDialog's actual text-input field: scope to the dialog.
         composeTestRule.onNode(hasSetTextAction() and hasAnyAncestor(isDialog())).performTextInput("01011990")
-        composeTestRule.onNodeWithText(activity.getString(R.string.common_ok)).performClick()
+        composeTestRule.onNodeWithText(str(Res.string.common_ok)).performClick()
 
-        composeTestRule.onNodeWithText(activity.getString(R.string.action_next)).performClick()
+        composeTestRule.onNodeWithText(str(Res.string.action_next)).performClick()
         composeTestRule.waitForIdle()
 
         // ---- Step 2: Body & goals ----------------------------------------------------------
-        composeTestRule.onNodeWithText(activity.getString(R.string.onboarding_height_label))
+        composeTestRule.onNodeWithText(str(Res.string.onboarding_height_label))
             .performScrollTo()
             .performTextInput("180")
-        composeTestRule.onNodeWithText(activity.getString(R.string.onboarding_weight_label))
+        composeTestRule.onNodeWithText(str(Res.string.onboarding_weight_label))
             .performScrollTo()
             .performTextInput("75")
 
-        composeTestRule.onNodeWithText(activity.getString(R.string.action_next)).performClick()
+        composeTestRule.onNodeWithText(str(Res.string.action_next)).performClick()
         composeTestRule.waitForIdle()
 
         // ---- Step 3: Preferences (all optional) -> Finish -----------------------------------
-        composeTestRule.onNodeWithText(activity.getString(R.string.action_finish)).performClick()
+        composeTestRule.onNodeWithText(str(Res.string.action_finish)).performClick()
 
         // ---- Today -------------------------------------------------------------------------
-        val nutritionCardTitle = activity.getString(R.string.today_nutrition_title)
+        val nutritionCardTitle = str(Res.string.today_nutrition_title)
         composeTestRule.waitUntil(timeoutMillis = 15_000) {
             composeTestRule.onAllNodesWithText(nutritionCardTitle).fetchSemanticsNodes().isNotEmpty()
         }

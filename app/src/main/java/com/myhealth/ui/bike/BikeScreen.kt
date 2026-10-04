@@ -22,11 +22,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.bike.FtpEstimate
 import com.myhealth.domain.engine.bike.FtpSource
@@ -49,10 +49,10 @@ fun BikeScreen(onBack: () -> Unit, onOpenActivity: (Long) -> Unit, modifier: Mod
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.bike_title)) },
+                title = { Text(stringResource(Res.string.bike_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 },
             )
@@ -73,16 +73,16 @@ internal fun BikeContent(state: BikeUiState, onOpenActivity: (Long) -> Unit, mod
         if (state.powerBests.isEmpty() && state.timeBests.isEmpty()) {
             item {
                 EmptyState(
-                    title = stringResource(R.string.bike_empty_title),
-                    message = stringResource(R.string.bike_empty_message),
+                    title = stringResource(Res.string.bike_empty_title),
+                    message = stringResource(Res.string.bike_empty_message),
                 )
             }
         } else {
             if (state.powerBests.isNotEmpty()) {
-                item { BestsTableCard(stringResource(R.string.bike_power_bests_title), state.powerBests, onOpenActivity) }
+                item { BestsTableCard(stringResource(Res.string.bike_power_bests_title), state.powerBests, onOpenActivity) }
             }
             if (state.timeBests.isNotEmpty()) {
-                item { BestsTableCard(stringResource(R.string.bike_time_bests_title), state.timeBests, onOpenActivity) }
+                item { BestsTableCard(stringResource(Res.string.bike_time_bests_title), state.timeBests, onOpenActivity) }
             }
         }
     }
@@ -90,14 +90,14 @@ internal fun BikeContent(state: BikeUiState, onOpenActivity: (Long) -> Unit, mod
 
 @Composable
 private fun FtpCard(ftp: FtpEstimate?, indoorTrainerAvailable: Boolean, onOpenActivity: (Long) -> Unit) {
-    SectionCard(title = stringResource(R.string.bike_ftp_title)) {
+    SectionCard(title = stringResource(Res.string.bike_ftp_title)) {
         if (ftp == null) {
-            Text(stringResource(R.string.bike_ftp_hint_no_estimate), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(Res.string.bike_ftp_hint_no_estimate), style = MaterialTheme.typography.bodyMedium)
         } else {
             Text("${ftp.watts} W", style = MaterialTheme.typography.headlineSmall)
             Text(ftp.source.label(), style = MaterialTheme.typography.bodyMedium)
             val basisText = ftp.basisDay?.let { day ->
-                stringResource(R.string.bike_ftp_basis_date_format, formatShortDate(day))
+                stringResource(Res.string.bike_ftp_basis_date_format, formatShortDate(day))
             }
             if (basisText != null) {
                 Row(
@@ -117,9 +117,9 @@ private fun FtpCard(ftp: FtpEstimate?, indoorTrainerAvailable: Boolean, onOpenAc
         }
         Text(
             text = if (indoorTrainerAvailable) {
-                stringResource(R.string.bike_indoor_trainer_status_on)
+                stringResource(Res.string.bike_indoor_trainer_status_on)
             } else {
-                stringResource(R.string.bike_indoor_trainer_status_off)
+                stringResource(Res.string.bike_indoor_trainer_status_off)
             },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -145,7 +145,7 @@ private fun BestsTableCard(title: String, bests: List<RideBest>, onOpenActivity:
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                val estimatedSuffix = if (best.isEstimated) stringResource(R.string.bike_estimated_suffix) else ""
+                val estimatedSuffix = if (best.isEstimated) stringResource(Res.string.bike_estimated_suffix) else ""
                 Column(horizontalAlignment = Alignment.End) {
                     Text(formatRideBestValue(best) + estimatedSuffix, style = MaterialTheme.typography.bodyLarge)
                 }

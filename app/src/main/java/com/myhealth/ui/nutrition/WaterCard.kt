@@ -18,10 +18,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.model.NutritionTarget
 import com.myhealth.domain.model.WaterLog
 import com.myhealth.ui.common.NumberField
@@ -52,7 +52,7 @@ fun WaterCard(
     actions: WaterActions,
     modifier: Modifier = Modifier,
 ) {
-    SectionCard(title = stringResource(R.string.water_title), modifier = modifier) {
+    SectionCard(title = stringResource(Res.string.water_title), modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -75,10 +75,10 @@ fun WaterCard(
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             WATER_QUICK_AMOUNTS_ML.forEach { amount ->
                 OutlinedButton(onClick = { actions.onAdd(amount) }) {
-                    Text(stringResource(R.string.water_quick_add_button, amount))
+                    Text(stringResource(Res.string.water_quick_add_button, amount))
                 }
             }
-            OutlinedButton(onClick = actions.onOpenCustom) { Text(stringResource(R.string.water_custom_button)) }
+            OutlinedButton(onClick = actions.onOpenCustom) { Text(stringResource(Res.string.water_custom_button)) }
         }
         logs.forEach { log ->
             Row(
@@ -87,17 +87,17 @@ fun WaterCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = stringResource(R.string.water_entry_row, waterEntryTime(log), log.ml),
+                    text = stringResource(Res.string.water_entry_row, waterEntryTime(log), log.ml),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 IconButton(onClick = { actions.onDelete(log.id) }) {
-                    Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.water_delete_drink_cd))
+                    Icon(Icons.Filled.Delete, contentDescription = stringResource(Res.string.water_delete_drink_cd))
                 }
             }
         }
         if (logs.isEmpty()) {
             Text(
-                text = stringResource(R.string.water_empty_message),
+                text = stringResource(Res.string.water_empty_message),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -115,17 +115,17 @@ fun WaterAmountDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.water_dialog_title)) },
+        title = { Text(stringResource(Res.string.water_dialog_title)) },
         text = {
             NumberField(
-                label = stringResource(R.string.water_millilitres_label),
+                label = stringResource(Res.string.water_millilitres_label),
                 value = amountMl,
                 onValueChange = onAmountChange,
                 decimals = 0,
             )
         },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.quantity_add_button)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(Res.string.quantity_add_button)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) } },
     )
 }
 

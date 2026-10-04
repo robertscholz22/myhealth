@@ -34,12 +34,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.load.HrZoneModel
 import com.myhealth.domain.model.Intensity
@@ -74,7 +74,7 @@ fun SuggestionReviewScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
 
     LaunchedEffect(state.message) {
         state.message?.let {
-            snackbar.showSnackbar(it.resolve(context))
+            snackbar.showSnackbar(it.resolveText())
             vm.consumeMessage()
         }
     }
@@ -89,18 +89,18 @@ fun SuggestionReviewScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.review_title)) },
+                title = { Text(stringResource(Res.string.review_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back),
+                            contentDescription = stringResource(Res.string.action_back),
                         )
                     }
                 },
                 actions = {
                     TextButton(onClick = vm::acceptAll, enabled = state.isReviewable) {
-                        Text(stringResource(R.string.review_select_all))
+                        Text(stringResource(Res.string.review_select_all))
                     }
                 },
             )
@@ -127,9 +127,9 @@ internal fun SuggestionReviewContent(
 ) {
     if (state.isEmpty) {
         EmptyState(
-            title = stringResource(R.string.review_empty_title),
-            message = stringResource(R.string.review_empty_message),
-            actionLabel = stringResource(R.string.review_generate),
+            title = stringResource(Res.string.review_empty_title),
+            message = stringResource(Res.string.review_empty_message),
+            actionLabel = stringResource(Res.string.review_generate),
             onAction = onRegenerate,
             modifier = modifier,
         )
@@ -165,7 +165,7 @@ private fun ReviewHeaderCard(
     onRegenerate: () -> Unit,
 ) {
     SectionCard(
-        title = stringResource(R.string.review_proposal_title),
+        title = stringResource(Res.string.review_proposal_title),
         action = {
             state.phase?.let { phase ->
                 AssistChip(onClick = {}, enabled = false, label = { Text(phase.label()) })
@@ -174,19 +174,19 @@ private fun ReviewHeaderCard(
     ) {
         Text(
             text = state.headerLine(
-                targetLabel = stringResource(R.string.review_target_label),
-                suggestedLabel = stringResource(R.string.review_suggested_label),
-                restDaySingular = stringResource(R.string.review_rest_day_singular),
-                restDayPlural = stringResource(R.string.review_rest_day_plural),
-                replacesSingular = stringResource(R.string.review_replaces_singular),
-                replacesPlural = stringResource(R.string.review_replaces_plural),
-                fixedCoversFormat = stringResource(R.string.review_fixed_load_covers_target),
+                targetLabel = stringResource(Res.string.review_target_label),
+                suggestedLabel = stringResource(Res.string.review_suggested_label),
+                restDaySingular = stringResource(Res.string.review_rest_day_singular),
+                restDayPlural = stringResource(Res.string.review_rest_day_plural),
+                replacesSingular = stringResource(Res.string.review_replaces_singular),
+                replacesPlural = stringResource(Res.string.review_replaces_plural),
+                fixedCoversFormat = stringResource(Res.string.review_fixed_load_covers_target),
             ),
             style = MaterialTheme.typography.bodyMedium,
         )
         Text(
             text = stringResource(
-                R.string.review_selected_summary,
+                Res.string.review_selected_summary,
                 state.selectedIds.size,
                 state.sessions.size,
                 Math.round(state.selectedLoad),
@@ -199,10 +199,10 @@ private fun ReviewHeaderCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Button(onClick = onAccept, enabled = state.isReviewable && !state.isWorking) {
-                Text(stringResource(R.string.review_accept_selected))
+                Text(stringResource(Res.string.review_accept_selected))
             }
             OutlinedButton(onClick = onRegenerate, enabled = !state.isWorking) {
-                Text(stringResource(R.string.training_action_regenerate))
+                Text(stringResource(Res.string.training_action_regenerate))
             }
         }
     }
@@ -264,7 +264,7 @@ private fun RestDayCard(day: Long) {
                 modifier = Modifier.size(20.dp),
             )
             Text(
-                text = stringResource(R.string.review_rest_day_message),
+                text = stringResource(Res.string.review_rest_day_message),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

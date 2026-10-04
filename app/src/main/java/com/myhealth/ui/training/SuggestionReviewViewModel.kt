@@ -2,7 +2,6 @@ package com.myhealth.ui.training
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.myhealth.R
 import com.myhealth.domain.model.SuggestedSession
 import com.myhealth.domain.model.SuggestionBatch
 import com.myhealth.domain.model.SuggestionStatus
@@ -15,6 +14,7 @@ import com.myhealth.domain.repository.PlanRepository
 import com.myhealth.domain.repository.SettingsRepository
 import com.myhealth.domain.repository.SuggestionRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.resources.*
 import com.myhealth.ui.common.UiMessage
 import com.myhealth.ui.zones.lightweightHrZoneModel
 import com.myhealth.ui.zones.resolveHrZoneModel
@@ -151,7 +151,7 @@ class SuggestionReviewViewModel(
                 if (accepted is Outcome.Ok && rejected is Outcome.Ok) {
                     it.copy(isWorking = false, done = true)
                 } else {
-                    it.copy(isWorking = false, message = UiMessage.of(R.string.review_save_error))
+                    it.copy(isWorking = false, message = UiMessage.of(Res.string.review_save_error))
                 }
             }
         }
@@ -168,7 +168,7 @@ class SuggestionReviewViewModel(
                     is Outcome.Ok -> it.copy(isWorking = false, accepted = emptyMap())
                     is Outcome.Err -> it.copy(
                         isWorking = false,
-                        message = UiMessage.of(R.string.review_generate_error),
+                        message = UiMessage.of(Res.string.review_generate_error),
                     )
                 }
             }

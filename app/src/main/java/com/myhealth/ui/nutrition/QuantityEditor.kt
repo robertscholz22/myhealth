@@ -17,10 +17,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.model.Ingredient
 import com.myhealth.domain.model.MacroTotals
 import com.myhealth.domain.model.MeasureBasis
@@ -75,14 +75,14 @@ fun QuantityEditor(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 NumberField(
-                    label = stringResource(R.string.quantity_label),
+                    label = stringResource(Res.string.quantity_label),
                     value = quantity,
                     onValueChange = onQuantityChange,
                     decimals = 0,
                     modifier = Modifier.weight(1f),
                 )
                 DropdownField(
-                    label = stringResource(R.string.quantity_unit_label),
+                    label = stringResource(Res.string.quantity_unit_label),
                     options = units,
                     selected = unit,
                     optionLabel = { it.label() },
@@ -91,16 +91,16 @@ fun QuantityEditor(
                 )
             }
             Text(
-                text = preview?.let { previewLabel(it) } ?: stringResource(R.string.quantity_enter_prompt),
+                text = preview?.let { previewLabel(it) } ?: stringResource(Res.string.quantity_enter_prompt),
                 style = MaterialTheme.typography.bodyLarge,
             )
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.action_cancel)) }
+                TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text(stringResource(Res.string.action_cancel)) }
                 Button(onClick = onAdd, enabled = canAdd, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.quantity_add_button))
+                    Text(stringResource(Res.string.quantity_add_button))
                 }
             }
         }
@@ -109,7 +109,7 @@ fun QuantityEditor(
 
 @Composable
 internal fun previewLabel(totals: MacroTotals): String = stringResource(
-    R.string.quantity_preview_summary,
+    Res.string.quantity_preview_summary,
     roundHalfUp(totals.kcal),
     totals.proteinG,
     totals.carbsG,

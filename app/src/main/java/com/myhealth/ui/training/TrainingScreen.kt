@@ -40,11 +40,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.TrainingPhase
@@ -90,7 +90,7 @@ fun TrainingScreen(nav: TrainingNavActions, modifier: Modifier = Modifier) {
 
     LaunchedEffect(state.message) {
         state.message?.let {
-            snackbar.showSnackbar(it.resolve(context))
+            snackbar.showSnackbar(it.resolveText())
             vm.consumeMessage()
         }
     }
@@ -105,10 +105,10 @@ fun TrainingScreen(nav: TrainingNavActions, modifier: Modifier = Modifier) {
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(state.planName ?: stringResource(R.string.nav_training)) },
+                title = { Text(state.planName ?: stringResource(Res.string.nav_training)) },
                 actions = {
                     TextButton(onClick = vm::showCurrentWeek, enabled = !state.isCurrentWeek) {
-                        Text(stringResource(R.string.training_this_week))
+                        Text(stringResource(Res.string.training_this_week))
                     }
                 },
             )
@@ -194,9 +194,9 @@ internal fun TrainingContent(
         if (state.isEmptyWeek) {
             item {
                 EmptyState(
-                    title = stringResource(R.string.training_empty_title),
-                    message = stringResource(R.string.training_empty_message),
-                    actionLabel = stringResource(R.string.training_generate_suggestions),
+                    title = stringResource(Res.string.training_empty_title),
+                    message = stringResource(Res.string.training_empty_message),
+                    actionLabel = stringResource(Res.string.training_generate_suggestions),
                     onAction = onGenerate,
                 )
             }
@@ -225,14 +225,14 @@ private fun WeekPager(label: String, onPrevious: () -> Unit, onNext: () -> Unit)
         IconButton(onClick = onPrevious) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.training_previous_week_desc),
+                contentDescription = stringResource(Res.string.training_previous_week_desc),
             )
         }
         Text(text = label, style = MaterialTheme.typography.titleMedium)
         IconButton(onClick = onNext) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = stringResource(R.string.training_next_week_desc),
+                contentDescription = stringResource(Res.string.training_next_week_desc),
             )
         }
     }
@@ -245,7 +245,7 @@ private fun PlanHeaderCard(
     nav: TrainingNavActions,
 ) {
     SectionCard(
-        title = stringResource(R.string.training_this_block_title),
+        title = stringResource(Res.string.training_this_block_title),
         action = {
             state.phase?.let { phase ->
                 AssistChip(onClick = {}, enabled = false, label = { Text(phase.label()) })
@@ -283,12 +283,12 @@ private fun PlanHeaderCard(
                     )
                 }
                 Text(
-                    text = stringResource(R.string.training_generate_suggestions),
+                    text = stringResource(Res.string.training_generate_suggestions),
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
             OutlinedButton(onClick = { nav.onAddSession(state.selectedDay) }) {
-                Text(stringResource(R.string.training_add_session))
+                Text(stringResource(Res.string.training_add_session))
             }
         }
     }
@@ -318,12 +318,12 @@ internal fun StaleSuggestionsHint(onRegenerate: () -> Unit, modifier: Modifier =
                 tint = MaterialTheme.colorScheme.onTertiaryContainer,
             )
             Text(
-                text = stringResource(R.string.training_suggestions_stale),
+                text = stringResource(Res.string.training_suggestions_stale),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = onRegenerate) { Text(stringResource(R.string.training_action_regenerate)) }
+            TextButton(onClick = onRegenerate) { Text(stringResource(Res.string.training_action_regenerate)) }
         }
     }
 }

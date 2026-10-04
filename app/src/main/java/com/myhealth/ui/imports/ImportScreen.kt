@@ -28,12 +28,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.ImportKind
 import com.myhealth.sync.ImportWorkState
@@ -85,7 +85,7 @@ fun ImportScreen(modifier: Modifier = Modifier) {
     // The undo result (or its failure) is reported once, then cleared.
     LaunchedEffect(message) {
         message?.let {
-            snackbar.showSnackbar(it.resolve(context))
+            snackbar.showSnackbar(it.resolveText())
             vm.consumeMessage()
         }
     }
@@ -119,7 +119,7 @@ private fun ImportContent(
         item { PickSection(state, onPickFile) }
         state.unsupportedFile?.let { name ->
             item {
-                ErrorBanner(message = stringResource(R.string.import_unsupported_file_format, name))
+                ErrorBanner(message = stringResource(Res.string.import_unsupported_file_format, name))
             }
         }
         item { StatusSection(state, onImportAnyway, onDismissResult) }
@@ -129,13 +129,13 @@ private fun ImportContent(
 
 @Composable
 private fun PickSection(state: ImportUiState, onPickFile: () -> Unit) {
-    SectionCard(title = stringResource(R.string.import_section_title)) {
+    SectionCard(title = stringResource(Res.string.import_section_title)) {
         Text(
-            stringResource(R.string.import_description),
+            stringResource(Res.string.import_description),
             style = MaterialTheme.typography.bodyMedium,
         )
         Button(onClick = onPickFile, enabled = !state.isRunning, modifier = Modifier.padding(top = 12.dp)) {
-            Text(stringResource(R.string.import_action_pick_file))
+            Text(stringResource(Res.string.import_action_pick_file))
         }
     }
 }
@@ -148,23 +148,23 @@ private fun StatusSection(
 ) {
     when (state.work.stage) {
         ImportWorkState.Stage.IDLE -> Unit
-        ImportWorkState.Stage.RUNNING -> SectionCard(title = stringResource(R.string.import_status_running_title)) {
+        ImportWorkState.Stage.RUNNING -> SectionCard(title = stringResource(Res.string.import_status_running_title)) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
             CountsRow(state.work)
             state.work.currentItem?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
-        ImportWorkState.Stage.DONE -> SectionCard(title = stringResource(R.string.import_status_done_title)) {
+        ImportWorkState.Stage.DONE -> SectionCard(title = stringResource(Res.string.import_status_done_title)) {
             CountsRow(state.work)
             OutlinedButton(onClick = onDismissResult, modifier = Modifier.padding(top = 12.dp)) {
-                Text(stringResource(R.string.import_action_done))
+                Text(stringResource(Res.string.import_action_done))
             }
         }
-        ImportWorkState.Stage.ALREADY_IMPORTED -> SectionCard(title = stringResource(R.string.import_status_already_imported_title)) {
+        ImportWorkState.Stage.ALREADY_IMPORTED -> SectionCard(title = stringResource(Res.string.import_status_already_imported_title)) {
             Text(
-                state.work.message?.let { stringResource(R.string.import_already_imported_message_format, it) }
-                    ?: stringResource(R.string.import_already_imported_message_plain),
+                state.work.message?.let { stringResource(Res.string.import_already_imported_message_format, it) }
+                    ?: stringResource(Res.string.import_already_imported_message_plain),
                 style = MaterialTheme.typography.bodyMedium,
             )
             Row(
@@ -172,13 +172,13 @@ private fun StatusSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (state.canForce) {
-                    Button(onClick = onImportAnyway) { Text(stringResource(R.string.import_action_import_anyway)) }
+                    Button(onClick = onImportAnyway) { Text(stringResource(Res.string.import_action_import_anyway)) }
                 }
-                OutlinedButton(onClick = onDismissResult) { Text(stringResource(R.string.import_action_dismiss)) }
+                OutlinedButton(onClick = onDismissResult) { Text(stringResource(Res.string.import_action_dismiss)) }
             }
         }
         ImportWorkState.Stage.FAILED -> ErrorBanner(
-            message = state.work.message ?: stringResource(R.string.import_error_failed_fallback),
+            message = state.work.message ?: stringResource(Res.string.import_error_failed_fallback),
             onRetry = onDismissResult,
         )
     }
@@ -188,7 +188,7 @@ private fun StatusSection(
 private fun CountsRow(work: ImportWorkState) {
     Text(
         stringResource(
-            R.string.import_counts_format,
+            Res.string.import_counts_format,
             work.parsed,
             work.inserted,
             work.duplicate,

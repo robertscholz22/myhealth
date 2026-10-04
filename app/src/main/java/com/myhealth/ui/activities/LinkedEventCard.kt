@@ -17,10 +17,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.model.EventOccurrence
 import com.myhealth.domain.model.EventType
 import com.myhealth.ui.common.SectionCard
@@ -38,10 +38,10 @@ private fun EventType.label(): String =
 
 @Composable
 internal fun LinkedEventCard(linkedEvent: EventOccurrence?, onOpenPicker: () -> Unit, onUnlink: () -> Unit) {
-    SectionCard(title = stringResource(R.string.activity_linked_event_title)) {
+    SectionCard(title = stringResource(Res.string.activity_linked_event_title)) {
         if (linkedEvent == null) {
-            Text(stringResource(R.string.activity_linked_event_none), style = MaterialTheme.typography.bodyMedium)
-            Button(onClick = onOpenPicker) { Text(stringResource(R.string.activity_linked_event_link_action)) }
+            Text(stringResource(Res.string.activity_linked_event_none), style = MaterialTheme.typography.bodyMedium)
+            Button(onClick = onOpenPicker) { Text(stringResource(Res.string.activity_linked_event_link_action)) }
         } else {
             Text(linkedEvent.effectiveTitle, style = MaterialTheme.typography.bodyLarge)
             Text(
@@ -50,8 +50,8 @@ internal fun LinkedEventCard(linkedEvent: EventOccurrence?, onOpenPicker: () -> 
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = onOpenPicker) { Text(stringResource(R.string.activity_linked_event_change_action)) }
-                TextButton(onClick = onUnlink) { Text(stringResource(R.string.activity_linked_event_unlink_action)) }
+                TextButton(onClick = onOpenPicker) { Text(stringResource(Res.string.activity_linked_event_change_action)) }
+                TextButton(onClick = onUnlink) { Text(stringResource(Res.string.activity_linked_event_unlink_action)) }
             }
         }
     }
@@ -64,7 +64,7 @@ internal fun EventPickerSheet(events: List<EventOccurrence>, onSelect: (Long) ->
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         if (events.isEmpty()) {
             Text(
-                stringResource(R.string.activity_event_picker_empty),
+                stringResource(Res.string.activity_event_picker_empty),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(16.dp),
             )

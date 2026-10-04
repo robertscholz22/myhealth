@@ -13,10 +13,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.model.DailyLoad
 import com.myhealth.domain.model.PlannedSession
 import com.myhealth.domain.model.PlannedStatus
@@ -80,19 +80,19 @@ fun weeklyLoadSums(
 fun WeeklyLoadBar(sums: WeeklyLoadSums, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         LoadBarRow(
-            label = stringResource(R.string.training_load_planned),
+            label = stringResource(Res.string.training_load_planned),
             value = sums.planned,
             fraction = sums.plannedFraction,
             color = MaterialTheme.colorScheme.secondary,
         )
         LoadBarRow(
-            label = stringResource(R.string.training_load_target),
+            label = stringResource(Res.string.training_load_target),
             value = sums.target,
             fraction = sums.targetFraction,
             color = MaterialTheme.colorScheme.outline,
         )
         LoadBarRow(
-            label = stringResource(R.string.training_load_actual),
+            label = stringResource(Res.string.training_load_actual),
             value = sums.actual,
             fraction = sums.actualFraction,
             color = if (sums.onTarget) {

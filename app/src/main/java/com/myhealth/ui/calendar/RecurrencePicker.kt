@@ -9,9 +9,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.ui.common.DatePickerField
 import com.myhealth.ui.common.NumberField
 import com.myhealth.ui.common.SectionCard
@@ -52,21 +52,21 @@ fun RecurrencePicker(
     onDraftChange: ((EventDraft) -> EventDraft) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    SectionCard(title = stringResource(R.string.event_section_recurrence), modifier = modifier) {
+    SectionCard(title = stringResource(Res.string.event_section_recurrence), modifier = modifier) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = draft.recurrenceMode == RecurrenceMode.NONE,
                 onClick = { onDraftChange { it.copy(recurrenceMode = RecurrenceMode.NONE) } },
-                label = { Text(stringResource(R.string.event_recurrence_none)) },
+                label = { Text(stringResource(Res.string.event_recurrence_none)) },
             )
             FilterChip(
                 selected = draft.recurrenceMode == RecurrenceMode.WEEKLY,
                 onClick = { onDraftChange { it.copy(recurrenceMode = RecurrenceMode.WEEKLY) } },
-                label = { Text(stringResource(R.string.event_recurrence_weekly)) },
+                label = { Text(stringResource(Res.string.event_recurrence_weekly)) },
             )
         }
         if (draft.recurrenceMode == RecurrenceMode.WEEKLY) {
-            Text(stringResource(R.string.event_label_repeat_on), style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(Res.string.event_label_repeat_on), style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 WEEKDAY_ORDER.forEach { day ->
                     FilterChip(
@@ -89,15 +89,15 @@ fun RecurrencePicker(
                 Text(it.resolve(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
             NumberField(
-                label = stringResource(R.string.event_label_repeat_every),
+                label = stringResource(Res.string.event_label_repeat_every),
                 value = draft.recurrenceIntervalWeeks.toDouble(),
                 onValueChange = { v -> onDraftChange { it.copy(recurrenceIntervalWeeks = (v?.toInt() ?: 1).coerceAtLeast(1)) } },
-                suffix = stringResource(R.string.event_unit_weeks_suffix),
+                suffix = stringResource(Res.string.event_unit_weeks_suffix),
                 decimals = 0,
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 DatePickerField(
-                    label = stringResource(R.string.event_label_until),
+                    label = stringResource(Res.string.event_label_until),
                     value = draft.recurrenceUntil,
                     onValueChange = { d -> onDraftChange { it.copy(recurrenceUntil = d) } },
                     isError = errors.containsKey(EventField.RECURRENCE_UNTIL),
@@ -106,7 +106,7 @@ fun RecurrencePicker(
                 )
                 if (draft.recurrenceUntil != null) {
                     TextButton(onClick = { onDraftChange { it.copy(recurrenceUntil = null) } }) {
-                        Text(stringResource(R.string.event_action_clear))
+                        Text(stringResource(Res.string.event_action_clear))
                     }
                 }
             }

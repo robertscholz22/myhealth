@@ -22,12 +22,12 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.ActivitySource
 import com.myhealth.domain.model.ActivitySummary
@@ -76,7 +76,7 @@ private fun ActivitiesContent(
         // P8.6: a failed sync is the one error this screen can surface, and it is retryable.
         state.syncError?.let { reason ->
             ErrorBanner(
-                message = stringResource(R.string.activities_sync_failed, reason),
+                message = stringResource(Res.string.activities_sync_failed, reason),
                 onRetry = onSyncNow,
                 modifier = Modifier.padding(horizontal = SCREEN_PADDING, vertical = 8.dp),
             )
@@ -90,9 +90,9 @@ private fun ActivitiesContent(
             when {
                 state.isLoading -> LoadingBox(modifier = Modifier.fillMaxSize())
                 state.isEmpty -> EmptyState(
-                    title = stringResource(R.string.activities_empty_title),
-                    message = stringResource(R.string.activities_empty_message),
-                    actionLabel = stringResource(R.string.activities_empty_action),
+                    title = stringResource(Res.string.activities_empty_title),
+                    message = stringResource(Res.string.activities_empty_message),
+                    actionLabel = stringResource(Res.string.activities_empty_action),
                     onAction = onSyncNow,
                     icon = Icons.AutoMirrored.Filled.DirectionsRun,
                     modifier = Modifier.fillMaxSize(),
@@ -124,7 +124,7 @@ private fun FilterChipsRow(selected: SportGroup?, onSelect: (SportGroup?) -> Uni
             FilterChip(
                 selected = selected == null,
                 onClick = { onSelect(null) },
-                label = { Text(stringResource(R.string.activities_filter_all)) },
+                label = { Text(stringResource(Res.string.activities_filter_all)) },
             )
         }
         items(SportGroup.entries.toList()) { group ->

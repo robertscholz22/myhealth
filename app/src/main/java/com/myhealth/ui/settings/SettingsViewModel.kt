@@ -2,7 +2,6 @@ package com.myhealth.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.myhealth.R
 import com.myhealth.domain.engine.bike.BikeDefaults
 import com.myhealth.domain.engine.bike.FtpEstimate
 import com.myhealth.domain.engine.bike.FtpEstimator
@@ -16,6 +15,7 @@ import com.myhealth.domain.repository.ProfileRepository
 import com.myhealth.domain.repository.RideBestRepository
 import com.myhealth.domain.repository.SettingsRepository
 import com.myhealth.domain.util.Outcome
+import com.myhealth.resources.*
 import com.myhealth.sync.SyncScheduler
 import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.flow.Flow
@@ -98,11 +98,11 @@ class SettingsViewModel(
         viewModelScope.launch {
             orphanCleanupMessage.value = when (val outcome = importRepo.removeOrphanedImportData()) {
                 is Outcome.Ok -> UiMessage.of(
-                    R.string.settings_orphan_cleanup_result_format,
+                    Res.string.settings_orphan_cleanup_result_format,
                     outcome.value.activitiesDeleted,
                     outcome.value.activitiesKept,
                 )
-                is Outcome.Err -> UiMessage.of(R.string.settings_orphan_cleanup_failed)
+                is Outcome.Err -> UiMessage.of(Res.string.settings_orphan_cleanup_failed)
             }
         }
     }
@@ -114,7 +114,7 @@ class SettingsViewModel(
      */
     fun recomputeTrainingLoad() {
         syncScheduler.requestLoadRecompute(0L)
-        orphanCleanupMessage.value = UiMessage.of(R.string.settings_recompute_load_scheduled)
+        orphanCleanupMessage.value = UiMessage.of(Res.string.settings_recompute_load_scheduled)
     }
 
     fun consumeMessage() {

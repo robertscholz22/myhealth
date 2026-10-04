@@ -23,10 +23,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.model.ImportKind
 import com.myhealth.ui.common.EmptyState
 import com.myhealth.ui.common.SectionCard
@@ -43,11 +43,11 @@ private val TIMESTAMP_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d
  */
 @Composable
 internal fun HistorySection(history: List<ImportHistoryItem>, onUndo: (Long) -> Unit) {
-    SectionCard(title = stringResource(R.string.import_history_title)) {
+    SectionCard(title = stringResource(Res.string.import_history_title)) {
         if (history.isEmpty()) {
             EmptyState(
-                title = stringResource(R.string.import_history_empty_title),
-                message = stringResource(R.string.import_history_empty_message),
+                title = stringResource(Res.string.import_history_empty_title),
+                message = stringResource(Res.string.import_history_empty_message),
             )
             return@SectionCard
         }
@@ -96,12 +96,12 @@ private fun RowMenu(item: ImportHistoryItem, onUndoClicked: () -> Unit) {
         IconButton(onClick = { expanded = true }) {
             Icon(
                 Icons.Filled.MoreVert,
-                contentDescription = stringResource(R.string.import_history_row_menu_cd, item.fileName),
+                contentDescription = stringResource(Res.string.import_history_row_menu_cd, item.fileName),
             )
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.import_action_undo)) },
+                text = { Text(stringResource(Res.string.import_action_undo)) },
                 onClick = {
                     expanded = false
                     onUndoClicked()
@@ -115,15 +115,15 @@ private fun RowMenu(item: ImportHistoryItem, onUndoClicked: () -> Unit) {
 private fun UndoDialog(item: ImportHistoryItem, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.import_undo_dialog_title)) },
+        title = { Text(stringResource(Res.string.import_undo_dialog_title)) },
         text = {
-            Text(stringResource(R.string.import_undo_dialog_message_format, item.inserted, item.fileName))
+            Text(stringResource(Res.string.import_undo_dialog_message_format, item.inserted, item.fileName))
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text(stringResource(R.string.import_action_undo)) }
+            TextButton(onClick = onConfirm) { Text(stringResource(Res.string.import_action_undo)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_cancel)) }
         },
     )
 }
@@ -131,7 +131,7 @@ private fun UndoDialog(item: ImportHistoryItem, onConfirm: () -> Unit, onDismiss
 @Composable
 private fun ImportHistoryItem.summary(): String = if (errorCount > 0) {
     stringResource(
-        R.string.import_history_summary_with_errors_format,
+        Res.string.import_history_summary_with_errors_format,
         formatTimestamp(importedAtMillis),
         kind.label(),
         parsed,
@@ -141,7 +141,7 @@ private fun ImportHistoryItem.summary(): String = if (errorCount > 0) {
     )
 } else {
     stringResource(
-        R.string.import_history_summary_format,
+        Res.string.import_history_summary_format,
         formatTimestamp(importedAtMillis),
         kind.label(),
         parsed,
@@ -152,10 +152,10 @@ private fun ImportHistoryItem.summary(): String = if (errorCount > 0) {
 
 @Composable
 private fun ImportKind.label(): String = when (this) {
-    ImportKind.FIT_FILE -> stringResource(R.string.import_kind_fit_file)
-    ImportKind.GARMIN_CSV -> stringResource(R.string.import_kind_garmin_csv)
-    ImportKind.GARMIN_ZIP -> stringResource(R.string.import_kind_garmin_export)
-    ImportKind.JSON_BACKUP -> stringResource(R.string.import_kind_json_backup)
+    ImportKind.FIT_FILE -> stringResource(Res.string.import_kind_fit_file)
+    ImportKind.GARMIN_CSV -> stringResource(Res.string.import_kind_garmin_csv)
+    ImportKind.GARMIN_ZIP -> stringResource(Res.string.import_kind_garmin_export)
+    ImportKind.JSON_BACKUP -> stringResource(Res.string.import_kind_json_backup)
 }
 
 private fun formatTimestamp(millis: Long): String =

@@ -1,7 +1,7 @@
 package com.myhealth.ui.load
 
 import com.google.common.truth.Truth.assertThat
-import com.myhealth.R
+import com.myhealth.resources.*
 import com.myhealth.domain.engine.strength.MuscleLoadEngine
 import com.myhealth.domain.engine.strength.MuscleLoadState
 import com.myhealth.domain.model.MuscleGroup
@@ -61,9 +61,9 @@ class MuscleLoadUiStateTest {
 
     @Test
     fun mlui02_band_label_covers_every_band() {
-        assertThat(muscleLoadBandLabelRes(MuscleLoadBand.FRESH)).isEqualTo(R.string.body_figure_legend_fresh)
-        assertThat(muscleLoadBandLabelRes(MuscleLoadBand.LOADED)).isEqualTo(R.string.body_figure_legend_loaded)
-        assertThat(muscleLoadBandLabelRes(MuscleLoadBand.FATIGUED)).isEqualTo(R.string.body_figure_legend_fatigued)
+        assertThat(muscleLoadBandLabelRes(MuscleLoadBand.FRESH)).isEqualTo(Res.string.body_figure_legend_fresh)
+        assertThat(muscleLoadBandLabelRes(MuscleLoadBand.LOADED)).isEqualTo(Res.string.body_figure_legend_loaded)
+        assertThat(muscleLoadBandLabelRes(MuscleLoadBand.FATIGUED)).isEqualTo(Res.string.body_figure_legend_fatigued)
     }
 
     @Test

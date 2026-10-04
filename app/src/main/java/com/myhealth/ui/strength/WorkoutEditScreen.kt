@@ -34,11 +34,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.strength.ExerciseAnimations
 import com.myhealth.domain.engine.strength.ExerciseCatalog
@@ -71,11 +71,11 @@ fun WorkoutEditScreen(id: Long, onBack: () -> Unit, modifier: Modifier = Modifie
         topBar = {
             TopAppBar(
                 title = {
-                    Text(stringResource(if (state.isNew) R.string.workout_edit_new_title else R.string.workout_edit_title))
+                    Text(stringResource(if (state.isNew) Res.string.workout_edit_new_title else Res.string.workout_edit_title))
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 },
             )
@@ -127,21 +127,21 @@ internal fun WorkoutEditContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            SectionCard(title = stringResource(R.string.workout_edit_section_details)) {
+            SectionCard(title = stringResource(Res.string.workout_edit_section_details)) {
                 OutlinedTextField(
                     value = draft.name,
                     onValueChange = { name -> onChange { it.copy(name = name) } },
-                    label = { Text(stringResource(R.string.workout_edit_name_label)) },
+                    label = { Text(stringResource(Res.string.workout_edit_name_label)) },
                     isError = state.validation.nameError,
                     supportingText = if (state.validation.nameError) {
-                        { Text(stringResource(R.string.workout_edit_error_name_required)) }
+                        { Text(stringResource(Res.string.workout_edit_error_name_required)) }
                     } else {
                         null
                     },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 DropdownField(
-                    label = stringResource(R.string.workout_edit_kind_label),
+                    label = stringResource(Res.string.workout_edit_kind_label),
                     options = StrengthWorkoutKind.entries,
                     selected = draft.kind,
                     optionLabel = { it.label() },
@@ -150,16 +150,16 @@ internal fun WorkoutEditContent(
             }
         }
         item {
-            SectionCard(title = stringResource(R.string.workout_edit_section_figure)) {
+            SectionCard(title = stringResource(Res.string.workout_edit_section_figure)) {
                 BodyFigure(highlight = state.highlight, modifier = Modifier.fillMaxWidth().height(160.dp))
                 Text(
-                    text = stringResource(R.string.workout_edit_estimated_minutes_format, draft.estimatedMinutes),
+                    text = stringResource(Res.string.workout_edit_estimated_minutes_format, draft.estimatedMinutes),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
         }
         item {
-            Text(stringResource(R.string.workout_edit_section_exercises), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(Res.string.workout_edit_section_exercises), style = MaterialTheme.typography.titleMedium)
         }
         draft.exercises.forEachIndexed { index, row ->
             item(key = "row-$index") {
@@ -178,7 +178,7 @@ internal fun WorkoutEditContent(
         item {
             OutlinedButton(onClick = onAddExercise, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Filled.Add, contentDescription = null)
-                Text(stringResource(R.string.workout_edit_add_exercise))
+                Text(stringResource(Res.string.workout_edit_add_exercise))
             }
         }
         item {
@@ -189,7 +189,7 @@ internal fun WorkoutEditContent(
                 enabled = !state.isSaving && state.loadError == null,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(stringResource(R.string.action_save))
+                Text(stringResource(Res.string.action_save))
             }
         }
     }
@@ -212,13 +212,13 @@ private fun ExerciseRowCard(
         action = {
             Row {
                 IconButton(onClick = onMoveUp, enabled = canMoveUp) {
-                    Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.workout_edit_move_up))
+                    Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(Res.string.workout_edit_move_up))
                 }
                 IconButton(onClick = onMoveDown, enabled = canMoveDown) {
-                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.workout_edit_move_down))
+                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(Res.string.workout_edit_move_down))
                 }
                 IconButton(onClick = onRemove) {
-                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.workout_edit_remove_exercise))
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(Res.string.workout_edit_remove_exercise))
                 }
             }
         },
@@ -239,7 +239,7 @@ private fun ExerciseRowCard(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             NumberField(
-                label = stringResource(R.string.workout_edit_sets_label),
+                label = stringResource(Res.string.workout_edit_sets_label),
                 value = row.sets.toDouble(),
                 onValueChange = { value -> onChange { r -> r.copy(sets = (value ?: 1.0).toInt()) } },
                 decimals = 0,
@@ -247,7 +247,7 @@ private fun ExerciseRowCard(
             )
             if (row.seconds != null) {
                 NumberField(
-                    label = stringResource(R.string.workout_edit_seconds_label),
+                    label = stringResource(Res.string.workout_edit_seconds_label),
                     value = row.seconds.toDouble(),
                     onValueChange = { value -> onChange { r -> r.copy(seconds = value?.toInt()) } },
                     decimals = 0,
@@ -255,7 +255,7 @@ private fun ExerciseRowCard(
                 )
             } else {
                 NumberField(
-                    label = stringResource(R.string.workout_edit_reps_label),
+                    label = stringResource(Res.string.workout_edit_reps_label),
                     value = row.reps?.toDouble(),
                     onValueChange = { value -> onChange { r -> r.copy(reps = value?.toInt()) } },
                     decimals = 0,
@@ -265,14 +265,14 @@ private fun ExerciseRowCard(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             NumberField(
-                label = stringResource(R.string.workout_edit_load_label),
+                label = stringResource(Res.string.workout_edit_load_label),
                 value = row.loadKg,
                 onValueChange = { value -> onChange { r -> r.copy(loadKg = value) } },
                 suffix = "kg",
                 modifier = Modifier.weight(1f),
             )
             NumberField(
-                label = stringResource(R.string.workout_edit_rest_label),
+                label = stringResource(Res.string.workout_edit_rest_label),
                 value = row.restSec?.toDouble(),
                 onValueChange = { value -> onChange { r -> r.copy(restSec = value?.toInt()) } },
                 decimals = 0,
@@ -284,7 +284,7 @@ private fun ExerciseRowCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(stringResource(R.string.workout_edit_bodyweight_label))
+            Text(stringResource(Res.string.workout_edit_bodyweight_label))
             Switch(
                 checked = row.isBodyweight,
                 onCheckedChange = { checked -> onChange { r -> r.copy(isBodyweight = checked) } },
@@ -293,7 +293,7 @@ private fun ExerciseRowCard(
         OutlinedTextField(
             value = row.note,
             onValueChange = { note -> onChange { r -> r.copy(note = note) } },
-            label = { Text(stringResource(R.string.workout_edit_note_label)) },
+            label = { Text(stringResource(Res.string.workout_edit_note_label)) },
             modifier = Modifier.fillMaxWidth(),
         )
         error?.let { Text(text = it.resolve(), color = MaterialTheme.colorScheme.error) }

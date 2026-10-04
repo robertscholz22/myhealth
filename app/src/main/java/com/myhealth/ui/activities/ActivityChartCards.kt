@@ -1,8 +1,8 @@
 package com.myhealth.ui.activities
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
-import com.myhealth.R
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import com.myhealth.domain.model.ActivitySession
 import com.myhealth.domain.model.SportGroup
 import com.myhealth.ui.common.charts.ChartSeries
@@ -14,11 +14,11 @@ import com.myhealth.ui.common.fmtDecimal
 @Composable
 internal fun HrChartCard(activity: ActivitySession) {
     LineChartCard(
-        title = stringResource(R.string.activity_chart_hr_title),
-        series = listOf(ChartSeries(name = stringResource(R.string.activity_chart_hr_series), points = hrPoints(activity.streams))),
+        title = stringResource(Res.string.activity_chart_hr_title),
+        series = listOf(ChartSeries(name = stringResource(Res.string.activity_chart_hr_series), points = hrPoints(activity.streams))),
         xLabels = minuteAxisLabels(activity.streams),
         yFormatter = { fmtDecimal(it, 0) },
-        emptyMessage = stringResource(R.string.activity_chart_hr_empty),
+        emptyMessage = stringResource(Res.string.activity_chart_hr_empty),
     )
 }
 
@@ -39,19 +39,19 @@ internal fun PaceOrSpeedChartCard(activity: ActivitySession) {
     }
     if (pace != null) {
         LineChartCard(
-            title = stringResource(R.string.activity_chart_pace_title),
-            series = listOf(ChartSeries(name = stringResource(R.string.activity_chart_pace_series), points = pace.invertY())),
+            title = stringResource(Res.string.activity_chart_pace_title),
+            series = listOf(ChartSeries(name = stringResource(Res.string.activity_chart_pace_series), points = pace.invertY())),
             xLabels = minuteAxisLabels(streams),
             yFormatter = { formatPaceAxis(-it) },
-            emptyMessage = stringResource(R.string.activity_chart_pace_empty),
+            emptyMessage = stringResource(Res.string.activity_chart_pace_empty),
         )
     } else {
         LineChartCard(
-            title = stringResource(R.string.activity_chart_speed_title),
-            series = listOf(ChartSeries(name = stringResource(R.string.activity_chart_speed_series), points = speedPoints(streams))),
+            title = stringResource(Res.string.activity_chart_speed_title),
+            series = listOf(ChartSeries(name = stringResource(Res.string.activity_chart_speed_series), points = speedPoints(streams))),
             xLabels = minuteAxisLabels(streams),
             yFormatter = { fmtDecimal(it, 1) },
-            emptyMessage = stringResource(R.string.activity_chart_speed_empty),
+            emptyMessage = stringResource(Res.string.activity_chart_speed_empty),
         )
     }
 }
@@ -60,21 +60,21 @@ internal fun PaceOrSpeedChartCard(activity: ActivitySession) {
 @Composable
 internal fun PowerChartCard(activity: ActivitySession) {
     LineChartCard(
-        title = stringResource(R.string.activity_chart_power_title),
-        series = listOf(ChartSeries(name = stringResource(R.string.activity_chart_power_series), points = powerPoints(activity.streams))),
+        title = stringResource(Res.string.activity_chart_power_title),
+        series = listOf(ChartSeries(name = stringResource(Res.string.activity_chart_power_series), points = powerPoints(activity.streams))),
         xLabels = minuteAxisLabels(activity.streams),
         yFormatter = { fmtDecimal(it, 0) },
-        emptyMessage = stringResource(R.string.activity_chart_power_empty),
+        emptyMessage = stringResource(Res.string.activity_chart_power_empty),
     )
 }
 
 @Composable
 internal fun AltitudeChartCard(activity: ActivitySession) {
     LineChartCard(
-        title = stringResource(R.string.activity_chart_altitude_title),
-        series = listOf(ChartSeries(name = stringResource(R.string.activity_chart_altitude_series), points = altitudePoints(activity.streams))),
+        title = stringResource(Res.string.activity_chart_altitude_title),
+        series = listOf(ChartSeries(name = stringResource(Res.string.activity_chart_altitude_series), points = altitudePoints(activity.streams))),
         xLabels = minuteAxisLabels(activity.streams),
         yFormatter = { fmtDecimal(it, 0) },
-        emptyMessage = stringResource(R.string.activity_chart_altitude_empty),
+        emptyMessage = stringResource(Res.string.activity_chart_altitude_empty),
     )
 }

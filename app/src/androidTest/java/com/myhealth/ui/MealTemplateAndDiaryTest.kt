@@ -12,7 +12,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.myhealth.MainActivity
-import com.myhealth.R
+import com.myhealth.resources.*
 import com.myhealth.domain.model.Ingredient
 import com.myhealth.domain.model.MeasureBasis
 import kotlinx.coroutines.runBlocking
@@ -81,38 +81,38 @@ class MealTemplateAndDiaryTest {
     fun logTemplate_showsInDiaryWithPositiveTotal() {
         val activity = composeTestRule.activity
 
-        composeTestRule.onNodeWithText(activity.getString(R.string.nav_more)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.more_entry_meal_templates))
-        composeTestRule.onNodeWithText(activity.getString(R.string.more_entry_meal_templates)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.mealtpl_new_cd), byContentDescription = true)
+        composeTestRule.onNodeWithText(str(Res.string.nav_more)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.more_entry_meal_templates))
+        composeTestRule.onNodeWithText(str(Res.string.more_entry_meal_templates)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.mealtpl_new_cd), byContentDescription = true)
 
-        composeTestRule.onNodeWithContentDescription(activity.getString(R.string.mealtpl_new_cd)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.mealtpl_title_new))
+        composeTestRule.onNodeWithContentDescription(str(Res.string.mealtpl_new_cd)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.mealtpl_title_new))
 
-        composeTestRule.onNodeWithText(activity.getString(R.string.mealtpl_name_label)).performTextInput(templateName)
+        composeTestRule.onNodeWithText(str(Res.string.mealtpl_name_label)).performTextInput(templateName)
 
-        composeTestRule.onNodeWithContentDescription(activity.getString(R.string.mealtpl_add_ingredient_cd)).performClick()
+        composeTestRule.onNodeWithContentDescription(str(Res.string.mealtpl_add_ingredient_cd)).performClick()
         composeTestRule.waitUntilTextExists(ingredientName)
         composeTestRule.onNodeWithText(ingredientName).performClick()
 
         // The picker seeds a 100 g default quantity; the template needs 80 g of it.
-        composeTestRule.onNodeWithText(activity.getString(R.string.quantity_label)).performTextReplacement("80")
+        composeTestRule.onNodeWithText(str(Res.string.quantity_label)).performTextReplacement("80")
         Espresso.closeSoftKeyboard()
         composeTestRule.waitForIdle()
 
         // "Save template" is the last item of the edit screen's LazyColumn, below the fold, so it
         // is not composed yet: scroll the list itself to it before clicking.
-        val saveLabel = activity.getString(R.string.mealtpl_save_button)
+        val saveLabel = str(Res.string.mealtpl_save_button)
         composeTestRule.verticalScroller().performScrollToNode(hasText(saveLabel))
         composeTestRule.onNodeWithText(saveLabel).performClick()
 
         // Back on the templates list.
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.mealtpl_log_now_button))
-        composeTestRule.onNodeWithText(activity.getString(R.string.mealtpl_log_now_button)).performClick()
-        composeTestRule.waitUntilTextExists(activity.getString(R.string.mealtpl_log_button))
-        composeTestRule.onNodeWithText(activity.getString(R.string.mealtpl_log_button)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.mealtpl_log_now_button))
+        composeTestRule.onNodeWithText(str(Res.string.mealtpl_log_now_button)).performClick()
+        composeTestRule.waitUntilTextExists(str(Res.string.mealtpl_log_button))
+        composeTestRule.onNodeWithText(str(Res.string.mealtpl_log_button)).performClick()
 
-        composeTestRule.onNodeWithText(activity.getString(R.string.nav_nutrition)).performClick()
+        composeTestRule.onNodeWithText(str(Res.string.nav_nutrition)).performClick()
         composeTestRule.waitForIdle()
 
         // ...and 80 g of a 500 kcal/100 g ingredient contributes exactly 400 kcal, which shows up

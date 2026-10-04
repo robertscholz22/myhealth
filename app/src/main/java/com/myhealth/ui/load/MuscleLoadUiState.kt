@@ -1,11 +1,11 @@
 package com.myhealth.ui.load
 
-import androidx.annotation.StringRes
-import com.myhealth.R
 import com.myhealth.domain.engine.strength.MuscleLoadState
 import com.myhealth.domain.model.MuscleGroup
 import com.myhealth.domain.model.MuscleLoadBand
+import com.myhealth.resources.*
 import kotlin.math.roundToInt
+import org.jetbrains.compose.resources.StringResource
 
 /**
  * Pure display logic for the Load & Recovery "Muscle load" card (PLAN §3.12.4 / §4.2, P14.8): the
@@ -38,11 +38,10 @@ fun topMuscleLoadRows(state: MuscleLoadState): List<MuscleLoadRow> =
 
 /** The band label string, reusing [BodyFigureLegend]'s own fresh/loaded/fatigued swatches text
  * (`body_figure_legend_*`) so the card's row list can never disagree with its own legend (`mlui02`). */
-@StringRes
-fun muscleLoadBandLabelRes(band: MuscleLoadBand): Int = when (band) {
-    MuscleLoadBand.FRESH -> R.string.body_figure_legend_fresh
-    MuscleLoadBand.LOADED -> R.string.body_figure_legend_loaded
-    MuscleLoadBand.FATIGUED -> R.string.body_figure_legend_fatigued
+fun muscleLoadBandLabelRes(band: MuscleLoadBand): StringResource = when (band) {
+    MuscleLoadBand.FRESH -> Res.string.body_figure_legend_fresh
+    MuscleLoadBand.LOADED -> Res.string.body_figure_legend_loaded
+    MuscleLoadBand.FATIGUED -> Res.string.body_figure_legend_fatigued
 }
 
 /**
@@ -82,8 +81,7 @@ fun todayMuscleLoadHint(state: MuscleLoadState): MuscleLoadHint? =
 
 /** The hint's string resource — "Legs are loaded — an upper-body day fits today" / "Legs are
  * fresh — a lower-body day fits". */
-@StringRes
-fun MuscleLoadHint.labelRes(): Int = when (this) {
-    MuscleLoadHint.UPPER_DAY_FITS -> R.string.load_muscle_hint_upper
-    MuscleLoadHint.LOWER_DAY_FITS -> R.string.load_muscle_hint_lower
+fun MuscleLoadHint.labelRes(): StringResource = when (this) {
+    MuscleLoadHint.UPPER_DAY_FITS -> Res.string.load_muscle_hint_upper
+    MuscleLoadHint.LOWER_DAY_FITS -> Res.string.load_muscle_hint_lower
 }

@@ -1,20 +1,20 @@
 package com.myhealth.ui.body
 
-import androidx.annotation.StringRes
-import com.myhealth.R
 import com.myhealth.domain.model.BodyMeasurement
 import com.myhealth.domain.model.DailyHealthSummary
 import com.myhealth.domain.model.SleepRecord
 import com.myhealth.domain.util.toLocalDate
+import com.myhealth.resources.*
 import com.myhealth.ui.common.fmtKg
 import com.myhealth.ui.common.fmtPercent
 import java.time.LocalDate
+import org.jetbrains.compose.resources.StringResource
 
 /** The three history windows the Body charts offer (PLAN P8.3). */
-enum class BodyRange(val days: Long, @StringRes val labelRes: Int) {
-    D30(30, R.string.body_range_30d),
-    D90(90, R.string.body_range_90d),
-    D365(365, R.string.body_range_365d),
+enum class BodyRange(val days: Long, val labelRes: StringResource) {
+    D30(30, Res.string.body_range_30d),
+    D90(90, Res.string.body_range_90d),
+    D365(365, Res.string.body_range_365d),
 }
 
 /**

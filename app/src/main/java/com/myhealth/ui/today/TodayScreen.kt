@@ -20,11 +20,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.clickable
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.calendar.LinkProposal
 import com.myhealth.domain.model.ActivitySource
@@ -199,7 +199,7 @@ private fun SuggestedLinksCard(
     onAccept: (LinkProposal) -> Unit,
     onDismiss: (LinkProposal) -> Unit,
 ) {
-    SectionCard(title = stringResource(R.string.today_suggested_links_title)) {
+    SectionCard(title = stringResource(Res.string.today_suggested_links_title)) {
         suggestions.forEach { proposal ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -215,8 +215,8 @@ private fun SuggestedLinksCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                TextButton(onClick = { onDismiss(proposal) }) { Text(stringResource(R.string.today_dismiss)) }
-                Button(onClick = { onAccept(proposal) }) { Text(stringResource(R.string.today_accept)) }
+                TextButton(onClick = { onDismiss(proposal) }) { Text(stringResource(Res.string.today_dismiss)) }
+                Button(onClick = { onAccept(proposal) }) { Text(stringResource(Res.string.today_accept)) }
             }
         }
     }
@@ -234,9 +234,9 @@ private fun NutritionCard(
     onOpenNutrition: () -> Unit,
 ) {
     SectionCard(
-        title = stringResource(R.string.today_nutrition_title),
+        title = stringResource(Res.string.today_nutrition_title),
         modifier = Modifier.clickable(onClick = onOpenNutrition),
-        action = { TextButton(onClick = onOpenNutrition) { Text(stringResource(R.string.today_diary)) } },
+        action = { TextButton(onClick = onOpenNutrition) { Text(stringResource(Res.string.today_diary)) } },
     ) {
         if (target == null) {
             Text(NO_TARGET_MESSAGE, style = MaterialTheme.typography.bodyMedium)
@@ -282,7 +282,7 @@ private fun NutritionCard(
 private fun SyncStatusBanner(state: TodayUiState, onSyncNow: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (state.lastSyncError != null) {
-            ErrorBanner(message = stringResource(R.string.today_sync_failed, state.lastSyncError), onRetry = onSyncNow)
+            ErrorBanner(message = stringResource(Res.string.today_sync_failed, state.lastSyncError), onRetry = onSyncNow)
         } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -293,7 +293,7 @@ private fun SyncStatusBanner(state: TodayUiState, onSyncNow: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Button(onClick = onSyncNow, enabled = !state.isSyncing) {
-                    Text(stringResource(R.string.today_sync_now))
+                    Text(stringResource(Res.string.today_sync_now))
                 }
             }
         }
@@ -307,11 +307,11 @@ private fun TodayActivitiesSection(
     onOpenDay: () -> Unit,
 ) {
     SectionCard(
-        title = stringResource(R.string.today_activities_title),
-        action = { TextButton(onClick = onOpenDay) { Text(stringResource(R.string.today_day_detail)) } },
+        title = stringResource(Res.string.today_activities_title),
+        action = { TextButton(onClick = onOpenDay) { Text(stringResource(Res.string.today_day_detail)) } },
     ) {
         if (activities.isEmpty()) {
-            EmptyState(stringResource(R.string.today_empty_activities_title), stringResource(R.string.today_empty_activities_message))
+            EmptyState(stringResource(Res.string.today_empty_activities_title), stringResource(Res.string.today_empty_activities_message))
         } else {
             activities.forEach { activity ->
                 Row(
@@ -336,19 +336,19 @@ private fun TodayActivitiesSection(
 
 @Composable
 private fun BodyChip(weightChipText: String?) {
-    SectionCard(title = stringResource(R.string.today_body_title)) {
-        Text(weightChipText ?: stringResource(R.string.today_no_weight), style = MaterialTheme.typography.bodyMedium)
+    SectionCard(title = stringResource(Res.string.today_body_title)) {
+        Text(weightChipText ?: stringResource(Res.string.today_no_weight), style = MaterialTheme.typography.bodyMedium)
     }
 }
 
 @Composable
 private fun SleepTile(sleep: SleepRecord?) {
-    SectionCard(title = stringResource(R.string.today_sleep_title)) {
+    SectionCard(title = stringResource(Res.string.today_sleep_title)) {
         if (sleep == null) {
-            Text(stringResource(R.string.today_no_sleep), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(Res.string.today_no_sleep), style = MaterialTheme.typography.bodyMedium)
         } else {
             val hours = sleep.totalSleepMin / 60.0
-            StatTile(label = stringResource(R.string.today_last_night_label), value = fmtDecimal(hours, 1), unit = "h")
+            StatTile(label = stringResource(Res.string.today_last_night_label), value = fmtDecimal(hours, 1), unit = "h")
         }
     }
 }

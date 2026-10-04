@@ -2,11 +2,11 @@ package com.myhealth.ui.calendar
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.myhealth.R
 import com.myhealth.domain.model.EventOverride
 import com.myhealth.domain.repository.CalendarRepository
 import com.myhealth.domain.util.Outcome
 import com.myhealth.domain.util.toLocalDate
+import com.myhealth.resources.*
 import com.myhealth.sync.SyncScheduler
 import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,7 +56,7 @@ class EventEditViewModel(
         viewModelScope.launch {
             val event = calendarRepo.getEvent(id)
             if (event == null) {
-                _state.update { it.copy(isLoading = false, loadError = UiMessage.of(R.string.event_load_not_found)) }
+                _state.update { it.copy(isLoading = false, loadError = UiMessage.of(Res.string.event_load_not_found)) }
                 return@launch
             }
             _state.update {
@@ -94,7 +94,7 @@ class EventEditViewModel(
                     _state.update { it.copy(isSaving = false, saved = true) }
                 }
                 is Outcome.Err -> _state.update {
-                    it.copy(isSaving = false, saveError = UiMessage.of(R.string.event_save_failed))
+                    it.copy(isSaving = false, saveError = UiMessage.of(Res.string.event_save_failed))
                 }
             }
         }
@@ -118,7 +118,7 @@ class EventEditViewModel(
                     syncScheduler.requestTargetRecompute()
                     _state.update { it.copy(deleted = true) }
                 }
-                is Outcome.Err -> _state.update { it.copy(saveError = UiMessage.of(R.string.event_delete_series_failed)) }
+                is Outcome.Err -> _state.update { it.copy(saveError = UiMessage.of(Res.string.event_delete_series_failed)) }
             }
         }
     }
@@ -144,7 +144,7 @@ class EventEditViewModel(
                     syncScheduler.requestTargetRecompute()
                     _state.update { it.copy(deleted = true) }
                 }
-                is Outcome.Err -> _state.update { it.copy(saveError = UiMessage.of(R.string.event_delete_occurrence_failed)) }
+                is Outcome.Err -> _state.update { it.copy(saveError = UiMessage.of(Res.string.event_delete_occurrence_failed)) }
             }
         }
     }

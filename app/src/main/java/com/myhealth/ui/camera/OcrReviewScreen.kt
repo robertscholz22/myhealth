@@ -40,11 +40,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.EngineWarningCode
 import com.myhealth.domain.model.MeasureBasis
@@ -87,13 +87,13 @@ fun OcrReviewScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.ocr_review_title)) },
+                title = { Text(stringResource(Res.string.ocr_review_title)) },
                 navigationIcon = {
                     IconButton(onClick = {
                         vm.discard()
                         onBack()
                     }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 },
             )
@@ -137,9 +137,9 @@ private fun OcrReviewBody(
     if (state.missing) {
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
             EmptyState(
-                title = stringResource(R.string.ocr_review_missing_title),
-                message = stringResource(R.string.ocr_review_missing_message),
-                actionLabel = stringResource(R.string.ocr_review_scan_again_action),
+                title = stringResource(Res.string.ocr_review_missing_title),
+                message = stringResource(Res.string.ocr_review_missing_message),
+                actionLabel = stringResource(Res.string.ocr_review_scan_again_action),
                 onAction = onRetake,
             )
         }
@@ -169,25 +169,25 @@ private fun OcrReviewBody(
                 }
             }
             item {
-                SectionCard(title = stringResource(R.string.ocr_review_section_product)) {
+                SectionCard(title = stringResource(Res.string.ocr_review_section_product)) {
                     OutlinedTextField(
                         value = state.name,
                         onValueChange = onName,
-                        label = { Text(stringResource(R.string.ocr_review_name_label)) },
+                        label = { Text(stringResource(Res.string.ocr_review_name_label)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     OutlinedTextField(
                         value = state.brand,
                         onValueChange = onBrand,
-                        label = { Text(stringResource(R.string.ocr_review_brand_label)) },
+                        label = { Text(stringResource(Res.string.ocr_review_brand_label)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
             item {
-                SectionCard(title = stringResource(R.string.ocr_review_section_recognised_values)) {
+                SectionCard(title = stringResource(Res.string.ocr_review_section_recognised_values)) {
                     Text(
                         text = state.basisNote,
                         style = MaterialTheme.typography.bodySmall,
@@ -199,7 +199,7 @@ private fun OcrReviewBody(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(stringResource(R.string.ocr_review_use_per_serving), style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(Res.string.ocr_review_use_per_serving), style = MaterialTheme.typography.bodyMedium)
                             Switch(checked = state.usePerServing, onCheckedChange = onPerServing)
                         }
                     }
@@ -226,9 +226,9 @@ private fun OcrReviewBody(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            TextButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) }
-            OutlinedButton(onClick = onRetake) { Text(stringResource(R.string.ocr_review_retake_action)) }
-            Button(onClick = onAccept, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.ocr_review_accept_action)) }
+            TextButton(onClick = onCancel) { Text(stringResource(Res.string.action_cancel)) }
+            OutlinedButton(onClick = onRetake) { Text(stringResource(Res.string.ocr_review_retake_action)) }
+            Button(onClick = onAccept, modifier = Modifier.weight(1f)) { Text(stringResource(Res.string.ocr_review_accept_action)) }
         }
     }
 }
@@ -243,7 +243,7 @@ private fun OcrValueRow(
         val fieldLabel = stringResource(row.field.labelRes)
         NumberField(
             label = if (row.isUpperBound) {
-                stringResource(R.string.ocr_review_upper_bound_label, fieldLabel)
+                stringResource(Res.string.ocr_review_upper_bound_label, fieldLabel)
             } else {
                 fieldLabel
             },
@@ -278,7 +278,7 @@ private fun CapturedImage(path: String) {
     val current = bitmap ?: return
     Image(
         bitmap = current.asImageBitmap(),
-        contentDescription = stringResource(R.string.ocr_review_captured_image_content_description),
+        contentDescription = stringResource(Res.string.ocr_review_captured_image_content_description),
         contentScale = ContentScale.Crop,
         modifier = Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(CARD_CORNER_RADIUS)),
     )

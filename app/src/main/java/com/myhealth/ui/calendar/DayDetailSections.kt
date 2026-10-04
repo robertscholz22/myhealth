@@ -24,10 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.myhealth.R
 import com.myhealth.domain.model.ActivitySummary
 import com.myhealth.domain.model.CycleStatus
 import com.myhealth.domain.model.DailyLoad
@@ -55,7 +55,7 @@ internal fun OverflowMenu(actions: List<Pair<String, () -> Unit>>) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { expanded = true }) {
-            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.daydetail_overflow_more_actions_desc))
+            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(Res.string.daydetail_overflow_more_actions_desc))
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             actions.forEach { (label, action) ->
@@ -79,9 +79,9 @@ internal fun EventsSection(
     onDelete: (Long) -> Unit,
     onLink: (EventOccurrence) -> Unit,
 ) {
-    SectionCard(title = stringResource(R.string.daydetail_section_events)) {
+    SectionCard(title = stringResource(Res.string.daydetail_section_events)) {
         if (events.isEmpty()) {
-            EmptyLine(stringResource(R.string.daydetail_empty_events))
+            EmptyLine(stringResource(Res.string.daydetail_empty_events))
             return@SectionCard
         }
         events.forEach { occurrence ->
@@ -94,7 +94,7 @@ internal fun EventsSection(
                         AssistChip(onClick = {}, label = { Text(occurrence.type.displayName()) })
                         Text(
                             text = formatMinuteOfDay(occurrence.effectiveStartMinuteOfDay)
-                                ?: stringResource(R.string.daydetail_all_day),
+                                ?: stringResource(Res.string.daydetail_all_day),
                             style = MaterialTheme.typography.labelLarge,
                         )
                     }
@@ -113,15 +113,15 @@ internal fun EventsSection(
                 val isLinked = occurrence.linkedActivityId != null
                 OverflowMenu(
                     listOf(
-                        stringResource(R.string.daydetail_action_edit) to { onEdit(occurrence) },
+                        stringResource(Res.string.daydetail_action_edit) to { onEdit(occurrence) },
                         (
                             if (isLinked) {
-                                stringResource(R.string.daydetail_action_manage_link)
+                                stringResource(Res.string.daydetail_action_manage_link)
                             } else {
-                                stringResource(R.string.daydetail_action_link_activity)
+                                stringResource(Res.string.daydetail_action_link_activity)
                             }
                             ) to { onLink(occurrence) },
-                        stringResource(R.string.action_delete) to { onDelete(occurrence.eventId) },
+                        stringResource(Res.string.action_delete) to { onDelete(occurrence.eventId) },
                     ),
                 )
             }
@@ -137,9 +137,9 @@ private fun eventSubtitle(
     occurrence.effectiveDurationMin?.let { add("$it min") }
     occurrence.sportType?.let { add(it.displayName()) }
     occurrence.linkedActivityId?.let { add(linkedActivityLabel(it, activities).resolve()) }
-    if (occurrence.isKeyEvent) add(stringResource(R.string.daydetail_event_key_event))
-    if (occurrence.isOverride) add(stringResource(R.string.daydetail_event_modified_occurrence))
-}.joinToString(" · ").ifEmpty { stringResource(R.string.daydetail_event_no_details) }
+    if (occurrence.isKeyEvent) add(stringResource(Res.string.daydetail_event_key_event))
+    if (occurrence.isOverride) add(stringResource(Res.string.daydetail_event_modified_occurrence))
+}.joinToString(" · ").ifEmpty { stringResource(Res.string.daydetail_event_no_details) }
 
 @Composable
 internal fun PlannedSection(
@@ -147,9 +147,9 @@ internal fun PlannedSection(
     onSetStatus: (Long, PlannedStatus) -> Unit,
     onEdit: (Long) -> Unit,
 ) {
-    SectionCard(title = stringResource(R.string.daydetail_section_planned)) {
+    SectionCard(title = stringResource(Res.string.daydetail_section_planned)) {
         if (sessions.isEmpty()) {
-            EmptyLine(stringResource(R.string.daydetail_empty_planned))
+            EmptyLine(stringResource(Res.string.daydetail_empty_planned))
             return@SectionCard
         }
         sessions.forEach { session ->
@@ -165,13 +165,13 @@ internal fun PlannedSection(
                 }
                 OverflowMenu(
                     listOf(
-                        stringResource(R.string.daydetail_action_mark_done) to {
+                        stringResource(Res.string.daydetail_action_mark_done) to {
                             onSetStatus(session.id, PlannedStatus.COMPLETED)
                         },
-                        stringResource(R.string.daydetail_action_skip) to {
+                        stringResource(Res.string.daydetail_action_skip) to {
                             onSetStatus(session.id, PlannedStatus.SKIPPED)
                         },
-                        stringResource(R.string.daydetail_action_edit) to { onEdit(session.id) },
+                        stringResource(Res.string.daydetail_action_edit) to { onEdit(session.id) },
                     ),
                 )
             }
@@ -188,9 +188,9 @@ private fun plannedSubtitle(session: PlannedSession): String = buildList {
 
 @Composable
 internal fun ActivitiesSection(activities: List<ActivitySummary>, onOpenActivity: (Long) -> Unit) {
-    SectionCard(title = stringResource(R.string.daydetail_section_activities)) {
+    SectionCard(title = stringResource(Res.string.daydetail_section_activities)) {
         if (activities.isEmpty()) {
-            EmptyLine(stringResource(R.string.daydetail_empty_activities))
+            EmptyLine(stringResource(Res.string.daydetail_empty_activities))
             return@SectionCard
         }
         activities.forEach { activity ->
@@ -211,7 +211,7 @@ internal fun ActivitiesSection(activities: List<ActivitySummary>, onOpenActivity
                             formatDuration(activity.durationSec),
                             formatDistanceKm(activity.distanceMeters),
                             activity.avgHr?.let { "$it bpm" },
-                            activity.trimp?.let { stringResource(R.string.daydetail_activity_trimp, Math.round(it)) },
+                            activity.trimp?.let { stringResource(Res.string.daydetail_activity_trimp, Math.round(it)) },
                         ).joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -227,9 +227,9 @@ internal fun ActivitiesSection(activities: List<ActivitySummary>, onOpenActivity
 
 @Composable
 internal fun MealsSection(meals: List<MealLogSummary>, intake: MacroTotals, onOpenNutrition: () -> Unit) {
-    SectionCard(title = stringResource(R.string.daydetail_section_meals)) {
+    SectionCard(title = stringResource(Res.string.daydetail_section_meals)) {
         if (meals.isEmpty()) {
-            EmptyLine(stringResource(R.string.daydetail_empty_meals))
+            EmptyLine(stringResource(Res.string.daydetail_empty_meals))
         } else {
             meals.forEach { meal ->
                 Row(
@@ -244,13 +244,13 @@ internal fun MealsSection(meals: List<MealLogSummary>, intake: MacroTotals, onOp
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = stringResource(R.string.daydetail_meal_kcal_protein, meal.totals.kcal, meal.totals.proteinG),
+                        text = stringResource(Res.string.daydetail_meal_kcal_protein, meal.totals.kcal, meal.totals.proteinG),
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }
             Text(
-                text = stringResource(R.string.daydetail_meal_day_total, intake.kcal, intake.proteinG),
+                text = stringResource(Res.string.daydetail_meal_day_total, intake.kcal, intake.proteinG),
                 style = MaterialTheme.typography.labelLarge,
             )
         }
@@ -259,17 +259,17 @@ internal fun MealsSection(meals: List<MealLogSummary>, intake: MacroTotals, onOp
 
 @Composable
 internal fun SleepSection(sleep: SleepRecord?) {
-    SectionCard(title = stringResource(R.string.daydetail_section_sleep)) {
+    SectionCard(title = stringResource(Res.string.daydetail_section_sleep)) {
         if (sleep == null) {
-            EmptyLine(stringResource(R.string.daydetail_empty_sleep))
+            EmptyLine(stringResource(Res.string.daydetail_empty_sleep))
             return@SectionCard
         }
         Text(text = formatSleepDuration(sleep.totalSleepMin), style = MaterialTheme.typography.titleLarge)
         val stages = listOfNotNull(
-            sleep.deepMin?.let { stringResource(R.string.daydetail_sleep_stage_deep, it) },
-            sleep.remMin?.let { stringResource(R.string.daydetail_sleep_stage_rem, it) },
-            sleep.lightMin?.let { stringResource(R.string.daydetail_sleep_stage_light, it) },
-            sleep.awakeMin?.let { stringResource(R.string.daydetail_sleep_stage_awake, it) },
+            sleep.deepMin?.let { stringResource(Res.string.daydetail_sleep_stage_deep, it) },
+            sleep.remMin?.let { stringResource(Res.string.daydetail_sleep_stage_rem, it) },
+            sleep.lightMin?.let { stringResource(Res.string.daydetail_sleep_stage_light, it) },
+            sleep.awakeMin?.let { stringResource(Res.string.daydetail_sleep_stage_awake, it) },
         )
         if (stages.isNotEmpty()) {
             Text(
@@ -279,17 +279,17 @@ internal fun SleepSection(sleep: SleepRecord?) {
             )
         }
         sleep.sleepScore?.let {
-            Text(text = stringResource(R.string.daydetail_sleep_score, it), style = MaterialTheme.typography.bodySmall)
+            Text(text = stringResource(Res.string.daydetail_sleep_score, it), style = MaterialTheme.typography.bodySmall)
         }
     }
 }
 
 @Composable
 internal fun TargetsSection(target: NutritionTarget?, intake: MacroTotals, onOpenNutrition: () -> Unit) {
-    SectionCard(title = stringResource(R.string.daydetail_section_targets)) {
+    SectionCard(title = stringResource(Res.string.daydetail_section_targets)) {
         val rows = targetProgressRows(target, intake)
         if (rows.isEmpty()) {
-            EmptyLine(stringResource(R.string.daydetail_empty_targets))
+            EmptyLine(stringResource(Res.string.daydetail_empty_targets))
             return@SectionCard
         }
         Text(
@@ -314,21 +314,21 @@ internal fun TargetsSection(target: NutritionTarget?, intake: MacroTotals, onOpe
 
 @Composable
 internal fun LoadSection(load: DailyLoad?) {
-    SectionCard(title = stringResource(R.string.daydetail_section_load)) {
+    SectionCard(title = stringResource(Res.string.daydetail_section_load)) {
         if (load == null) {
-            EmptyLine(stringResource(R.string.daydetail_empty_load))
+            EmptyLine(stringResource(Res.string.daydetail_empty_load))
             return@SectionCard
         }
         Text(
             text = stringResource(
-                R.string.daydetail_load_trimp_acwr,
+                Res.string.daydetail_load_trimp_acwr,
                 load.trimp,
                 load.acwr?.let { fmtDecimal(it, 2) } ?: "—",
             ),
             style = MaterialTheme.typography.bodyLarge,
         )
         val recovery = listOfNotNull(
-            load.recoveryScore?.let { stringResource(R.string.daydetail_load_recovery, it) },
+            load.recoveryScore?.let { stringResource(Res.string.daydetail_load_recovery, it) },
             load.recoveryBand?.let { labelOf(it.name) },
         )
         if (recovery.isNotEmpty()) {
@@ -348,15 +348,15 @@ internal fun LoadSection(load: DailyLoad?) {
  * the last logged cycle. Shown only while tracking is enabled. */
 @Composable
 internal fun CycleSection(status: CycleStatus?) {
-    SectionCard(title = stringResource(R.string.daydetail_section_cycle)) {
+    SectionCard(title = stringResource(Res.string.daydetail_section_cycle)) {
         if (status == null) {
-            EmptyLine(stringResource(R.string.cycle_history_empty))
+            EmptyLine(stringResource(Res.string.cycle_history_empty))
             return@SectionCard
         }
         Text(
             text = stringResource(phaseLabelRes(status.phase)) +
                 " · " + dayOfCycleLabel(status.dayOfCycle, status.cycleLengthDays) +
-                if (status.isPredicted) stringResource(R.string.daydetail_cycle_predicted_suffix) else "",
+                if (status.isPredicted) stringResource(Res.string.daydetail_cycle_predicted_suffix) else "",
             style = MaterialTheme.typography.bodyLarge,
         )
     }

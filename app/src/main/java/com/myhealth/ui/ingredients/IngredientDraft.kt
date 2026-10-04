@@ -1,12 +1,13 @@
 package com.myhealth.ui.ingredients
 
-import android.content.Context
-import com.myhealth.R
+import androidx.compose.runtime.Composable
 import com.myhealth.domain.model.Ingredient
 import com.myhealth.domain.model.MeasureBasis
 import com.myhealth.domain.model.NutritionFacts
+import com.myhealth.resources.*
 import com.myhealth.ui.camera.ScanDraft
 import com.myhealth.ui.common.UiMessage
+import com.myhealth.ui.common.stringResource
 import com.myhealth.ui.common.fmtDecimal
 import java.time.Clock
 
@@ -49,19 +50,21 @@ data class IngredientDraft(
 
 /** The unit suffix the basis selector switches to (§4.2 Ingredient edit: "basis selector
  * switching unit suffixes"). */
-fun MeasureBasis.unitSuffix(context: Context): String = when (this) {
-    MeasureBasis.PER_100G -> context.getString(R.string.ingredient_unit_suffix_100g)
-    MeasureBasis.PER_100ML -> context.getString(R.string.ingredient_unit_suffix_100ml)
-    MeasureBasis.PER_PIECE -> context.getString(R.string.ingredient_unit_suffix_piece)
+@Composable
+fun MeasureBasis.unitSuffix(): String = when (this) {
+    MeasureBasis.PER_100G -> stringResource(Res.string.ingredient_unit_suffix_100g)
+    MeasureBasis.PER_100ML -> stringResource(Res.string.ingredient_unit_suffix_100ml)
+    MeasureBasis.PER_PIECE -> stringResource(Res.string.ingredient_unit_suffix_piece)
 }
 
 /** The list-row basis label (§4.2 Ingredients: "per 100 g" / "per 100 ml" / "per piece (30 g)"). */
-fun Ingredient.basisLabel(context: Context): String = when (basis) {
-    MeasureBasis.PER_100G -> context.getString(R.string.ingredient_basis_label_100g)
-    MeasureBasis.PER_100ML -> context.getString(R.string.ingredient_basis_label_100ml)
+@Composable
+fun Ingredient.basisLabel(): String = when (basis) {
+    MeasureBasis.PER_100G -> stringResource(Res.string.ingredient_basis_label_100g)
+    MeasureBasis.PER_100ML -> stringResource(Res.string.ingredient_basis_label_100ml)
     MeasureBasis.PER_PIECE -> pieceGrams?.let {
-        context.getString(R.string.ingredient_basis_label_piece_with_grams, it.trimZeros())
-    } ?: context.getString(R.string.ingredient_basis_label_piece)
+        stringResource(Res.string.ingredient_basis_label_piece_with_grams, it.trimZeros())
+    } ?: stringResource(Res.string.ingredient_basis_label_piece)
 }
 
 private fun Double.trimZeros(): String =
@@ -77,39 +80,39 @@ fun validate(draft: IngredientDraft): Map<IngredientField, UiMessage> {
     val errors = mutableMapOf<IngredientField, UiMessage>()
 
     if (draft.name.isBlank()) {
-        errors[IngredientField.NAME] = UiMessage.of(R.string.ingredient_error_name_required)
+        errors[IngredientField.NAME] = UiMessage.of(Res.string.ingredient_error_name_required)
     }
 
     val kcal = draft.kcal
     if (kcal == null || kcal < 0.0) {
-        errors[IngredientField.KCAL] = UiMessage.of(R.string.ingredient_error_kcal_required)
+        errors[IngredientField.KCAL] = UiMessage.of(Res.string.ingredient_error_kcal_required)
     }
 
     val protein = draft.proteinG
     if (protein == null || protein < 0.0) {
-        errors[IngredientField.PROTEIN] = UiMessage.of(R.string.ingredient_error_protein_required)
+        errors[IngredientField.PROTEIN] = UiMessage.of(Res.string.ingredient_error_protein_required)
     }
 
     val carbs = draft.carbsG
     if (carbs == null || carbs < 0.0) {
-        errors[IngredientField.CARBS] = UiMessage.of(R.string.ingredient_error_carbs_required)
+        errors[IngredientField.CARBS] = UiMessage.of(Res.string.ingredient_error_carbs_required)
     }
 
     val fat = draft.fatG
     if (fat == null || fat < 0.0) {
-        errors[IngredientField.FAT] = UiMessage.of(R.string.ingredient_error_fat_required)
+        errors[IngredientField.FAT] = UiMessage.of(Res.string.ingredient_error_fat_required)
     }
 
     if (draft.basis == MeasureBasis.PER_PIECE && draft.pieceGrams == null) {
-        errors[IngredientField.PIECE_GRAMS] = UiMessage.of(R.string.ingredient_error_piece_grams_required)
+        errors[IngredientField.PIECE_GRAMS] = UiMessage.of(Res.string.ingredient_error_piece_grams_required)
     }
 
-    if ((draft.sugarG ?: 0.0) < 0.0) errors[IngredientField.SUGAR] = UiMessage.of(R.string.ingredient_error_sugar_negative)
+    if ((draft.sugarG ?: 0.0) < 0.0) errors[IngredientField.SUGAR] = UiMessage.of(Res.string.ingredient_error_sugar_negative)
     if ((draft.satFatG ?: 0.0) < 0.0) {
-        errors[IngredientField.SAT_FAT] = UiMessage.of(R.string.ingredient_error_sat_fat_negative)
+        errors[IngredientField.SAT_FAT] = UiMessage.of(Res.string.ingredient_error_sat_fat_negative)
     }
-    if ((draft.fiberG ?: 0.0) < 0.0) errors[IngredientField.FIBER] = UiMessage.of(R.string.ingredient_error_fiber_negative)
-    if ((draft.saltG ?: 0.0) < 0.0) errors[IngredientField.SALT] = UiMessage.of(R.string.ingredient_error_salt_negative)
+    if ((draft.fiberG ?: 0.0) < 0.0) errors[IngredientField.FIBER] = UiMessage.of(Res.string.ingredient_error_fiber_negative)
+    if ((draft.saltG ?: 0.0) < 0.0) errors[IngredientField.SALT] = UiMessage.of(Res.string.ingredient_error_salt_negative)
 
     return errors
 }

@@ -7,8 +7,8 @@ import com.myhealth.domain.model.ImportRecord
 import com.myhealth.domain.repository.ActivityImporter
 import com.myhealth.domain.repository.ImportKinds
 import com.myhealth.domain.repository.ImportRepository
-import com.myhealth.R
 import com.myhealth.domain.util.Outcome
+import com.myhealth.resources.*
 import com.myhealth.sync.SyncScheduler
 import com.myhealth.ui.common.UiMessage
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -87,11 +87,11 @@ class ImportViewModel(
         viewModelScope.launch {
             undoMessage.value = when (val outcome = importRepo.undo(importId)) {
                 is Outcome.Ok -> UiMessage.of(
-                    R.string.import_undo_result_format,
+                    Res.string.import_undo_result_format,
                     outcome.value.activitiesDeleted,
                     outcome.value.activitiesKept,
                 )
-                is Outcome.Err -> UiMessage.of(R.string.import_undo_failed)
+                is Outcome.Err -> UiMessage.of(Res.string.import_undo_failed)
             }
             undoing.value = false
         }

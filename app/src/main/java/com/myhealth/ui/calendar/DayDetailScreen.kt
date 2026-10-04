@@ -25,11 +25,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVmWithSavedState
 import com.myhealth.domain.model.CalendarDay
 import com.myhealth.domain.model.EventOccurrence
@@ -76,13 +76,13 @@ fun DayDetailScreen(
     if (state.pendingDeleteEventId != null) {
         AlertDialog(
             onDismissRequest = vm::cancelDeleteEvent,
-            title = { Text(stringResource(R.string.event_dialog_delete_title)) },
-            text = { Text(stringResource(R.string.daydetail_dialog_delete_event_text)) },
+            title = { Text(stringResource(Res.string.event_dialog_delete_title)) },
+            text = { Text(stringResource(Res.string.daydetail_dialog_delete_event_text)) },
             confirmButton = {
-                TextButton(onClick = vm::confirmDeleteEvent) { Text(stringResource(R.string.action_delete)) }
+                TextButton(onClick = vm::confirmDeleteEvent) { Text(stringResource(Res.string.action_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = vm::cancelDeleteEvent) { Text(stringResource(R.string.action_cancel)) }
+                TextButton(onClick = vm::cancelDeleteEvent) { Text(stringResource(Res.string.action_cancel)) }
             },
         )
     }
@@ -122,7 +122,7 @@ private fun DayDetailContent(
     LaunchedEffect(state.message) {
         val message = state.message
         if (message != null) {
-            snackbarHostState.showSnackbar(message.resolve(context))
+            snackbarHostState.showSnackbar(message.resolveText())
             onMessageShown()
         }
     }
@@ -135,15 +135,15 @@ private fun DayDetailContent(
                 title = { Text(state.title) },
                 navigationIcon = {
                     IconButton(onClick = nav.onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.action_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.action_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onPreviousDay) {
-                        Icon(Icons.Filled.ChevronLeft, contentDescription = stringResource(R.string.daydetail_previous_day_desc))
+                        Icon(Icons.Filled.ChevronLeft, contentDescription = stringResource(Res.string.daydetail_previous_day_desc))
                     }
                     IconButton(onClick = onNextDay) {
-                        Icon(Icons.Filled.ChevronRight, contentDescription = stringResource(R.string.daydetail_next_day_desc))
+                        Icon(Icons.Filled.ChevronRight, contentDescription = stringResource(Res.string.daydetail_next_day_desc))
                     }
                 },
             )

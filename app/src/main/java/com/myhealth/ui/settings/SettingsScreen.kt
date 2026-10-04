@@ -22,11 +22,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.engine.bike.FtpEstimate
 import com.myhealth.domain.engine.bike.FtpSource
@@ -70,7 +70,7 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
     // The orphan-cleanup result (or its failure) is reported once, then cleared.
     LaunchedEffect(message) {
         message?.let {
-            snackbar.showSnackbar(it.resolve(context))
+            snackbar.showSnackbar(it.resolveText())
             vm.consumeMessage()
         }
     }
@@ -110,7 +110,7 @@ private fun SettingsContent(
             item { HeartRateZonesSection(profile = profile, onProfileChange = onProfileChange) }
             item { StrengthEquipmentSection(profile = profile, onProfileChange = onProfileChange) }
         } else if (!state.isLoading) {
-            item { Text(stringResource(R.string.settings_no_profile)) }
+            item { Text(stringResource(Res.string.settings_no_profile)) }
         }
         item { AppPreferencesSection(settings = state.settings, onSettingsChange = onSettingsChange) }
         item {
@@ -126,74 +126,74 @@ private fun SettingsContent(
 
 @Composable
 private fun ProfileSection(profile: Profile, onProfileChange: (Profile) -> Unit) {
-    SectionCard(title = stringResource(R.string.settings_section_profile)) {
+    SectionCard(title = stringResource(Res.string.settings_section_profile)) {
         OutlinedTextField(
             value = profile.displayName,
             onValueChange = { onProfileChange(profile.copy(displayName = it)) },
-            label = { Text(stringResource(R.string.settings_profile_name_label)) },
+            label = { Text(stringResource(Res.string.settings_profile_name_label)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
         DropdownField(
-            label = stringResource(R.string.settings_profile_sex_label),
+            label = stringResource(Res.string.settings_profile_sex_label),
             options = Sex.entries,
             selected = profile.sex,
             optionLabel = { it.name.lowercase().replaceFirstChar(Char::uppercase) },
             onSelect = { onProfileChange(profile.copy(sex = it)) },
         )
         DatePickerField(
-            label = stringResource(R.string.settings_profile_birth_date_label),
+            label = stringResource(Res.string.settings_profile_birth_date_label),
             value = LocalDate.ofEpochDay(profile.birthDay),
             onValueChange = { onProfileChange(profile.copy(birthDay = it.toEpochDay())) },
         )
         NumberField(
-            label = stringResource(R.string.settings_profile_height_label),
+            label = stringResource(Res.string.settings_profile_height_label),
             value = profile.heightCm,
             onValueChange = { it?.let { v -> onProfileChange(profile.copy(heightCm = v)) } },
-            suffix = stringResource(R.string.settings_unit_cm),
+            suffix = stringResource(Res.string.settings_unit_cm),
             decimals = 0,
         )
         NumberField(
-            label = stringResource(R.string.settings_profile_goal_weight_label),
+            label = stringResource(Res.string.settings_profile_goal_weight_label),
             value = profile.goalWeightKg,
             onValueChange = { onProfileChange(profile.copy(goalWeightKg = it)) },
-            suffix = stringResource(R.string.settings_unit_kg),
+            suffix = stringResource(Res.string.settings_unit_kg),
             decimals = 1,
         )
         NumberField(
-            label = stringResource(R.string.settings_profile_goal_pace_label),
+            label = stringResource(Res.string.settings_profile_goal_pace_label),
             value = profile.goalPaceKgPerWeek,
             onValueChange = { it?.let { v -> onProfileChange(profile.copy(goalPaceKgPerWeek = v)) } },
-            suffix = stringResource(R.string.settings_unit_kg_per_week),
+            suffix = stringResource(Res.string.settings_unit_kg_per_week),
             decimals = 2,
             allowNegative = true,
         )
         DropdownField(
-            label = stringResource(R.string.settings_profile_neat_level_label),
+            label = stringResource(Res.string.settings_profile_neat_level_label),
             options = NeatLevel.entries,
             selected = profile.neatLevel,
             optionLabel = { it.name.lowercase().replace('_', ' ').replaceFirstChar(Char::uppercase) },
             onSelect = { onProfileChange(profile.copy(neatLevel = it)) },
         )
         NumberField(
-            label = stringResource(R.string.settings_profile_resting_hr_label),
+            label = stringResource(Res.string.settings_profile_resting_hr_label),
             value = profile.restingHrManual?.toDouble(),
             onValueChange = { onProfileChange(profile.copy(restingHrManual = it?.toInt())) },
-            suffix = stringResource(R.string.settings_unit_bpm),
+            suffix = stringResource(Res.string.settings_unit_bpm),
             decimals = 0,
         )
         NumberField(
-            label = stringResource(R.string.settings_profile_max_hr_label),
+            label = stringResource(Res.string.settings_profile_max_hr_label),
             value = profile.maxHrManual?.toDouble(),
             onValueChange = { onProfileChange(profile.copy(maxHrManual = it?.toInt())) },
-            suffix = stringResource(R.string.settings_unit_bpm),
+            suffix = stringResource(Res.string.settings_unit_bpm),
             decimals = 0,
         )
         NumberField(
-            label = stringResource(R.string.settings_profile_sleep_target_label),
+            label = stringResource(Res.string.settings_profile_sleep_target_label),
             value = profile.sleepTargetHours,
             onValueChange = { it?.let { v -> onProfileChange(profile.copy(sleepTargetHours = v)) } },
-            suffix = stringResource(R.string.settings_unit_hours),
+            suffix = stringResource(Res.string.settings_unit_hours),
             decimals = 1,
         )
         Row(
@@ -201,7 +201,7 @@ private fun ProfileSection(profile: Profile, onProfileChange: (Profile) -> Unit)
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(stringResource(R.string.settings_profile_mobility_rest_days_label))
+            Text(stringResource(Res.string.settings_profile_mobility_rest_days_label))
             Switch(
                 checked = profile.mobilityOnRestDays,
                 onCheckedChange = { onProfileChange(profile.copy(mobilityOnRestDays = it)) },
@@ -222,10 +222,10 @@ private fun PreferredSportsFields(profile: Profile, onProfileChange: (Profile) -
     ONBOARDING_SPORT_GROUPS.forEach { group ->
         NumberField(
             label = if (group == SportGroup.CYCLE) {
-                stringResource(R.string.settings_profile_ride_sessions_label)
+                stringResource(Res.string.settings_profile_ride_sessions_label)
             } else {
                 stringResource(
-                    R.string.settings_profile_sport_sessions_cap_format,
+                    Res.string.settings_profile_sport_sessions_cap_format,
                     group.name.lowercase().replaceFirstChar(Char::uppercase),
                 )
             },
@@ -245,12 +245,12 @@ private fun PreferredSportsFields(profile: Profile, onProfileChange: (Profile) -
 /** FTP override and indoor-trainer flag (PLAN "UI.", P12.4) — the cycling half of Settings. */
 @Composable
 private fun CyclingSection(profile: Profile, ftpEstimate: FtpEstimate?, onProfileChange: (Profile) -> Unit) {
-    SectionCard(title = stringResource(R.string.settings_section_cycling)) {
+    SectionCard(title = stringResource(Res.string.settings_section_cycling)) {
         NumberField(
-            label = stringResource(R.string.settings_profile_ftp_override_label),
+            label = stringResource(Res.string.settings_profile_ftp_override_label),
             value = profile.ftpWattsManual?.toDouble(),
             onValueChange = { onProfileChange(profile.copy(ftpWattsManual = it?.toInt())) },
-            suffix = stringResource(R.string.settings_unit_watts),
+            suffix = stringResource(Res.string.settings_unit_watts),
             decimals = 0,
             supportingText = ftpOverrideHint(ftpEstimate),
         )
@@ -259,7 +259,7 @@ private fun CyclingSection(profile: Profile, ftpEstimate: FtpEstimate?, onProfil
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(stringResource(R.string.settings_profile_indoor_trainer_label))
+            Text(stringResource(Res.string.settings_profile_indoor_trainer_label))
             Switch(
                 checked = profile.indoorTrainerAvailable,
                 onCheckedChange = { onProfileChange(profile.copy(indoorTrainerAvailable = it)) },

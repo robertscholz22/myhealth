@@ -1,6 +1,6 @@
 package com.myhealth.ui.cycle
 
-import com.myhealth.R
+import com.myhealth.resources.*
 import com.myhealth.domain.model.CyclePhase
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -48,10 +48,10 @@ class CycleUiStateTest {
 
     @Test
     fun phaseLabelRes_mapsEveryPhase() {
-        assertEquals(R.string.cycle_phase_menstrual, phaseLabelRes(CyclePhase.MENSTRUAL))
-        assertEquals(R.string.cycle_phase_follicular, phaseLabelRes(CyclePhase.FOLLICULAR))
-        assertEquals(R.string.cycle_phase_ovulation, phaseLabelRes(CyclePhase.OVULATION))
-        assertEquals(R.string.cycle_phase_luteal, phaseLabelRes(CyclePhase.LUTEAL))
+        assertEquals(Res.string.cycle_phase_menstrual, phaseLabelRes(CyclePhase.MENSTRUAL))
+        assertEquals(Res.string.cycle_phase_follicular, phaseLabelRes(CyclePhase.FOLLICULAR))
+        assertEquals(Res.string.cycle_phase_ovulation, phaseLabelRes(CyclePhase.OVULATION))
+        assertEquals(Res.string.cycle_phase_luteal, phaseLabelRes(CyclePhase.LUTEAL))
     }
 
     @Test

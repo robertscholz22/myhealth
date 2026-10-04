@@ -6,6 +6,8 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.compose.multiplatform)
 }
 
 kotlin {
@@ -13,6 +15,8 @@ kotlin {
         namespace = "com.myhealth.shared"
         compileSdk = 36
         minSdk = 34
+        // Compose resources (P20.3) are packaged as Android assets of this library.
+        androidResources { enable = true }
         compilations.configureEach {
             compileTaskProvider.configure { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
         }
@@ -33,6 +37,15 @@ kotlin {
             implementation(libs.kotlinx.serialization.json.okio)
             implementation(libs.ktor.client.core)
             implementation(libs.atomicfu)
+            api(libs.cmp.runtime)
+            api(libs.cmp.foundation)
+            api(libs.cmp.ui)
+            api(libs.cmp.material3)
+            api(libs.cmp.icons.extended)
+            api(libs.cmp.resources)
+            api(libs.cmp.lifecycle.vm.compose)
+            api(libs.cmp.lifecycle.runtime.compose)
+            api(libs.cmp.navigation.compose)
         }
         androidMain.dependencies {
             implementation(libs.datastore.prefs)
@@ -46,6 +59,12 @@ kotlin {
 }
 
 // P20.2: the database lives here; schema JSONs (1…8) moved from app/schemas unchanged.
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "com.myhealth.resources"
+    generateResClass = always
+}
+
 room {
     schemaDirectory("$projectDir/schemas")
 }

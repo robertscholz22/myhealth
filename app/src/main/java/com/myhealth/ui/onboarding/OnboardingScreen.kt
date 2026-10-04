@@ -29,7 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myhealth.di.rememberVm
@@ -82,7 +83,7 @@ private fun OnboardingContent(
             modifier = Modifier.fillMaxWidth(),
         )
         Text(
-            text = stringResource(com.myhealth.R.string.common_step_progress, stepIndex + 1, steps.size, state.step.title()),
+            text = stringResource(Res.string.common_step_progress, stepIndex + 1, steps.size, state.step.title()),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(16.dp),
         )
@@ -111,7 +112,7 @@ private fun OnboardingContent(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             if (stepIndex > 0) {
-                OutlinedButton(onClick = onBack, enabled = !state.isSaving) { Text(stringResource(com.myhealth.R.string.action_back)) }
+                OutlinedButton(onClick = onBack, enabled = !state.isSaving) { Text(stringResource(Res.string.action_back)) }
             } else {
                 Column {}
             }
@@ -119,7 +120,7 @@ private fun OnboardingContent(
                 if (state.isSaving) {
                     CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
                 }
-                Text(stringResource(if (state.isLastStep) com.myhealth.R.string.action_finish else com.myhealth.R.string.action_next))
+                Text(stringResource(if (state.isLastStep) Res.string.action_finish else Res.string.action_next))
             }
         }
     }
@@ -127,9 +128,9 @@ private fun OnboardingContent(
 
 @Composable
 private fun OnboardingStep.title(): String = when (this) {
-    OnboardingStep.IDENTITY -> stringResource(com.myhealth.R.string.onboarding_step_identity)
-    OnboardingStep.BODY -> stringResource(com.myhealth.R.string.onboarding_step_body)
-    OnboardingStep.PREFERENCES -> stringResource(com.myhealth.R.string.onboarding_step_preferences)
+    OnboardingStep.IDENTITY -> stringResource(Res.string.onboarding_step_identity)
+    OnboardingStep.BODY -> stringResource(Res.string.onboarding_step_body)
+    OnboardingStep.PREFERENCES -> stringResource(Res.string.onboarding_step_preferences)
 }
 
 @Composable
@@ -138,11 +139,11 @@ private fun IdentityStep(
     errors: Map<OnboardingField, UiMessage>,
     onDraftChange: ((OnboardingDraft) -> OnboardingDraft) -> Unit,
 ) {
-    SectionCard(title = stringResource(com.myhealth.R.string.onboarding_step_identity)) {
+    SectionCard(title = stringResource(Res.string.onboarding_step_identity)) {
         OutlinedTextField(
             value = draft.displayName,
             onValueChange = { name -> onDraftChange { it.copy(displayName = name) } },
-            label = { Text(stringResource(com.myhealth.R.string.onboarding_name_label)) },
+            label = { Text(stringResource(Res.string.onboarding_name_label)) },
             singleLine = true,
             isError = errors.containsKey(OnboardingField.NAME),
             supportingText = errors[OnboardingField.NAME]?.let { { Text(it.resolve()) } },
@@ -150,7 +151,7 @@ private fun IdentityStep(
         )
         SexPicker(sex = draft.sex, onSexChange = { sex -> onDraftChange { it.copy(sex = sex) } })
         DatePickerField(
-            label = stringResource(com.myhealth.R.string.onboarding_birth_date_label),
+            label = stringResource(Res.string.onboarding_birth_date_label),
             value = draft.birthDay,
             onValueChange = { day -> onDraftChange { it.copy(birthDay = day) } },
             isError = errors.containsKey(OnboardingField.BIRTH_DATE),
@@ -162,7 +163,7 @@ private fun IdentityStep(
 @Composable
 private fun SexPicker(sex: Sex, onSexChange: (Sex) -> Unit) {
     DropdownField(
-        label = stringResource(com.myhealth.R.string.onboarding_sex_label),
+        label = stringResource(Res.string.onboarding_sex_label),
         options = Sex.entries,
         selected = sex,
         optionLabel = { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } },
@@ -177,46 +178,46 @@ private fun BodyStep(
     errors: Map<OnboardingField, UiMessage>,
     onDraftChange: ((OnboardingDraft) -> OnboardingDraft) -> Unit,
 ) {
-    SectionCard(title = stringResource(com.myhealth.R.string.onboarding_body_section_title)) {
+    SectionCard(title = stringResource(Res.string.onboarding_body_section_title)) {
         NumberField(
-            label = stringResource(com.myhealth.R.string.onboarding_height_label),
+            label = stringResource(Res.string.onboarding_height_label),
             value = draft.heightCm,
             onValueChange = { v -> onDraftChange { it.copy(heightCm = v) } },
-            suffix = stringResource(com.myhealth.R.string.common_unit_cm),
+            suffix = stringResource(Res.string.common_unit_cm),
             decimals = 0,
             isError = errors.containsKey(OnboardingField.HEIGHT),
             supportingText = errors[OnboardingField.HEIGHT]?.resolve(),
         )
         NumberField(
-            label = stringResource(com.myhealth.R.string.onboarding_weight_label),
+            label = stringResource(Res.string.onboarding_weight_label),
             value = draft.weightKg,
             onValueChange = { v -> onDraftChange { it.copy(weightKg = v) } },
-            suffix = stringResource(com.myhealth.R.string.common_unit_kg),
+            suffix = stringResource(Res.string.common_unit_kg),
             decimals = 1,
             isError = errors.containsKey(OnboardingField.WEIGHT),
             supportingText = errors[OnboardingField.WEIGHT]?.resolve(),
         )
     }
-    SectionCard(title = stringResource(com.myhealth.R.string.onboarding_goals_section_title)) {
+    SectionCard(title = stringResource(Res.string.onboarding_goals_section_title)) {
         NumberField(
-            label = stringResource(com.myhealth.R.string.onboarding_goal_weight_label),
+            label = stringResource(Res.string.onboarding_goal_weight_label),
             value = draft.goalWeightKg,
             onValueChange = { v -> onDraftChange { it.copy(goalWeightKg = v) } },
-            suffix = stringResource(com.myhealth.R.string.common_unit_kg),
+            suffix = stringResource(Res.string.common_unit_kg),
             decimals = 1,
             isError = errors.containsKey(OnboardingField.GOAL_WEIGHT),
             supportingText = errors[OnboardingField.GOAL_WEIGHT]?.resolve(),
         )
         NumberField(
-            label = stringResource(com.myhealth.R.string.onboarding_goal_pace_label),
+            label = stringResource(Res.string.onboarding_goal_pace_label),
             value = draft.goalPaceKgPerWeek,
             onValueChange = { v -> onDraftChange { it.copy(goalPaceKgPerWeek = v) } },
-            suffix = stringResource(com.myhealth.R.string.common_unit_kg_per_week),
+            suffix = stringResource(Res.string.common_unit_kg_per_week),
             decimals = 2,
             allowNegative = true,
             isError = errors.containsKey(OnboardingField.GOAL_PACE),
             supportingText = errors[OnboardingField.GOAL_PACE]?.resolve()
-                ?: stringResource(com.myhealth.R.string.onboarding_goal_pace_hint),
+                ?: stringResource(Res.string.onboarding_goal_pace_hint),
         )
         NeatLevelPicker(level = draft.neatLevel, onLevelChange = { level -> onDraftChange { it.copy(neatLevel = level) } })
     }
@@ -225,13 +226,13 @@ private fun BodyStep(
 @Composable
 private fun NeatLevelPicker(level: NeatLevel, onLevelChange: (NeatLevel) -> Unit) {
     val labels = mapOf(
-        NeatLevel.DESK to stringResource(com.myhealth.R.string.onboarding_neat_desk),
-        NeatLevel.LIGHT_ACTIVE to stringResource(com.myhealth.R.string.onboarding_neat_light_active),
-        NeatLevel.ACTIVE to stringResource(com.myhealth.R.string.onboarding_neat_active),
-        NeatLevel.PHYSICAL_JOB to stringResource(com.myhealth.R.string.onboarding_neat_physical_job),
+        NeatLevel.DESK to stringResource(Res.string.onboarding_neat_desk),
+        NeatLevel.LIGHT_ACTIVE to stringResource(Res.string.onboarding_neat_light_active),
+        NeatLevel.ACTIVE to stringResource(Res.string.onboarding_neat_active),
+        NeatLevel.PHYSICAL_JOB to stringResource(Res.string.onboarding_neat_physical_job),
     )
     DropdownField(
-        label = stringResource(com.myhealth.R.string.onboarding_neat_label),
+        label = stringResource(Res.string.onboarding_neat_label),
         options = NeatLevel.entries,
         selected = level,
         optionLabel = { labels.getValue(it) },
@@ -245,14 +246,14 @@ private fun PreferencesStep(
     draft: OnboardingDraft,
     onDraftChange: ((OnboardingDraft) -> OnboardingDraft) -> Unit,
 ) {
-    SectionCard(title = stringResource(com.myhealth.R.string.onboarding_weekly_sessions_title)) {
+    SectionCard(title = stringResource(Res.string.onboarding_weekly_sessions_title)) {
         SportGroup.entries.filter { it in draft.sessionsPerWeek }.forEach { group ->
             NumberField(
                 label = if (group == SportGroup.CYCLE) {
-                    stringResource(com.myhealth.R.string.onboarding_ride_sessions_label)
+                    stringResource(Res.string.onboarding_ride_sessions_label)
                 } else {
                     stringResource(
-                        com.myhealth.R.string.onboarding_sport_sessions_label,
+                        Res.string.onboarding_sport_sessions_label,
                         group.name.lowercase().replaceFirstChar { it.uppercase() },
                     )
                 },
@@ -265,22 +266,22 @@ private fun PreferencesStep(
             )
         }
     }
-    SectionCard(title = stringResource(com.myhealth.R.string.onboarding_recovery_section_title)) {
+    SectionCard(title = stringResource(Res.string.onboarding_recovery_section_title)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(stringResource(com.myhealth.R.string.onboarding_mobility_label))
+            Text(stringResource(Res.string.onboarding_mobility_label))
             Switch(
                 checked = draft.mobilityOnRestDays,
                 onCheckedChange = { v -> onDraftChange { it.copy(mobilityOnRestDays = v) } },
             )
         }
         NumberField(
-            label = stringResource(com.myhealth.R.string.onboarding_sleep_target_label),
+            label = stringResource(Res.string.onboarding_sleep_target_label),
             value = draft.sleepTargetHours,
             onValueChange = { v -> onDraftChange { it.copy(sleepTargetHours = v) } },
-            suffix = stringResource(com.myhealth.R.string.common_unit_hours),
+            suffix = stringResource(Res.string.common_unit_hours),
             decimals = 1,
         )
         // P11.3: shown only for FEMALE, on by default — the same switch Settings has, so
@@ -290,7 +291,7 @@ private fun PreferencesStep(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text(stringResource(com.myhealth.R.string.cycle_track_switch_label))
+                Text(stringResource(Res.string.cycle_track_switch_label))
                 Switch(
                     checked = draft.cycleTrackingEnabled,
                     onCheckedChange = { v -> onDraftChange { it.copy(cycleTrackingEnabled = v) } },

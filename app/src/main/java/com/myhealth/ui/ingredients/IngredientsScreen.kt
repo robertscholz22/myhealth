@@ -31,11 +31,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
+import com.myhealth.resources.*
+import com.myhealth.ui.common.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.myhealth.R
 import com.myhealth.di.rememberVm
 import com.myhealth.domain.model.Ingredient
 import com.myhealth.domain.model.MeasureBasis
@@ -56,10 +56,10 @@ fun IngredientsScreen(
 
     Scaffold(
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.ingredients_title)) }) },
+        topBar = { TopAppBar(title = { Text(stringResource(Res.string.ingredients_title)) }) },
         floatingActionButton = {
             FloatingActionButton(onClick = onNewIngredient) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.ingredients_new_content_description))
+                Icon(Icons.Filled.Add, contentDescription = stringResource(Res.string.ingredients_new_content_description))
             }
         },
     ) { innerPadding ->
@@ -88,7 +88,7 @@ private fun IngredientsContent(
             OutlinedTextField(
                 value = state.query,
                 onValueChange = onQueryChange,
-                label = { Text(stringResource(R.string.ingredients_search_label)) },
+                label = { Text(stringResource(Res.string.ingredients_search_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -97,16 +97,16 @@ private fun IngredientsContent(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(stringResource(R.string.ingredients_show_archived), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(Res.string.ingredients_show_archived), style = MaterialTheme.typography.bodyMedium)
                 Switch(checked = state.showArchived, onCheckedChange = onShowArchivedChange)
             }
         }
         if (state.items.isEmpty()) {
             EmptyState(
                 title = stringResource(
-                    if (state.showArchived) R.string.ingredients_empty_archived_title else R.string.ingredients_empty_title,
+                    if (state.showArchived) Res.string.ingredients_empty_archived_title else Res.string.ingredients_empty_title,
                 ),
-                message = stringResource(R.string.ingredients_empty_message),
+                message = stringResource(Res.string.ingredients_empty_message),
                 modifier = Modifier.padding(16.dp),
             )
         } else {
@@ -129,29 +129,28 @@ private fun IngredientsContent(
 
 @Composable
 private fun IngredientRow(ingredient: Ingredient, onToggleFavorite: (Boolean) -> Unit, onClick: () -> Unit) {
-    val context = LocalContext.current
     ListItem(
         headlineContent = { Text(ingredient.name) },
         supportingContent = {
             val brand = ingredient.brand
-            val basisLabel = ingredient.basisLabel(context)
-            Text(if (brand.isNullOrBlank()) basisLabel else stringResource(R.string.ingredients_brand_basis, brand, basisLabel))
+            val basisLabel = ingredient.basisLabel()
+            Text(if (brand.isNullOrBlank()) basisLabel else stringResource(Res.string.ingredients_brand_basis, brand, basisLabel))
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    stringResource(R.string.ingredients_kcal_suffix, ingredient.kcal.roundToInt()),
+                    stringResource(Res.string.ingredients_kcal_suffix, ingredient.kcal.roundToInt()),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 IconButton(onClick = { onToggleFavorite(!ingredient.isFavorite) }) {
                     if (ingredient.isFavorite) {
                         Icon(
                             Icons.Filled.Star,
-                            contentDescription = stringResource(R.string.ingredients_unfavorite_content_description),
+                            contentDescription = stringResource(Res.string.ingredients_unfavorite_content_description),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     } else {
-                        Icon(Icons.Outlined.StarBorder, contentDescription = stringResource(R.string.ingredients_favorite_content_description))
+                        Icon(Icons.Outlined.StarBorder, contentDescription = stringResource(Res.string.ingredients_favorite_content_description))
                     }
                 }
             }
