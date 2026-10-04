@@ -32,6 +32,11 @@ class BackupService(
     private val appVersion: String,
     private val clock: Clock,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    /**
+     * BUG-18: runs after a successful import. The app requests a load recompute here — restored
+     * `daily_load` rows are whatever the exporting version computed, including zero-seeded ones.
+     */
+    private val onImported: () -> Unit = {},
 ) : BackupRepository {
 
     override suspend fun export(uri: String): Outcome<BackupSummary> = withContext(ioDispatcher) {
@@ -60,7 +65,7 @@ class BackupService(
                     }
                 }
                 file.summaryOf(rowsWritten = written)
-            }
+            }.also { if (it is Outcome.Ok) onImported() }
         }
 
     /** Every table, in one snapshot. Also the "existing rows" side of a MERGE. */

@@ -268,14 +268,16 @@ class TrainingViewModel(
 
     // ---- header ----------------------------------------------------------------------------
 
-    /** The batch's phase when there is one, else §3.5.2 recomputed from goals/events/plan start. */
+    /**
+     * The batch's phase when there is one, else §3.5.2 recomputed from goals and events. A down
+     * week (P19.6) needs the load history and is only decided when suggestions are generated.
+     */
     private fun phaseOf(ctx: TrainingContext): TrainingPhase {
         val batch = ctx.batch
         if (batch != null && batch.status != SuggestionStatus.SUPERSEDED) return batch.phase
         return Periodization.phase(
             daysToRace = Periodization.daysToRace(ctx.goals, todayDay()),
             matchWithin21Days = ctx.matchWithin21Days,
-            weeksSincePlanStart = Periodization.weeksSincePlanStart(todayDay(), ctx.plan?.startDay),
         )
     }
 

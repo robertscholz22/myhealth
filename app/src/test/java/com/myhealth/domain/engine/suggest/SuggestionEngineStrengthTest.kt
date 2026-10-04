@@ -48,7 +48,11 @@ class SuggestionEngineStrengthTest {
     /** A `BUILD` week (race 60 days out) on untouched legs, with only two running slots. */
     private fun freshLegs(): SuggestionInput = SuggestFixtures.input(
         goals = listOf(SuggestFixtures.raceGoal(day(60))),
-        profile = SuggestFixtures.profile(preferredSportsJson = """{"RUN":2,"STRENGTH":2}"""),
+        // All four sports, as onboarding writes them (P19.6: an unlisted, uncapped soccer took the slot).
+        profile = SuggestFixtures.profile(preferredSportsJson = """{"RUN":2,"STRENGTH":2,"SOCCER":0,"CYCLE":0}"""),
+        // P19.6: CTL 35 keeps the BUILD budget near its pre-0.9.1 308 AU (35·7·1.25 ramp cap = 306);
+        // with 350 AU free the heavier full-body session outscores the leg day on budget fit alone.
+        recentLoad = SuggestFixtures.loadHistory(ctl = 35.0, dailyTrimp = 35.0),
     ).copy(muscleLoad = SuggestFixtures.muscleLoad(ctl = 60.0))
 
     private fun strengthSessions(sessions: List<SuggestedSession>): List<SuggestedSession> =

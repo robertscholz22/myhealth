@@ -62,8 +62,12 @@ object SuggestFixtures {
     )
 
     /** P12.3: the sport caps of an athlete who rides — the `CYCLE` cap is the suggester's gate. */
+    /**
+     * Onboarding always writes all four sports; P19.6's larger budgets made the missing `SOCCER`
+     * key (= uncapped soccer) crowd out the rides these fixtures are about, so it is now explicit.
+     */
     fun bikeSportsJson(cycleCap: Int = 3, runCap: Int = 2, strengthCap: Int = 2): String =
-        """{"RUN":$runCap,"STRENGTH":$strengthCap,"CYCLE":$cycleCap}"""
+        """{"RUN":$runCap,"STRENGTH":$strengthCap,"SOCCER":0,"CYCLE":$cycleCap}"""
 
     /** P12.3: an active `BIKE_*` goal, the other half of the gate. */
     fun bikeGoal(
@@ -109,6 +113,10 @@ object SuggestFixtures {
     /**
      * 42 days of history ending yesterday: every day carries [dailyTrimp], so
      * `lastWeekActual = 7 * dailyTrimp`, and the newest row carries [ctl] / [acwr].
+     *
+     * P19.6: the fifth week back (days 29–35) is a lighter week at half the load, so the standard
+     * athlete took a down week a month ago and the coming week is a normal one. Without it, six
+     * flat weeks would make every fixture a `LONG_BUILD` recovery week.
      */
     fun loadHistory(
         todayDay: Long = TODAY_DAY,
@@ -117,7 +125,26 @@ object SuggestFixtures {
         acwr: Double? = 1.0,
     ): List<DailyLoad> = (1..42).map { back ->
         val d = todayDay - back
-        load(day = d, trimp = dailyTrimp, atl = ctl, ctl = ctl, acwr = if (back == 1) acwr else null)
+        val trimp = if (back in 29..35) dailyTrimp * 0.5 else dailyTrimp
+        load(day = d, trimp = trimp, atl = ctl, ctl = ctl, acwr = if (back == 1) acwr else null)
+    }.sortedBy { it.day }
+
+    /**
+     * P19.6: one row per day for `weeks.size` rolling weeks ending yesterday; `weeks[0]` is last
+     * week's total as a multiple of `7 × ctl`, spread evenly over its seven days. [bandsLastWeek]
+     * sets the recovery band of last week's days, newest first.
+     */
+    fun weeklyHistory(
+        weeks: List<Double>,
+        ctl: Double = 40.0,
+        todayDay: Long = TODAY_DAY,
+        bandsLastWeek: List<RecoveryBand?> = emptyList(),
+    ): List<DailyLoad> = weeks.flatMapIndexed { index, ratio ->
+        (1..7).map { dayInWeek ->
+            val back = index * 7 + dayInWeek
+            load(day = todayDay - back, trimp = ctl * ratio, atl = ctl, ctl = ctl)
+                .copy(recoveryBand = if (index == 0) bandsLastWeek.getOrNull(dayInWeek - 1) else null)
+        }
     }.sortedBy { it.day }
 
     fun recovery(band: RecoveryBand?, score: Int? = 70, day: Long = TODAY_DAY): RecoveryState =

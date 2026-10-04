@@ -621,3 +621,19 @@ Emulator `myhealth_api35`; onboarding, then the owner's backups imported with **
 | Nutrition (2550 kcal target) and Calendar month view render | PASS | `p20_cal_emu.png` |
 
 - NOTE-28: the nutrition target was first not compared with the phone (it had disconnected). Done after the phone came back: phone backup taken (`myhealth-backup-2026-10-04-pre090.json`, 3148 rows), v0.9.0 installed from the release; Pixel shows 2510 kcal, and the same backup on the emulator gives 2510 kcal with the v0.8.1 release and again after upgrading in place to v0.9.0. Goals and the Training phase line on the Pixel match 0.8.1.
+
+
+## Session 22 — 2026-10-04 (emulator, 0.9.1 debug build: P19.6 + BUG-18)
+Emulator `myhealth_api35`, date 4 Oct 2026; onboarding, then the owner's `myhealth-backup-2026-10-04-pre090.json` (3148 rows) imported with **Replace**.
+
+| Step | Result | Evidence |
+|---|---|---|
+| `bash tools/verify.sh` | PASS | 1068 unit tests, lint clean, release 14.8 MB |
+| `bash tools/connected.sh emulator-5554` | PASS | 25/25 (phone attached, untouched) |
+| After the import, `daily_load` still holds the 0.9.0 values (CTL 0.0 on 15 Aug + 10 d, 31.3 on 4 Oct) | FOUND | import did not recompute → fixed: recompute after import and on app start |
+| Restart the app (recompute on start) → `daily_load` via `sqlite3` | PASS | CTL 39.1 (25 Aug), 38.1 (4 Sep), 41.2 (14 Sep), 46.5 (24 Sep), 37.9 (1 Oct), **36.4 (4 Oct)** — identical to an independent EWMA over the backup's TRIMP; a consistent row from Feb 2026 kept its old `computedAtMillis` |
+| Load screen | PASS | ATL 32, CTL 36, ACWR 0.88, continuous curve (`p196_load_emu.png`) |
+| Training → Generate | PASS | "Base · target 219 AU · 213 AU suggested · 1 rest day" (was "Recovery week · target 142 AU"); 219 = 25 % ramp cap over last week's 175 AU (36.4 × 7 × 1.20 = 306 uncapped); long run 9.5 km building towards 19 km (`p196_training_emu.png`) |
+
+- NOTE-29: the down-week paths (all four reasons, the `DOWN_WEEK` line on every budgeted session, taper protection) are covered by `dw01`…`dw09` on the engine; the owner's real history triggers none of them this week, so the emulator shows only the "no down week" path.
+- NOTE-30: the Load screen's "Not enough training history yet for a reliable ACWR" stays: the rule asks for activity on ≥ 21 of the last 28 days, and the owner trains 3–4 days a week. Pre-existing, unchanged.

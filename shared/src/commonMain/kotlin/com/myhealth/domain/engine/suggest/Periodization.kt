@@ -28,6 +28,11 @@ import kotlin.math.min
  *   can only lower the budget.
  * - `lastWeekActual` sums the seven days **before** today (`[today-7, today-1]`); today itself is
  *   still being planned and must not shrink its own budget.
+ *
+ * 0.9.1 (P19.6): the down week is no longer every 4th week since the plan started. [downWeekReason]
+ * checks the load history every week and only takes one when there is a reason; the phase factors
+ * were raised so that training at the target actually builds CTL (≈ 3 %/week in `BASE`, ≈ 5 % in
+ * `BUILD` — a 28-day EWMA only grows by `(factor − 1) / 4` per week, so 1.05 meant ≈ 1 %).
  */
 object Periodization {
 
@@ -40,9 +45,21 @@ object Periodization {
     /** A soccer match inside this window puts a goal-less athlete in season. */
     const val IN_SEASON_MATCH_WINDOW_DAYS: Long = 21L
 
-    /** Every 4th week of a plan is a down week: `weeksSincePlanStart % 4 == 3`. */
-    const val RECOVERY_WEEK_MODULO: Int = 4
-    const val RECOVERY_WEEK_REMAINDER: Int = 3
+    /**
+     * P19.6 down-week check. Weeks are the rolling seven-day blocks before today; a week's ratio is
+     * its summed TRIMP over `7 × CTL`. Acute overload: last week above [DOWN_ACUTE_RATIO] (training
+     * at the `BUILD` target sits near 1.3, so this is clearly beyond the plan). Big build: the last
+     * three weeks average above [DOWN_BUILD_RATIO]. Fatigue: at least [DOWN_FATIGUED_DAYS] of the
+     * last seven days `FATIGUED`/`STRAINED` (one bad night is the daily multiplier's job). Long
+     * build: [DOWN_LONG_BUILD_WEEKS] weeks in a row none of which was lighter than
+     * [DOWN_LIGHT_RATIO] of its own end-of-week CTL level — a holiday or a sick week counts.
+     */
+    const val DOWN_ACUTE_RATIO: Double = 1.5
+    const val DOWN_BUILD_RATIO: Double = 1.4
+    const val DOWN_BUILD_WEEKS: Int = 3
+    const val DOWN_FATIGUED_DAYS: Int = 3
+    const val DOWN_LONG_BUILD_WEEKS: Int = 5
+    const val DOWN_LIGHT_RATIO: Double = 0.8
 
     /** The weekly target may never exceed last week's actual load by more than 25 %. */
     const val MAX_RAMP_FACTOR: Double = 1.25
@@ -65,9 +82,9 @@ object Periodization {
 
     /** Phase → weekly-load factor applied to `ctl * 7` (§3.5.2). */
     fun factorFor(phase: TrainingPhase): Double = when (phase) {
-        TrainingPhase.BASE -> 1.05
-        TrainingPhase.BUILD -> 1.10
-        TrainingPhase.PEAK -> 1.05
+        TrainingPhase.BASE -> 1.20
+        TrainingPhase.BUILD -> 1.30
+        TrainingPhase.PEAK -> 1.15
         TrainingPhase.TAPER -> 0.60
         TrainingPhase.RACE_WEEK -> 0.45
         TrainingPhase.IN_SEASON -> 1.00
@@ -124,19 +141,42 @@ object Periodization {
             it.occurrenceDay <= todayDay + windowDays
     }
 
-    /** Whole weeks between the plan's start and today; `null` when there is no plan. */
-    fun weeksSincePlanStart(todayDay: Long, planStartDay: Long?): Int? {
-        if (planStartDay == null) return null
-        val elapsed = todayDay - planStartDay
-        if (elapsed < 0) return null
-        return (elapsed / DAYS_PER_WEEK).toInt()
+    /**
+     * P19.6: why the coming week should be a down week, or `null` when nothing calls for one.
+     * [recentLoad] is the last 42 days of `daily_load`; [ctl] today's CTL. A starter athlete
+     * (CTL below [STARTER_CTL_THRESHOLD]) never gets one — there is nothing to absorb yet.
+     */
+    fun downWeekReason(recentLoad: List<DailyLoad>, todayDay: Long, ctl: Double): DownWeekReason? {
+        if (ctl < STARTER_CTL_THRESHOLD) return null
+        val byDay = recentLoad.associateBy { it.day }
+        fun weekSum(weeksBack: Int): Double {
+            val start = todayDay - DAYS_PER_WEEK * weeksBack
+            return (start until start + DAYS_PER_WEEK).sumOf { byDay[it]?.trimp ?: 0.0 }
+        }
+        val weekLevel = ctl * DAYS_PER_WEEK
+
+        if (weekSum(1) > weekLevel * DOWN_ACUTE_RATIO) return DownWeekReason.ACUTE_OVERLOAD
+        val lastSeven = (todayDay - DAYS_PER_WEEK until todayDay).mapNotNull { byDay[it]?.recoveryBand }
+        if (lastSeven.count { it == RecoveryBand.FATIGUED || it == RecoveryBand.STRAINED } >= DOWN_FATIGUED_DAYS) {
+            return DownWeekReason.FATIGUE
+        }
+        val buildAverage = (1..DOWN_BUILD_WEEKS).sumOf { weekSum(it) } / DOWN_BUILD_WEEKS
+        if (buildAverage > weekLevel * DOWN_BUILD_RATIO) return DownWeekReason.BIG_BUILD
+
+        val longBuild = (1..DOWN_LONG_BUILD_WEEKS).all { weeksBack ->
+            val end = byDay[todayDay - DAYS_PER_WEEK * (weeksBack - 1) - 1] ?: return@all false
+            // A week with no history before it is not "build-up" — new users never trip this.
+            if (byDay[todayDay - DAYS_PER_WEEK * weeksBack] == null) return@all false
+            weekSum(weeksBack) >= end.ctl * DAYS_PER_WEEK * DOWN_LIGHT_RATIO
+        }
+        return if (longBuild) DownWeekReason.LONG_BUILD else null
     }
 
     /**
-     * The §3.5.2 phase table, including the `RECOVERY_WEEK` override (which never overrides a
-     * `TAPER` or `RACE_WEEK` — the race outranks the plan's rhythm).
+     * The §3.5.2 phase table plus the P19.6 down week ([downWeek], from [downWeekReason]), which
+     * never overrides a `TAPER` or `RACE_WEEK` — the race outranks it.
      */
-    fun phase(daysToRace: Long?, matchWithin21Days: Boolean, weeksSincePlanStart: Int?): TrainingPhase {
+    fun phase(daysToRace: Long?, matchWithin21Days: Boolean, downWeek: Boolean = false): TrainingPhase {
         val base = when {
             daysToRace == null && matchWithin21Days -> TrainingPhase.IN_SEASON
             daysToRace == null -> TrainingPhase.BASE
@@ -146,10 +186,8 @@ object Periodization {
             daysToRace <= BUILD_MAX_DAYS -> TrainingPhase.BUILD
             else -> TrainingPhase.BASE
         }
-        val isDownWeek = weeksSincePlanStart != null &&
-            weeksSincePlanStart % RECOVERY_WEEK_MODULO == RECOVERY_WEEK_REMAINDER
         val protected = base == TrainingPhase.TAPER || base == TrainingPhase.RACE_WEEK
-        return if (isDownWeek && !protected) TrainingPhase.RECOVERY_WEEK else base
+        return if (downWeek && !protected) TrainingPhase.RECOVERY_WEEK else base
     }
 
     /**
@@ -202,10 +240,11 @@ object Periodization {
         val acwr = latest?.acwr
         val lastWeek = lastWeekActual(input.recentLoad, todayDay)
         val daysToRace = daysToRace(input.goals, todayDay)
+        val reason = downWeekReason(input.recentLoad, todayDay, ctl)
         val phase = phase(
             daysToRace = daysToRace,
             matchWithin21Days = matchWithinWindow(input.events, todayDay),
-            weeksSincePlanStart = weeksSincePlanStart(todayDay, input.planStartDay),
+            downWeek = reason != null,
         )
         val cycleFactor = CycleRules.weeklyTargetFactor(input.cycleStatusByDay, input.horizonDays)
         return PeriodizationResult(
@@ -217,6 +256,7 @@ object Periodization {
             acwr = acwr,
             band = input.recovery.bandOf(),
             isStarterWeek = isStarterWeek(ctl, lastWeek),
+            downWeekReason = reason.takeIf { phase == TrainingPhase.RECOVERY_WEEK },
         )
     }
 
@@ -234,4 +274,9 @@ data class PeriodizationResult(
     val band: RecoveryBand?,
     /** POLISH-10: true when this is a brand-new athlete's first generated week. */
     val isStarterWeek: Boolean = false,
+    /** P19.6: why this is a `RECOVERY_WEEK`; `null` in every other phase. */
+    val downWeekReason: DownWeekReason? = null,
 )
+
+/** P19.6: the rule of [Periodization.downWeekReason] that made the coming week a down week. */
+enum class DownWeekReason { ACUTE_OVERLOAD, FATIGUE, BIG_BUILD, LONG_BUILD }

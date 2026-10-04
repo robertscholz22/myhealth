@@ -330,7 +330,7 @@ object GoalRules {
         val race = Periodization.primaryRaceGoal(goals, todayDay) ?: return null
         val raceDay = race.targetDay ?: return null
         val daysOut = raceDay - todayDay
-        val phase = Periodization.phase(daysOut, matchWithin21Days = false, weeksSincePlanStart = null)
+        val phase = Periodization.phase(daysOut, matchWithin21Days = false)
         val (next, boundary) = when (phase) {
             TrainingPhase.BASE -> TrainingPhase.BUILD to Periodization.BUILD_MAX_DAYS
             TrainingPhase.BUILD -> TrainingPhase.PEAK to Periodization.PEAK_MAX_DAYS

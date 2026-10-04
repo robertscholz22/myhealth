@@ -38,6 +38,8 @@ data class RationaleContext(
     val bikeIndoorSeason: Boolean = false,
     /** POLISH-10: true when [Periodization.isStarterWeek] fired for this batch. */
     val isStarterWeek: Boolean = false,
+    /** P19.6: why this week is a down week; `null` outside `RECOVERY_WEEK`. */
+    val downWeekReason: DownWeekReason? = null,
     /**
      * P14.5: the candidate day's **projected** lower/upper band (§3.12.4's decay applied forward),
      * or `null` when `SuggestionInput.muscleLoad` was not supplied — in which case none of the three
@@ -67,6 +69,7 @@ object Rationale {
     const val RULE_ACTIVE_RECOVERY: String = "ACTIVE_RECOVERY"
     const val RULE_DOWNGRADED: String = "DOWNGRADED_BEFORE_EVENT"
     const val RULE_STARTER_WEEK: String = "STARTER_WEEK"
+    const val RULE_DOWN_WEEK: String = "DOWN_WEEK"
 
     /** P14.3's three interval ids (§3.11); only ever attached to a structured session. */
     const val RULE_INTERVAL_STRUCTURE: String = "INTERVAL_STRUCTURE"
@@ -102,6 +105,7 @@ object Rationale {
     /** The ordered rationale of one placed session. */
     fun forSession(candidate: Candidate, ctx: RationaleContext): List<RationaleEntry> {
         val entries = mutableListOf(phaseEntry(candidate.sessionType, ctx))
+        ctx.downWeekReason?.let { entries += downWeekEntry(it) }
         entries += budgetEntry(ctx)
         keyEventEntry(candidate, ctx)?.let { entries += it }
         recoveryEntry(ctx)?.let { entries += it }
@@ -113,6 +117,17 @@ object Rationale {
         if (ctx.isStarterWeek) entries += starterWeekEntry()
         return entries
     }
+
+    /** P19.6: which load-history rule made this a recovery week. */
+    fun downWeekEntry(reason: DownWeekReason): RationaleEntry = RationaleEntry(
+        ruleId = RULE_DOWN_WEEK,
+        text = "Recovery week: " + when (reason) {
+            DownWeekReason.ACUTE_OVERLOAD -> "last week's load was more than 1.5 × your usual week."
+            DownWeekReason.FATIGUE -> "recovery was fatigued or strained on 3 of the last 7 days."
+            DownWeekReason.BIG_BUILD -> "the last 3 weeks averaged more than 1.4 × your usual week."
+            DownWeekReason.LONG_BUILD -> "5 weeks of build-up without a lighter week."
+        },
+    )
 
     /**
      * POLISH-10: the "why is this week so light" line for a brand-new athlete (§3.5.2's starter

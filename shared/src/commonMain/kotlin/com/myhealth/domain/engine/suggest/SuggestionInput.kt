@@ -20,8 +20,9 @@ import kotlinx.datetime.LocalDate
  * pure function of this object, which is what makes [SuggestionEngine]'s `inputsHash` meaningful.
  *
  * Two documented extensions of the §3.5.1 field list:
- * - [planStartDay] — §3.5.2's `RECOVERY_WEEK` override counts weeks "since plan start", which
- *   §3.5.1 does not carry. `null` (no active plan) simply disables the override.
+ * - [planStartDay] — the active plan's start. Until 0.9.0 the `RECOVERY_WEEK` override counted
+ *   weeks from it; since P19.6 the down week comes from [recentLoad] and nothing reads this field.
+ *   It stays in the input (and in the inputs hash) so stored hashes remain comparable.
  * - [horizonDays] keeps its §3.5.1 default of 7; the settings key `suggestionHorizonDays` feeds it.
  * - [cycleStatusByDay] — added by P11.2; empty unless the user tracks their cycle.
  * - [vdot] / [paceBands] / [ftpWatts] — added by P14.3 for `IntervalBuilder`. All three default to

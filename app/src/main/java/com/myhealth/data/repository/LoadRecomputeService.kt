@@ -38,6 +38,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -64,6 +65,13 @@ import java.time.ZoneId
  * 4. Rebuild the day series from [ActivityDao.sumTrimpPerDay] (the just-written ground truth) via
  *    [LoadSeriesEngine.computeDetailed], then layer [RecoveryEngine] on top per day using sleep,
  *    resting HR and HRV history, and write the result via [LoadRepository.upsertAll].
+ *
+ * BUG-18: the EWMAs always run from the first activity day, never from `fromDay − 28`. Seeding them
+ * at 0 at the window start under-reported today's CTL (a 28-day EWMA started at 0 reaches only
+ * ~87 % of its value) and froze every day that left the window at a zero-seeded value — the
+ * owner's CTL read 0 at the end of August 2026 after a 340 AU week. Only the window is written
+ * (plus recovery), but stored rows before it are compared with the full series and rewritten from
+ * the first one that disagrees, which repairs old databases and restored backups without a flag.
  *
  * A missing profile (onboarding not finished) is a no-op, not an error — the profile write itself
  * triggers a recompute request (mirrors [com.myhealth.data.repository.RoomNutritionRepository]).
@@ -124,17 +132,19 @@ class LoadRecomputeService(
             recomputeOne(session, profile, bounds, includeTreadmill, ftp)
         }
 
-        val trimpByDay = activityDao.sumTrimpPerDay(windowStart, today).first().associate { it.day to it.trimp }
-        val countByDay = sessions.groupingBy { it.day }.eachCount()
-        val dayInputs = (windowStart..today).map { day ->
+        val trimpByDay = activityDao.sumTrimpPerDay(firstActivityDay, today).first().associate { it.day to it.trimp }
+        val countByDay = activityDao.countPerDay(firstActivityDay, today).associate { it.day to it.count }
+        val dayInputs = (firstActivityDay..today).map { day ->
             DayLoadInput(day = day, trimp = trimpByDay[day] ?: 0.0, sessionCount = countByDay[day] ?: 0)
         }
-        val details = LoadSeriesEngine.computeDetailed(dayInputs, clock.millis())
+        val allDetails = LoadSeriesEngine.computeDetailed(dayInputs, clock.millis())
+        val writeStart = firstStaleDay(allDetails, windowStart) ?: windowStart
+        val details = allDetails.filter { it.load.day >= writeStart }
 
         val zone = clock.zone
-        val healthByDay = healthRepo.observeRange(windowStart - RECOVERY_LOOKBACK_DAYS, today)
+        val healthByDay = healthRepo.observeRange(writeStart - RECOVERY_LOOKBACK_DAYS, today)
             .first().associateBy { it.day }
-        val sleepByNight = healthRepo.observeSleepRange(windowStart - BEDTIME_HISTORY_DAYS, today)
+        val sleepByNight = healthRepo.observeSleepRange(writeStart - BEDTIME_HISTORY_DAYS, today)
             .first().associateBy { it.night }
 
         val rows = details.map { detail ->
@@ -144,6 +154,26 @@ class LoadRecomputeService(
         loadRepo.deleteBefore(firstActivityDay)
         autoCompletePlanned(today)
     }
+
+    /**
+     * BUG-18: the first day before [windowStart] whose stored row disagrees with the full series
+     * (missing, or a different TRIMP, session count, ATL or CTL), or `null` when all of them agree.
+     */
+    private suspend fun firstStaleDay(details: List<DayLoadDetail>, windowStart: Long): Long? {
+        val before = details.filter { it.load.day < windowStart }
+        if (before.isEmpty()) return null
+        val stored = loadRepo.getRange(before.first().load.day, windowStart - 1).associateBy { it.day }
+        return before.firstOrNull { detail ->
+            val row = stored[detail.load.day]
+            row == null || !row.sameSeriesAs(detail.load)
+        }?.load?.day
+    }
+
+    private fun DailyLoad.sameSeriesAs(other: DailyLoad): Boolean =
+        sessionCount == other.sessionCount &&
+            abs(trimp - other.trimp) < SERIES_EPSILON &&
+            abs(atl - other.atl) < SERIES_EPSILON &&
+            abs(ctl - other.ctl) < SERIES_EPSILON
 
     /**
      * P6.8's completion linking: an activity that matches a still-`PLANNED` session's sport on the
@@ -263,6 +293,9 @@ class LoadRecomputeService(
         const val BEDTIME_HISTORY_DAYS = 14L
         const val SLEEP_DEBT_WINDOW_DAYS = 7L
         const val HRV_WINDOW_DAYS = 7L
+
+        /** BUG-18: stored and recomputed EWMAs closer than this count as the same series. */
+        const val SERIES_EPSILON = 1e-6
 
         /** P6.8 auto-completion looks one week back — a sync can deliver late-arriving sessions. */
         const val AUTO_COMPLETE_WINDOW_DAYS = 7L

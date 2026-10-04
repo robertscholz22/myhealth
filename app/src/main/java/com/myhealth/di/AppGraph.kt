@@ -78,6 +78,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.File
 import java.time.Clock
+import java.time.LocalDate
 import java.time.ZoneId
 
 /**
@@ -336,6 +337,7 @@ class AppGraph(private val app: Application) {
             content = AndroidBackupContentSource(app),
             appVersion = BuildConfig.VERSION_NAME,
             clock = clock,
+            onImported = { syncScheduler.requestLoadRecompute(LocalDate.now(clock).toEpochDay()) },
         )
     }
 

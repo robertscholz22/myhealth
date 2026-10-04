@@ -18,6 +18,9 @@ import kotlinx.coroutines.flow.Flow
 /** One day's summed TRIMP — projection for `ActivityDao.sumTrimpPerDay` (PLAN §3.2.3). */
 data class DayTrimp(val day: Long, val trimp: Double)
 
+/** One day's activity count — projection for `ActivityDao.countPerDay` (BUG-18). */
+data class DayCount(val day: Long, val count: Int)
+
 /**
  * DAO for `activity_session` and its source records, streams and laps (PLAN §2.2.2).
  * `getByBuckets` is the candidate lookup of the de-dup algorithm (§2.4): callers pass buckets
@@ -71,6 +74,13 @@ interface ActivityDao {
             "GROUP BY day ORDER BY day ASC",
     )
     fun sumTrimpPerDay(fromDay: Long, toDay: Long): Flow<List<DayTrimp>>
+
+    /** Activities per day, with or without TRIMP — the series' `sessionCount` (BUG-18). */
+    @Query(
+        "SELECT day AS day, COUNT(*) AS count FROM activity_session " +
+            "WHERE day BETWEEN :fromDay AND :toDay GROUP BY day ORDER BY day ASC",
+    )
+    suspend fun countPerDay(fromDay: Long, toDay: Long): List<DayCount>
 
     @Transaction
     @Query("SELECT * FROM activity_session WHERE id = :id")

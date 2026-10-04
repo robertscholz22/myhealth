@@ -111,6 +111,61 @@ class LoadRecomputeTest {
     }
 
     @Test
+    fun bug18_a_nightly_window_run_continues_the_full_history_series() = runTest {
+        for (offset in 0 until 120 step 2) {
+            seedActivity(day = today - offset, avgHr = 140 + offset % 15, durationSec = 3_000)
+        }
+        service.recompute(today - 200)
+        val full = loadRepo.rows.toMap()
+
+        // The nightly worker only asks for the last 28 days. Before BUG-18 it seeded the EWMAs at
+        // 0 on `today − 28`, so today's CTL came out too low and older rows were never written.
+        loadRepo.rows.clear()
+        service.recompute(today)
+
+        assertThat(loadRepo.rows.keys).isEqualTo(full.keys)
+        assertThat(loadRepo.rows.getValue(today).ctl).isWithin(1e-9).of(full.getValue(today).ctl)
+        assertThat(loadRepo.rows.getValue(today).ctl).isGreaterThan(30.0)
+        full.forEach { (day, row) ->
+            assertThat(loadRepo.rows.getValue(day).ctl).isWithin(1e-9).of(row.ctl)
+            assertThat(loadRepo.rows.getValue(day).atl).isWithin(1e-9).of(row.atl)
+        }
+    }
+
+    @Test
+    fun bug18_a_stale_row_before_the_window_is_repaired_from_there_on() = runTest {
+        for (offset in 0 until 120 step 2) {
+            seedActivity(day = today - offset, avgHr = 145, durationSec = 3_000)
+        }
+        service.recompute(today - 200)
+        val full = loadRepo.rows.toMap()
+        // What the owner's database looked like: a zero-seeded row frozen 60 days back.
+        loadRepo.rows[today - 60] = full.getValue(today - 60).copy(ctl = 0.0, atl = 0.0)
+        loadRepo.rows[today - 61] = full.getValue(today - 61).copy(recoveryScore = 999)
+        loadRepo.rows[today - 40] = full.getValue(today - 40).copy(recoveryScore = 999)
+
+        service.recompute(today)
+
+        assertThat(loadRepo.rows.getValue(today - 60).ctl).isWithin(1e-9).of(full.getValue(today - 60).ctl)
+        // Rows before the first stale one are left alone; everything after it is rewritten.
+        assertThat(loadRepo.rows.getValue(today - 61).recoveryScore).isEqualTo(999)
+        assertThat(loadRepo.rows.getValue(today - 40).recoveryScore).isNotEqualTo(999)
+    }
+
+    @Test
+    fun bug18_a_consistent_history_is_not_rewritten() = runTest {
+        for (offset in 0 until 120 step 3) {
+            seedActivity(day = today - offset, avgHr = 150, durationSec = 2_400)
+        }
+        service.recompute(today - 200)
+        loadRepo.rows[today - 50] = loadRepo.rows.getValue(today - 50).copy(recoveryScore = 999)
+
+        service.recompute(today)
+
+        assertThat(loadRepo.rows.getValue(today - 50).recoveryScore).isEqualTo(999)
+    }
+
+    @Test
     fun no_activities_means_no_rows() = runTest {
         loadRepo.rows[today - 5] = staleRow(today - 5)
 

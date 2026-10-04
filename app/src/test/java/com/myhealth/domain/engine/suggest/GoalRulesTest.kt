@@ -225,7 +225,8 @@ class GoalRulesTest {
     private fun poolInput(pool: List<StrengthWorkout>?, last: Map<SessionType, Long> = emptyMap()) =
         SuggestFixtures.input(
             goals = listOf(SuggestFixtures.raceGoal(day(60))),
-            profile = SuggestFixtures.profile(preferredSportsJson = """{"RUN":2,"STRENGTH":2}"""),
+            // All four sports, as onboarding writes them (an unlisted sport is uncapped).
+            profile = SuggestFixtures.profile(preferredSportsJson = """{"RUN":2,"STRENGTH":2,"SOCCER":0,"CYCLE":0}"""),
         ).copy(
             muscleLoad = SuggestFixtures.muscleLoad(ctl = 60.0),
             strengthPool = pool,

@@ -354,6 +354,7 @@ class SuggestionEngine(private val clock: Clock) {
             bikeGoal = BikeRules.primaryBikeGoal(input.goals),
             bikeIndoorSeason = bike.trainerAvailable && BikeRules.isIndoorSeason(candidate.day),
             isStarterWeek = periodization.isStarterWeek,
+            downWeekReason = periodization.downWeekReason,
             muscleLowerBand = StrengthRules.projectedLowerBand(candidate.day, muscle),
             muscleUpperBand = StrengthRules.projectedUpperBand(candidate.day, muscle),
             muscleLegWorkBlocked = StrengthRules.legWorkBlocked(candidate.day, grid, muscle),

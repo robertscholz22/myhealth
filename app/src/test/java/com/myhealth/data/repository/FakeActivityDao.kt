@@ -1,6 +1,7 @@
 package com.myhealth.data.repository
 
 import com.myhealth.data.db.dao.ActivityDao
+import com.myhealth.data.db.dao.DayCount
 import com.myhealth.data.db.dao.DayTrimp
 import com.myhealth.data.db.entity.ActivityLapEntity
 import com.myhealth.data.db.entity.ActivitySessionEntity
@@ -81,6 +82,12 @@ class FakeActivityDao : ActivityDao {
                 .map { (day, rows) -> DayTrimp(day, rows.sumOf { it.trimp ?: 0.0 }) }
                 .sortedBy { it.day }
         }
+
+    override suspend fun countPerDay(fromDay: Long, toDay: Long): List<DayCount> =
+        activities.value.values.filter { it.day in fromDay..toDay }
+            .groupBy { it.day }
+            .map { (day, rows) -> DayCount(day, rows.size) }
+            .sortedBy { it.day }
 
     override suspend fun getFullById(id: Long): ActivityWithStream? =
         activities.value[id]?.let { full(it) }

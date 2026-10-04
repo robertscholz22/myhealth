@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import java.time.LocalDate
 
 /**
  * Application entry point. Owns the single [AppGraph] instance for the process.
@@ -43,5 +44,10 @@ class MyHealthApp : Application(), Configuration.Provider {
 
         // TRIMP / ACWR / recovery for the last 28 days, daily at 04:00 local (P5.5).
         graph.syncScheduler.scheduleDailyLoadRecompute()
+
+        // BUG-18: one recompute per app start. It runs the EWMAs over the whole history and repairs
+        // any stored row that disagrees (zero-seeded rows from ≤ 0.9.0), so a training plan generated
+        // right after an update already sees the right CTL. Cheap: one pass over the daily sums.
+        graph.syncScheduler.requestLoadRecompute(LocalDate.now().toEpochDay())
     }
 }
